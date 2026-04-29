@@ -1,7 +1,6 @@
 
 function migratePathOverridesIntoNotes(){
-  let overrides={};
-  try{overrides=JSON.parse(localStorage.getItem('klaws_note_paths_v1')||'{}')||{};}catch(_e){overrides={};}
+  const overrides=readJSON('klaws_note_paths_v1',{});
   if(!overrides||typeof overrides!=='object'||Array.isArray(overrides)) return false;
   let changed=false;
   [...notes,...mapRelays].forEach(n=>{
@@ -109,7 +108,7 @@ function saveData() {
   try {
     const nextRaw=JSON.stringify(getPayload());
     if(!isUndoApplying&&lastSavedPayloadRaw&&lastSavedPayloadRaw!==nextRaw) undoSnapshotRaw=lastSavedPayloadRaw;
-    localStorage.setItem(SKEY,nextRaw);
+    writeJSON(SKEY,getPayload());
     lastSavedPayloadRaw=nextRaw;
   } catch(e){}
 }

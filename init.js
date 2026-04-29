@@ -229,7 +229,18 @@
   canvas.addEventListener('touchstart',e=>{if(e.touches.length===2){const d=e.touches[0].clientX-e.touches[1].clientX,dd=e.touches[0].clientY-e.touches[1].clientY;pinchDist=Math.sqrt(d*d+dd*dd);}},{passive:true});
   canvas.addEventListener('touchmove',e=>{if(e.touches.length===2&&pinchDist){e.preventDefault();const d=e.touches[0].clientX-e.touches[1].clientX,dd=e.touches[0].clientY-e.touches[1].clientY,nd=Math.sqrt(d*d+dd*dd);setZoom(mapScale*nd/pinchDist);pinchDist=nd;}},{passive:false});
   window.addEventListener('resize',()=>scheduleMapRedraw(100));window.addEventListener('orientationchange',()=>scheduleMapRedraw(120));
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleMapRedraw(100);});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden'){
+      if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
+      saveData();
+      return;
+    }
+    scheduleMapRedraw(100);
+  });
+  window.addEventListener('pagehide',()=>{
+    if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
+    saveData();
+  });
   window.addEventListener('pageshow',()=>bindCoreButtons());
   if(window.ResizeObserver){mapResizeObserver=new ResizeObserver(()=>scheduleMapRedraw(60));mapResizeObserver.observe(canvas);}
   try{reminderDismissed=JSON.parse(localStorage.getItem('klaws_reminder_dismissed_v1')||'{}')||{};}catch(e){reminderDismissed={};}
