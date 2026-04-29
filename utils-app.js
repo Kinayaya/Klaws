@@ -292,14 +292,20 @@ const noteScopeKeys = (n,arrKey,singleKey) => {
 };
 const notePathSegments = n => safeStr(n&&n.path).split('/').map(x=>x.trim()).filter(Boolean);
 const noteSubjects = n => {
+  const legacy=noteScopeKeys(n,'subjects','subject');
+  if(legacy.length) return legacy;
   const segs=notePathSegments(n);
   return segs[0]?[segs[0]]:[];
 };
 const noteChapters = n => {
+  const legacy=noteScopeKeys(n,'chapters','chapter');
+  if(legacy.length) return legacy;
   const segs=notePathSegments(n);
   return segs[1]?[segs[1]]:[];
 };
 const noteSections = n => {
+  const legacy=noteScopeKeys(n,'sections','section');
+  if(legacy.length) return legacy;
   const segs=notePathSegments(n);
   return segs[2]?[segs[2]]:[];
 };
@@ -317,10 +323,10 @@ const tagUsageCount = (kind,key) => {
   return [...notes,...mapRelays].filter(n=>noteChapters(n).includes(key)).length;
 };
 const noteById = id => notes.find(n=>n.id===id);
-const relayById = _id => null;
-const mapNodeById = id => noteById(id);
-const allMapNodes = () => [...notes];
-const isRelayNode = _n => false;
+const relayById = id => mapRelays.find(n=>n.id===id);
+const mapNodeById = id => noteById(id)||relayById(id);
+const allMapNodes = () => [...notes,...mapRelays];
+const isRelayNode = n => !!(n&&n.kind==='relay');
 const noteTags = _n => [];
 const noteHasVisibleContent = n => !!(safeStr(n.question).trim()||safeStr(n.answer).trim()||safeStr(n.application).trim()||safeStr(n.body).trim()||safeStr(n.detail).trim()||noteTags(n).length||(Array.isArray(n.todos)&&n.todos.length));
 const noteExtraFields = n => (n&&n.extraFields&&typeof n.extraFields==='object'&&!Array.isArray(n.extraFields))?n.extraFields:{};
