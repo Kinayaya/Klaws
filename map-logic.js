@@ -291,10 +291,8 @@ function redrawLines(affectedId){
   });
 }
 function mapNodeMatchesTaxonomyFilter(n){
-  const subs=noteSubjects(n),chs=noteChapters(n),secs=noteSections(n);
-  const chapterMatch=mapFilter.chapter==='all'?true:(mapFilter.chapter==='none'?!chs.length:chs.includes(mapFilter.chapter));
-  const sectionMatch=mapFilter.section==='all'?true:(mapFilter.section==='none'?!secs.length:secs.includes(mapFilter.section));
-  return (mapFilter.sub==='all'||subs.includes(mapFilter.sub))&&chapterMatch&&sectionMatch;
+  const subs=noteSubjects(n);
+  return (mapFilter.sub==='all'||subs.includes(mapFilter.sub));
 }
 function visibleNotes(){
   const q=(mapFilter.q||'').toLowerCase(),linkedIds={};
@@ -773,37 +771,23 @@ function startDragTouch(e,id){
   dragOffY=touch.clientY-rect.top+scrollTop-(pos.y*mapScale+mapOffY);
 }
 function buildMapFilters(){
-  const ss=g('mapFilterSub'),sch=g('mapFilterChapter'),ssc=g('mapFilterSection'),sd=g('mapDepthSel');if(!ss||!sch||!ssc)return;
+  const ss=g('mapFilterSub'),sch=g('mapFilterChapter'),ssc=g('mapFilterSection'),sd=g('mapDepthSel');if(!ss)return;
   ss.innerHTML='<option value="all">全部科目</option>'+subjects.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
   if(!subjects.some(s=>s.key===mapFilter.sub))mapFilter.sub='all';
-  const mapChapters=chapters.filter(ch=>mapFilter.sub==='all'||ch.subject===mapFilter.sub||ch.subject==='all');
-  const preferredChapter=(cch!=='all'&&cch)||selectedChapters[0]||'';
-  if(mapChapters.length){
-    if(!['all','none'].includes(mapFilter.chapter)&&!mapChapters.some(ch=>ch.key===mapFilter.chapter)) mapFilter.chapter=preferredChapter;
-    if(!['all','none'].includes(mapFilter.chapter)&&!mapChapters.some(ch=>ch.key===mapFilter.chapter)) mapFilter.chapter='all';
-    sch.innerHTML='<option value="all">全部章</option><option value="none">無章</option>'+mapChapters.map(ch=>`<option value="${ch.key}">${ch.label}</option>`).join('');
-  }else{
-    mapFilter.chapter='all';
-    sch.innerHTML='<option value="all">全部章</option><option value="none">無章</option>';
-  }
-  const mapSections=sections.filter(sec=>mapFilter.chapter==='all'||sec.chapter===mapFilter.chapter||sec.chapter==='all');
-  if(mapSections.length){
-    if(!['all','none'].includes(mapFilter.section)&&!mapSections.some(sec=>sec.key===mapFilter.section)) mapFilter.section='all';
-    ssc.innerHTML='<option value="all">全部節</option><option value="none">無節</option>'+mapSections.map(sec=>`<option value="${sec.key}">${sec.label}</option>`).join('');
-  }else{
-    mapFilter.section='all';
-    ssc.innerHTML='<option value="all">全部節</option><option value="none">無節</option>';
-  }
-  ss.value=mapFilter.sub;sch.value=mapFilter.chapter;ssc.value=mapFilter.section;
+  mapFilter.chapter='all';
+  mapFilter.section='all';
+  if(sch){sch.innerHTML='<option value="all">全部章</option>';sch.value='all';}
+  if(ssc){ssc.innerHTML='<option value="all">全部節</option>';ssc.value='all';}
+  ss.value=mapFilter.sub;
   if(sd)sd.value=['all','1','2','3'].includes(mapDepth)?mapDepth:'all';
   updateMapPinnedChapter();
 }
-function laneContextLabelText(){ const s=mapFilter.sub==='all'?'全部科目':subByKey(mapFilter.sub).label,sec=mapFilter.section==='all'?'全部節':(mapFilter.section==='none'?'無節':sectionByKey(mapFilter.section).label);return `目前篩選：${s} / ${sec}`; }
+function laneContextLabelText(){ const s=mapFilter.sub==='all'?'全部科目':subByKey(mapFilter.sub).label;return `目前篩選：${s}`; }
 function ensureLanePanel(){
   const existing=g('lanePanel');if(existing)return existing;
   const canvas=g('mapCanvas');if(!canvas)return null;
   const panel=document.createElement('div');panel.id='lanePanel';
-  panel.innerHTML=`<div class="lane-panel-head"><span class="lane-panel-title">泳道設定</span><button class="pcls" id="lanePanelClose">×</button></div><div class="lane-panel-desc">可依「目前科目/節篩選」分開設定泳道名稱。</div><div id="laneContextLabel"></div><div class="lane-count-row"><label for="laneCountInput">泳道數量</label><input id="laneCountInput" type="number" min="${MIN_LANE_COUNT}" max="${MAX_LANE_COUNT}" value="${DEFAULT_LANE_NAMES.length}"></div><div id="laneInputs"></div><div class="lane-panel-actions"><button class="fbtn bcl" id="laneResetBtn">恢復預設</button><button class="fbtn bsv" id="laneSaveBtn">儲存</button></div>`;
+  panel.innerHTML=`<div class="lane-panel-head"><span class="lane-panel-title">泳道設定</span><button class="pcls" id="lanePanelClose">×</button></div><div class="lane-panel-desc">可依「目前科目篩選」分開設定泳道名稱。</div><div id="laneContextLabel"></div><div class="lane-count-row"><label for="laneCountInput">泳道數量</label><input id="laneCountInput" type="number" min="${MIN_LANE_COUNT}" max="${MAX_LANE_COUNT}" value="${DEFAULT_LANE_NAMES.length}"></div><div id="laneInputs"></div><div class="lane-panel-actions"><button class="fbtn bcl" id="laneResetBtn">恢復預設</button><button class="fbtn bsv" id="laneSaveBtn">儲存</button></div>`;
   canvas.appendChild(panel);on('lanePanelClose','click',closeLanePanel);on('laneSaveBtn','click',saveLanePanel);on('laneResetBtn','click',resetLanePanel);return panel;
 }
 function renderLanePanel(){
