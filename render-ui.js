@@ -605,10 +605,16 @@ function ensureEruda(){
     document.head.appendChild(s);
   });
 }
+function safeErudaCall(eruda,method){
+  if(!eruda||typeof eruda[method]!=='function') return false;
+  if(eruda._isInit!==true) return false;
+  eruda[method]();
+  return true;
+}
 async function toggleDebugTool(){
   const btn=g('debugToggle');
   if(debugVisible){
-    if(debugMode==='eruda'&&window.eruda) window.eruda.hide();
+    if(debugMode==='eruda') safeErudaCall(window.eruda,'hide');
     hideLocalDebugConsole();
     debugVisible=false;
     debugMode='';
@@ -629,7 +635,7 @@ async function toggleDebugTool(){
     if(!er||typeof er.init!=='function') throw new Error('eruda unavailable');
     if(typeof er.destroy==='function'&&er._isInit===false) er.init();
     if(!er._isInit) er.init();
-    er.show();
+    safeErudaCall(er,'show');
     hideLocalDebugConsole();
     debugMode='eruda';
   }catch(e){
