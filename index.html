@@ -33,7 +33,7 @@
       <div class="brand-text"><span class="brand-name">KLaws</span><span class="brand-by">by Kina（張晧翔）</span></div>
     </div>
     <div class="header-status-wrap">
-      <button id="headerTitleWrap" class="header-achievement-wrap" title="查看等級系統" aria-label="查看等級系統"><span class="brand-title" id="brandTitleBadge">LV1・節點觀測員</span></button>
+      <button id="headerTitleWrap" class="header-achievement-wrap" title="查看等級系統" aria-label="查看等級系統"><span class="brand-title" id="brandTitleBadge">LV1・點觀測員</span></button>
       <button id="headerDatetimeBtn" class="header-time-wrap" title="開啟日曆系統" aria-label="開啟日曆系統">----/--/-- --:--</button>
       <button class="map-btn" id="mapToggleBtn">&#128279; 體系圖</button>
       <button class="tool-btn exam-btn-style" id="examBtn">&#9997; 申論</button>
@@ -173,7 +173,7 @@
     </div>
     <div class="tag-manager-content">
       <div class="tag-category-panel" data-category-panel="type">
-        <div class="tag-section-title">類型</div>
+        <div class="tag-part-title">類型</div>
         <div class="tag-list" id="typeTagList"></div>
         <div class="tag-add-row">
           <input id="newTypeLabel" placeholder="新類型名稱">
@@ -294,9 +294,9 @@
   <div id="mapToolbar">
     <div class="map-search-wrap">
       <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#aaa;font-size:12px;pointer-events:none;">&#128269;</span>
-      <input id="mapSearchInput" placeholder="搜尋節點..." autocomplete="off">
+      <input id="mapSearchInput" placeholder="搜尋點..." autocomplete="off">
     </div>
-    <select id="mapFilterSub" class="map-filter-sel"><option value="all">全部科目</option></select>
+    <select id="mapFilterSub" class="map-filter-sel"><option value="all">全部</option></select>
     
     
     <button class="tool-btn" id="mapAdvancedToggleBtn" style="background:#f5f5f5;color:#555;border-color:#ddd;">⚙️ 進階</button>
@@ -326,7 +326,7 @@
     </aside>
     <div id="lanePanel">
       <div class="lane-panel-head"><span class="lane-panel-title">泳道設定</span><button class="pcls" id="lanePanelClose">&#215;</button></div>
-      <div class="lane-panel-desc">可依「目前科目/節篩選」分開設定泳道名稱。</div>
+      <div class="lane-panel-desc">可依「目前/篩選」分開設定泳道名稱。</div>
       <div id="laneContextLabel"></div>
       <div class="lane-count-row"><label for="laneCountInput">泳道數量</label><input id="laneCountInput" type="number" min="2" max="10" value="5"></div>
       <div id="laneInputs"></div>
@@ -339,7 +339,7 @@
       <button class="mp-close" id="mpClose">&#215;</button>
       <span class="mp-badge" id="mpBadge"></span>
       <div class="mp-title" id="mpTitle"></div>
-      <span class="mp-subject" id="mpSubject"></span>
+      <span class="mp-domain" id="mpDomain"></span>
       <div class="mp-links" id="mpLinks"></div>
       <div class="mp-link-quick-wrap" id="mp-link-quick-wrap" style="display:none;">
         <input class="fi" id="mp-link-search" placeholder="關聯筆記">
@@ -376,16 +376,16 @@
 <div id="examView">
   <div id="examHeader"><span id="examHeaderTitle">&#9997; 申論測驗</span><span id="examTimer">00:00</span></div>
   <div id="examBody">
-    <div class="exam-section"><div class="exam-section-title">題目</div><div class="exam-question-text" id="examQuestionDisplay"></div><div class="exam-issues" id="examIssueChips"></div></div>
-    <div class="exam-section" style="flex:1;"><div class="exam-section-title">&#9997; 作答欄</div><textarea id="examAnswerBox" placeholder="請在此作答..."></textarea><div class="exam-word-count" id="examWordCount">0 字</div></div>
+    <div class="exam-part"><div class="exam-part-title">題目</div><div class="exam-question-text" id="examQuestionDisplay"></div><div class="exam-issues" id="examIssueChips"></div></div>
+    <div class="exam-part" style="flex:1;"><div class="exam-part-title">&#9997; 作答欄</div><textarea id="examAnswerBox" placeholder="請在此作答..."></textarea><div class="exam-word-count" id="examWordCount">0 字</div></div>
     <div class="exam-action-row"><button class="exam-btn exam-btn-end" id="examSubmitBtn">&#10003; 提交作答</button><button class="exam-btn exam-btn-cancel" id="examCancelBtn">&#8592; 放棄離開</button></div>
   </div>
   <div id="examResult">
     <div class="result-score-card"><div class="result-score-num" id="resultScoreNum">--</div><div class="result-score-label">/ 100 分</div></div>
-    <div class="result-section"><h3>&#128221; AI 教授評語</h3><p id="resultComment">評分中...</p></div>
-    <div class="result-section" id="resultIssueSection"><h3>&#128269; 逐點分析</h3><div id="resultIssueAnalysis"></div></div>
-    <div class="result-section"><h3>&#128200; 各項表現</h3><div id="resultTags"></div></div>
-    <div class="result-section"><h3>&#128218; 參考答案要點</h3><p id="resultRef"></p></div>
+    <div class="result-part"><h3>&#128221; AI 教授評語</h3><p id="resultComment">評分中...</p></div>
+    <div class="result-part" id="resultIssuePart"><h3>&#128269; 逐點分析</h3><div id="resultIssueAnalysis"></div></div>
+    <div class="result-part"><h3>&#128200; 各項表現</h3><div id="resultTags"></div></div>
+    <div class="result-part"><h3>&#128218; 參考答案要點</h3><p id="resultRef"></p></div>
     <div class="exam-action-row" style="padding:0 0 20px;"><button class="exam-btn exam-btn-end" id="examRetryBtn">&#8634; 再做一題</button><button class="exam-btn exam-btn-cancel" id="examBackBtn2">&#8592; 返回筆記</button></div>
   </div>
 </div>
@@ -400,7 +400,7 @@
 <!-- Exam Form -->
 <div class="panel" id="examAddForm">
   <div class="ph"><span class="ph-title">+ 新增申論題</span><button class="pcls" id="examFormClose">&#215;</button></div>
-  <label class="flbl" style="margin-top:0">科目</label><select class="fs" id="examSubSel"></select>
+  <label class="flbl" style="margin-top:0"></label><select class="fs" id="examSubSel"></select>
   <label class="flbl">題目</label><textarea class="ft" id="examQInput" style="min-height:100px;" placeholder="題目"></textarea>
   <label class="flbl">爭點</label><input class="fi" id="examIssInput" placeholder="爭點">
   <label class="flbl">作答時間（分鐘）</label><input class="fi" id="examTimeInput" type="number" value="30" min="5" max="120">

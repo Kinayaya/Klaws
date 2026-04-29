@@ -45,19 +45,19 @@ window.addEventListener('unhandledrejection',evt=>{
 function loadFormTaxonomyPref(){
   try{
     const raw=JSON.parse(localStorage.getItem(FORM_TAXONOMY_PREF_KEY)||'{}');
-    const subject=typeof raw.subject==='string'?raw.subject:'';
-    const chapter=typeof raw.chapter==='string'?raw.chapter:'';
-    const section=typeof raw.section==='string'?raw.section:'';
-    return {subject,chapter,section};
+    const domain=typeof raw.domain==='string'?raw.domain:'';
+    const group=typeof raw.group==='string'?raw.group:'';
+    const part=typeof raw.part==='string'?raw.part:'';
+    return {domain,group,part};
   }catch(e){
-    return {subject:'',chapter:'',section:''};
+    return {domain:'',group:'',part:''};
   }
 }
-function saveFormTaxonomyPref(subject='', chapter='', section=''){
+function saveFormTaxonomyPref(domain='', group='', part=''){
   localStorage.setItem(FORM_TAXONOMY_PREF_KEY,JSON.stringify({
-    subject:safeStr(subject),
-    chapter:safeStr(chapter),
-    section:safeStr(section)
+    domain:safeStr(domain),
+    group:safeStr(group),
+    part:safeStr(part)
   }));
 }
 function saveLastViewState(){
@@ -303,50 +303,50 @@ const togglePanelDir = () => {
 };
 const saveDataDeferred = () => { clearTimeout(_saveTimer); _saveTimer=setTimeout(()=>{ if(JSON.stringify({notes,links}).length>4500000) showToast('⚠️ 資料接近儲存上限'); saveData(); },500); };
 const typeByKey = k => k?(types.find(t=>t.key===k)||{key:k,label:k,color:'#888'}):{key:'',label:'無',color:'#888'};
-const subByKey = k => k?(subjects.find(s=>s.key===k)||{key:k,label:k,color:'#888'}):{key:'',label:'無',color:'#888'};
-const chapterByKey = k => k?(chapters.find(c=>c.key===k)||{key:k,label:k,subject:'all'}):{key:'',label:'無',subject:'all'};
-const sectionByKey = k => k?(sections.find(s=>s.key===k)||{key:k,label:k,chapter:'all'}):{key:'',label:'無',chapter:'all'};
+const subByKey = k => k?(domains.find(s=>s.key===k)||{key:k,label:k,color:'#888'}):{key:'',label:'無',color:'#888'};
+const groupByKey = k => k?(groups.find(c=>c.key===k)||{key:k,label:k,domain:'all'}):{key:'',label:'無',domain:'all'};
+const partByKey = k => k?(parts.find(s=>s.key===k)||{key:k,label:k,group:'all'}):{key:'',label:'無',group:'all'};
 const noteScopeKeys = (n,arrKey,singleKey) => {
   const arr=Array.isArray(n&&n[arrKey])?n[arrKey].filter(Boolean):[];
   return uniq(arr.length?arr:((n&&n[singleKey])?[n[singleKey]]:[]));
 };
 const notePathSegments = n => safeStr(n&&n.path).split('/').map(x=>x.trim()).filter(Boolean);
-const noteSubjects = n => {
-  const legacy=noteScopeKeys(n,'subjects','subject');
+const noteDomains = n => {
+  const legacy=noteScopeKeys(n,'domains','domain');
   if(legacy.length) return legacy;
   const segs=notePathSegments(n);
   return segs[0]?[segs[0]]:[];
 };
-const noteChapters = n => {
-  const legacy=noteScopeKeys(n,'chapters','chapter');
+const noteGroups = n => {
+  const legacy=noteScopeKeys(n,'groups','group');
   if(legacy.length) return legacy;
   const segs=notePathSegments(n);
   return segs[1]?[segs[1]]:[];
 };
-const noteSections = n => {
-  const legacy=noteScopeKeys(n,'sections','section');
+const noteParts = n => {
+  const legacy=noteScopeKeys(n,'parts','part');
   if(legacy.length) return legacy;
   const segs=notePathSegments(n);
   return segs[2]?[segs[2]]:[];
 };
-const noteSubjectText = n => noteSubjects(n).join(' ');
-const noteChapterText = n => noteChapters(n).join(' ');
-const noteSectionText = n => noteSections(n).join(' ');
-const mapHasTaxonomyFilter = () => (mapFilter.sub!=='all'||mapFilter.chapter!=='all'||mapFilter.section!=='all');
+const noteDomainText = n => noteDomains(n).join(' ');
+const noteGroupText = n => noteGroups(n).join(' ');
+const notePartText = n => noteParts(n).join(' ');
+const mapHasTaxonomyFilter = () => (mapFilter.sub!=='all'||mapFilter.group!=='all'||mapFilter.part!=='all');
 const intersects = (arr1,arr2) => arr1.some(x=>arr2.includes(x));
-const TAG_COLLECTIONS = {type:()=>types, sub:()=>subjects, subject:()=>subjects, chapter:()=>chapters, section:()=>sections};
+const TAG_COLLECTIONS = {type:()=>types, sub:()=>domains, domain:()=>domains, group:()=>groups, part:()=>parts};
 const tagCollection = kind => (TAG_COLLECTIONS[kind]||(()=>[]))();
 const tagUsageCount = (kind,key) => {
   if(kind==='type') return notes.filter(n=>n.type===key).length;
-  if(kind==='sub') return [...notes,...mapRelays].filter(n=>noteSubjects(n).includes(key)).length;
-  if(kind==='section') return [...notes,...mapRelays].filter(n=>noteSections(n).includes(key)).length;
-  return [...notes,...mapRelays].filter(n=>noteChapters(n).includes(key)).length;
+  if(kind==='sub') return [...notes,...mapAuxNodes].filter(n=>noteDomains(n).includes(key)).length;
+  if(kind==='part') return [...notes,...mapAuxNodes].filter(n=>noteParts(n).includes(key)).length;
+  return [...notes,...mapAuxNodes].filter(n=>noteGroups(n).includes(key)).length;
 };
 const noteById = id => notes.find(n=>n.id===id);
-const relayById = id => mapRelays.find(n=>n.id===id);
-const mapNodeById = id => noteById(id)||relayById(id);
-const allMapNodes = () => [...notes,...mapRelays];
-const isRelayNode = n => !!(n&&n.kind==='relay');
+const auxnodeById = id => mapAuxNodes.find(n=>n.id===id);
+const mapNodeById = id => noteById(id)||auxnodeById(id);
+const allMapNodes = () => [...notes,...mapAuxNodes];
+const isAuxnodeNode = n => !!(n&&n.kind==='auxnode');
 const noteTags = _n => [];
 const noteHasVisibleContent = n => !!(safeStr(n.question).trim()||safeStr(n.answer).trim()||safeStr(n.application).trim()||safeStr(n.body).trim()||safeStr(n.detail).trim()||noteTags(n).length||(Array.isArray(n.todos)&&n.todos.length));
 const noteExtraFields = n => (n&&n.extraFields&&typeof n.extraFields==='object'&&!Array.isArray(n.extraFields))?n.extraFields:{};
@@ -374,9 +374,9 @@ const mapCardFieldText = (n,key) => {
 };
 const renderMapCardPreview = n => {
   const keys=getTypeFieldKeys(n.type).filter(key=>key!=='tags');
-  const sections=keys.map(key=>mapCardFieldText(n,key)).filter(text=>!!text);
-  if(!sections.length) return '';
-  return sections.map(text=>`<div class="map-card-body-segment"><div class="map-card-body-text">${escapeHtml(text)}</div></div>`).join('');
+  const parts=keys.map(key=>mapCardFieldText(n,key)).filter(text=>!!text);
+  if(!parts.length) return '';
+  return parts.map(text=>`<div class="map-card-body-segment"><div class="map-card-body-text">${escapeHtml(text)}</div></div>`).join('');
 };
 const noteFieldValueForEdit = (n,key) => {
   if(key==='question') return n.question||'';
@@ -411,7 +411,7 @@ const normalizeMapPageStack = stack => {
 };
 const buildPathAliasMap = () => {
   const map={};
-  [...notes,...mapRelays].forEach(n=>{
+  [...notes,...mapAuxNodes].forEach(n=>{
     const full=normalizePathText(n.path||'');
     if(!full) return;
     const parts=splitNotePath(full);
@@ -451,7 +451,7 @@ const getAiProvider = () => localStorage.getItem('klaws_ai_provider')||'openrout
 const saveAiProvider = p => localStorage.setItem('klaws_ai_provider',p);
 const getMapScopeContextKey = () => {
   const pageRoot=mapPageStack.length?mapPageStack[mapPageStack.length-1]:'root';
-  return `${mapFilter.sub||'all'}::${mapFilter.chapter||'all'}::${mapFilter.section||'all'}::${pageRoot}`;
+  return `${mapFilter.sub||'all'}::${mapFilter.group||'all'}::${mapFilter.part||'all'}::${pageRoot}`;
 };
 const getMapCenterContextKey = getMapScopeContextKey;
 const getMapCollapseContextKey = getMapScopeContextKey;
@@ -570,8 +570,8 @@ const normalizeMapCollapsed = raw => {
 };
 const currentSubpageRootId = () => mapPageStack.length?mapPageStack[mapPageStack.length-1]:null;
 const isInMapSubpage = () => !!currentSubpageRootId();
-const relayPageRootId = relay => {
-  const raw=(relay&&relay.pageRootId!==undefined&&relay.pageRootId!==null)?parseInt(relay.pageRootId,10):NaN;
+const auxnodePageRootId = auxnode => {
+  const raw=(auxnode&&auxnode.pageRootId!==undefined&&auxnode.pageRootId!==null)?parseInt(auxnode.pageRootId,10):NaN;
   return Number.isFinite(raw)?raw:null;
 };
 function isNodeInCurrentMapPage(nodeId){
@@ -608,7 +608,7 @@ const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
   setMapCenterForCurrentScope(target,opt);
   mapPageStack=prevStack;
 };
-const getPayload = () => ({notes,mapRelays,links,nid,lid,types,subjects,chapters,sections,nodePos,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,achievements,levelSystem,panelDir:getPanelDir(),updatedAt:new Date().toISOString()});
+const getPayload = () => ({notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodePos,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,achievements,levelSystem,panelDir:getPanelDir(),updatedAt:new Date().toISOString()});
 const parseUpdatedAt = raw => {
   const n=Date.parse(raw||'');
   return Number.isFinite(n)?n:0;
@@ -931,12 +931,12 @@ function rollbackTaskCompletion(task,skill){
 
 function normalizeNoteIds(forceReindexAll=false) {
   const seen={}, duplicates=new Set();
-  [...notes,...mapRelays].forEach(n=>{
+  [...notes,...mapAuxNodes].forEach(n=>{
     if(!Number.isFinite(n.id) || seen[n.id]) duplicates.add(n.id);
     seen[n.id]=true;
   });
   if(!forceReindexAll && !duplicates.size) {
-    nid=Math.max(nid||1,[...notes,...mapRelays].reduce((m,n)=>Math.max(m,n.id||0),0)+1);
+    nid=Math.max(nid||1,[...notes,...mapAuxNodes].reduce((m,n)=>Math.max(m,n.id||0),0)+1);
     lid=Math.max(lid||1,links.reduce((m,l)=>Math.max(m,l.id||0),0)+1);
     return false;
   }
@@ -952,9 +952,9 @@ function normalizeNoteIds(forceReindexAll=false) {
     if(firstMap[oldId]===undefined) firstMap[oldId]=newId;
   };
   notes.forEach(assignNodeId);
-  mapRelays.forEach(assignNodeId);
-  mapRelays.forEach(r=>{
-    const oldRoot=relayPageRootId(r);
+  mapAuxNodes.forEach(assignNodeId);
+  mapAuxNodes.forEach(r=>{
+    const oldRoot=auxnodePageRootId(r);
     r.pageRootId=oldRoot===null?null:(firstMap[oldRoot]??null);
   });
   links=links.map(l=>{

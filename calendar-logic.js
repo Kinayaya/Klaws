@@ -119,10 +119,10 @@ function saveCalendarEvent(){
   else calendarEvents.push(ev);
   if(type==='diary'&&idx<0){
     const d=activeCalendarDate;
-    const defaultDiarySubject=(mapFilter.sub!=='all'&&subjects.some(s=>s.key===mapFilter.sub))
+    const defaultDiaryDomain=(mapFilter.sub!=='all'&&domains.some(s=>s.key===mapFilter.sub))
       ?mapFilter.sub
-      :((subjects[0]&&subjects[0].key)||'');
-    notes.unshift(normalizeNoteSchema({id:nid++,type:'diary',subject:defaultDiarySubject,subjects:defaultDiarySubject?[defaultDiarySubject]:[],chapter:'',chapters:[],section:'',sections:[],title,question:title,answer:body,prompt:'',application:'日常回顧與行動追蹤',body,detail:body,date:d,todos:[],extraFields:{}}));
+      :((domains[0]&&domains[0].key)||'');
+    notes.unshift(normalizeNoteSchema({id:nid++,type:'diary',domain:defaultDiaryDomain,domains:defaultDiaryDomain?[defaultDiaryDomain]:[],group:'',groups:[],part:'',parts:[],title,question:title,answer:body,prompt:'',application:'日常回顧與行動追蹤',body,detail:body,date:d,todos:[],extraFields:{}}));
   }
   saveData();rebuildUI();renderCalendar();g('calendarEventModal').classList.remove('open');
   const dayBox=g('calendarDayDetail');if(dayBox?.classList.contains('open')) toggleCalendarDayDetail(activeCalendarDate);
@@ -138,12 +138,12 @@ async function sendReminderEmail(ev){
   const content=`提醒事項：${ev.title}\n到期日：${ev.date} ${dueTimeText(ev)}\n內容：${ev.body||''}`;
   if(token&&from&&window.Email&&window.Email.send){
     try{
-      await window.Email.send({SecureToken:token,To:to,From:from,Subject:title,Body:content.replace(/\n/g,'<br>')});
+      await window.Email.send({SecureToken:token,To:to,From:from,Domain:title,Body:content.replace(/\n/g,'<br>')});
       return true;
     }catch(e){console.warn('smtp send fail',e);}
   }
   try{
-    window.location.href=`mailto:${to}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(content)}`;
+    window.location.href=`mailto:${to}?domain=${encodeURIComponent(title)}&body=${encodeURIComponent(content)}`;
     return true;
   }catch(e){
     return false;

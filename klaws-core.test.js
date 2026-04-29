@@ -1,31 +1,28 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { mergeRelaysIntoNotes } = require('./klaws-core.js');
+const { mergeAuxNodesIntoNotes } = require('./klaws-core.js');
 
 const deps = {
-  safeStr: (v)=>typeof v === 'string' ? v : '',
   normalizeNoteSchema: (n={})=>({ id:Number(n.id), type:n.type || 'article', title:n.title || '' })
 };
 
-test('mergeRelaysIntoNotes merges note and relay with relay backup type', ()=>{
+test('mergeAuxNodesIntoNotes keeps normalized notes only and ignores auxnode input', ()=>{
   const notes = [{ id:1, type:'case', title:'A' }];
-  const relays = [{ id:2, type:'relayType', noteTypeBackup:'article', title:'B' }];
-  const merged = mergeRelaysIntoNotes(notes, relays, deps);
+  const auxnodes = [{ id:2, type:'auxnodeType', noteTypeBackup:'article', title:'B' }];
+  const merged = mergeAuxNodesIntoNotes(notes, auxnodes, deps);
 
-  assert.equal(merged.length, 2);
-  assert.deepEqual(merged.map(n=>n.id), [1,2]);
-  assert.equal(merged[1].type, 'article');
+  assert.equal(merged.length, 1);
+  assert.deepEqual(merged.map(n=>n.id), [1]);
 });
 
-test('mergeRelaysIntoNotes removes invalid and duplicate ids', ()=>{
-  const notes = [{ id:1, type:'case' }, { id:'not-number', type:'x' }];
-  const relays = [{ id:1, type:'relay' }, { id:3, type:'relay' }];
+test('mergeAuxNodesIntoNotes removes invalid and duplicate ids', ()=>{
+  const notes = [{ id:1, type:'case' }, { id:'not-number', type:'x' }, { id:1, type:'article' }];
 
-  const merged = mergeRelaysIntoNotes(notes, relays, deps);
-  assert.deepEqual(merged.map(n=>n.id), [1,3]);
+  const merged = mergeAuxNodesIntoNotes(notes, [{ id:3, type:'auxnode' }], deps);
+  assert.deepEqual(merged.map(n=>n.id), [1]);
 });
 
-test('mergeRelaysIntoNotes handles non-array input safely', ()=>{
-  const merged = mergeRelaysIntoNotes(null, undefined, deps);
+test('mergeAuxNodesIntoNotes handles non-array input safely', ()=>{
+  const merged = mergeAuxNodesIntoNotes(null, undefined, deps);
   assert.deepEqual(merged, []);
 });

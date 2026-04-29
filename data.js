@@ -5,7 +5,7 @@ function migratePathOverridesIntoNotes(){
   if(!overrides||typeof overrides!=='object'||Array.isArray(overrides)) return false;
   let changed=false;
   let migratedCount=0;
-  [...notes,...mapRelays].forEach(n=>{
+  [...notes,...mapAuxNodes].forEach(n=>{
     const key=String(n&&n.id);
     if(!key) return;
     const ov=typeof overrides[key]==='string'?normalizePathText(overrides[key]):'';
@@ -28,27 +28,27 @@ function migratePathOverridesIntoNotes(){
 }
 
 // ==================== 資料儲存 ====================
-function migrateLegacyChapterSectionData(){
+function migrateLegacyGroupPartData(){
   let changed=false;
-  const all=[...notes,...mapRelays];
+  const all=[...notes,...mapAuxNodes];
   all.forEach(n=>{
-    const legacyCh=Array.isArray(n.chapters)?n.chapters.filter(Boolean):((n.chapter)?[n.chapter]:[]);
-    const legacySec=Array.isArray(n.sections)?n.sections.filter(Boolean):((n.section)?[n.section]:[]);
+    const legacyCh=Array.isArray(n.groups)?n.groups.filter(Boolean):((n.group)?[n.group]:[]);
+    const legacySec=Array.isArray(n.parts)?n.parts.filter(Boolean):((n.part)?[n.part]:[]);
     if((legacyCh.length||legacySec.length)){
-      const marker=`【舊章節資料】章: ${legacyCh.join(', ')||'無'}；節: ${legacySec.join(', ')||'無'}`;
+      const marker=`【舊資料】: ${legacyCh.join(', ')||'無'}；: ${legacySec.join(', ')||'無'}`;
       const body=safeStr(n.detail||n.body||'');
-      if(!body.includes('【舊章節資料】')){
+      if(!body.includes('【舊資料】')){
         n.detail=(safeStr(n.detail).trim()?`${safeStr(n.detail).trim()}\n\n${marker}`:marker);
         changed=true;
       }
     }
-    if(n.chapter||n.section||(Array.isArray(n.chapters)&&n.chapters.length)||(Array.isArray(n.sections)&&n.sections.length)){
-      n.chapter=''; n.section=''; n.chapters=[]; n.sections=[]; changed=true;
+    if(n.group||n.part||(Array.isArray(n.groups)&&n.groups.length)||(Array.isArray(n.parts)&&n.parts.length)){
+      n.group=''; n.part=''; n.groups=[]; n.parts=[]; changed=true;
     }
   });
-  if(Array.isArray(chapters)&&chapters.length){ chapters=[]; changed=true; }
-  if(Array.isArray(sections)&&sections.length){ sections=[]; changed=true; }
-  if(mapFilter&&typeof mapFilter==='object'&&(mapFilter.chapter!=='all'||mapFilter.section!=='all')){ mapFilter.chapter='all'; mapFilter.section='all'; changed=true; }
+  if(Array.isArray(groups)&&groups.length){ groups=[]; changed=true; }
+  if(Array.isArray(parts)&&parts.length){ parts=[]; changed=true; }
+  if(mapFilter&&typeof mapFilter==='object'&&(mapFilter.group!=='all'||mapFilter.part!=='all')){ mapFilter.group='all'; mapFilter.part='all'; changed=true; }
   return changed;
 }
 
@@ -56,17 +56,17 @@ function loadData() {
   try {
     const d=readJSON(SKEY,null);
     if(d) {
-      notes=mergeRelaysIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapRelays)?d.mapRelays:[]);
-      mapRelays=[];
+      notes=mergeAuxNodesIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapAuxNodes)?d.mapAuxNodes:[]);
+      mapAuxNodes=[];
       links=Array.isArray(d.links)?d.links:DEFAULTS.links.slice();
       links=links.map(l=>({...l,rel:normalizeRelationType(l.rel),color:relationColor(l.rel),note:normalizeRelationNote(l.note)}));
       nid=Number.isFinite(d.nid)?d.nid:Math.max(10,[...notes].reduce((m,n)=>Math.max(m,n.id||0),0)+1);
       lid=Number.isFinite(d.lid)?d.lid:Math.max(10,links.reduce((m,l)=>Math.max(m,l.id||0),0)+1);
       types=Array.isArray(d.types)?d.types:DEFAULTS.types.slice();
       if(!types.some(t=>t.key==='diary')) types.push({key:'diary',label:'日記',color:'#D85A30'});
-      subjects=Array.isArray(d.subjects)?d.subjects:DEFAULTS.subjects.slice();
-      chapters=Array.isArray(d.chapters)?d.chapters:DEFAULTS.chapters.slice();
-      sections=Array.isArray(d.sections)?d.sections:DEFAULTS.sections.slice();
+      domains=Array.isArray(d.domains)?d.domains:DEFAULTS.domains.slice();
+      groups=Array.isArray(d.groups)?d.groups:DEFAULTS.groups.slice();
+      parts=Array.isArray(d.parts)?d.parts:DEFAULTS.parts.slice();
       nodePos=(d.nodePos&&typeof d.nodePos==='object'&&!Array.isArray(d.nodePos))?d.nodePos:{};
       nodeSizes=(d.nodeSizes&&typeof d.nodeSizes==='object'&&!Array.isArray(d.nodeSizes))?d.nodeSizes:{};
       if(d.sortMode) sortMode=d.sortMode;
@@ -74,8 +74,8 @@ function loadData() {
       mapCenterNodeIds=(d.mapCenterNodeIds&&typeof d.mapCenterNodeIds==='object'&&!Array.isArray(d.mapCenterNodeIds))?d.mapCenterNodeIds:{};
       if(d.mapFilter&&typeof d.mapFilter==='object') mapFilter={
         sub:typeof d.mapFilter.sub==='string'?d.mapFilter.sub:'all',
-        chapter:typeof d.mapFilter.chapter==='string'?d.mapFilter.chapter:'all',
-        section:typeof d.mapFilter.section==='string'?d.mapFilter.section:'all',
+        group:typeof d.mapFilter.group==='string'?d.mapFilter.group:'all',
+        part:typeof d.mapFilter.part==='string'?d.mapFilter.part:'all',
         q:typeof d.mapFilter.q==='string'?d.mapFilter.q:''
       };
       if(typeof d.mapLinkedOnly==='boolean') mapLinkedOnly=d.mapLinkedOnly;
@@ -110,29 +110,29 @@ function loadData() {
       });
       typeFieldConfigs=(d.typeFieldConfigs&&typeof d.typeFieldConfigs==='object'&&!Array.isArray(d.typeFieldConfigs))?d.typeFieldConfigs:{};
       types.forEach(t=>{ typeFieldConfigs[t.key]=getTypeFieldKeys(t.key); });
-      let repaired=false,chapterMigrated=false,chapterSectionMigrated=false;
+      let repaired=false,groupMigrated=false,groupPartMigrated=false;
       if(JSON.stringify(rawMapCollapsed)!==JSON.stringify(mapCollapsed)) repaired=true;
       if(JSON.stringify(rawMapSubpages)!==JSON.stringify(mapSubpages)) repaired=true;
       if(rawMapPageNotes&&JSON.stringify(rawMapPageNotes)!==JSON.stringify(mapPageNotes)) repaired=true;
       types.forEach(t=>{if(/^tag_t_/.test(t.key)){let old=t.key;t.key=t.label;notes.forEach(n=>{if(n.type===old)n.type=t.label;});repaired=true;}});
-      subjects.forEach(s=>{if(/^tag_s_/.test(s.key)){let old=s.key;s.key=s.label;allMapNodes().forEach(n=>{n.subjects=noteSubjects(n).map(x=>x===old?s.label:x);n.subject=n.subjects[0]||'';});repaired=true;}});
+      domains.forEach(s=>{if(/^tag_s_/.test(s.key)){let old=s.key;s.key=s.label;allMapNodes().forEach(n=>{n.domains=noteDomains(n).map(x=>x===old?s.label:x);n.domain=n.domains[0]||'';});repaired=true;}});
       allMapNodes().forEach(n=>{
-        if(!noteChapters(n).length){
-          const fromTag=noteTags(n).find(t=>chapters.some(c=>c.key===t&&(noteSubjects(n).includes(c.subject)||c.subject==='all')));
-          n.chapters=fromTag?[fromTag]:[];
-          n.chapter=n.chapters[0]||'';
-          chapterMigrated=true;
+        if(!noteGroups(n).length){
+          const fromTag=noteTags(n).find(t=>groups.some(c=>c.key===t&&(noteDomains(n).includes(c.domain)||c.domain==='all')));
+          n.groups=fromTag?[fromTag]:[];
+          n.group=n.groups[0]||'';
+          groupMigrated=true;
         }
       });
       normalizeNotesTaxonomy();
-      chapterSectionMigrated=migrateLegacyChapterSectionData();
+      groupPartMigrated=migrateLegacyGroupPartData();
       if(migratePathOverridesIntoNotes()) repaired=true;
       if(normalizeNoteIds(true)) repaired=true;
-      if(repaired||chapterMigrated||chapterSectionMigrated){
-        if(chapterSectionMigrated){
-          const migratedNotes=[...notes,...mapRelays].filter(n=>safeStr(n.detail).includes('【舊章節資料】')).length;
-          showToast(`章節已棄用，請使用路徑（已轉換 ${migratedNotes} 筆）`);
-          console.info('[chapter-section-migration]',{migratedNotes});
+      if(repaired||groupMigrated||groupPartMigrated){
+        if(groupPartMigrated){
+          const migratedNotes=[...notes,...mapAuxNodes].filter(n=>safeStr(n.detail).includes('【舊資料】')).length;
+          showToast(`已棄用，請使用路徑（已轉換 ${migratedNotes} 筆）`);
+          console.info('[group-part-migration]',{migratedNotes});
         }
         saveData();
       }
@@ -140,10 +140,10 @@ function loadData() {
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
     } else {
-      notes=DEFAULTS.notes.slice();mapRelays=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();subjects=DEFAULTS.subjects.slice();chapters=DEFAULTS.chapters.slice();sections=DEFAULTS.sections.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};achievements={points:0,taskCompletions:0,unlocked:{},lastUsageMinuteReward:0};levelSystem={skills:[],tasks:[],achievements:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
+      notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};achievements={points:0,taskCompletions:0,unlocked:{},lastUsageMinuteReward:0};levelSystem={skills:[],tasks:[],achievements:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
     }
   } catch(e) {
-    notes=DEFAULTS.notes.slice();mapRelays=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();subjects=DEFAULTS.subjects.slice();chapters=DEFAULTS.chapters.slice();sections=DEFAULTS.sections.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};achievements={points:0,taskCompletions:0,unlocked:{},lastUsageMinuteReward:0};levelSystem={skills:[],tasks:[],achievements:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
+    notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};achievements={points:0,taskCompletions:0,unlocked:{},lastUsageMinuteReward:0};levelSystem={skills:[],tasks:[],achievements:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
   }
 }
 function saveData() {
@@ -155,7 +155,7 @@ function saveData() {
 }
 // ==================== 匯入/匯出 ====================
 function exportData() {
-  const json=JSON.stringify({notes,mapRelays:[],links,nid,lid,types,subjects,chapters,sections,nodeSizes,mapCenterNodeId,mapCenterNodeIds,mapCollapsed,mapSubpages,mapPageNotes,exported:new Date().toISOString()},null,2);
+  const json=JSON.stringify({notes,mapAuxNodes:[],links,nid,lid,types,domains,groups,parts,nodeSizes,mapCenterNodeId,mapCenterNodeIds,mapCollapsed,mapSubpages,mapPageNotes,exported:new Date().toISOString()},null,2);
   const blob=new Blob([json],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
   const d=new Date();
   a.download=`法律筆記備份_${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}.json`;
@@ -180,9 +180,9 @@ function portableFrontmatter(note){
     `application: "${safeStr(n.application).replace(/"/g,'\\"')}"`,
     `date: ${n.date||''}`,
     `type: ${n.type||''}`,
-    `subjects: [${noteSubjects(n).join(', ')}]`,
-    `chapters: [${noteChapters(n).join(', ')}]`,
-    `sections: [${noteSections(n).join(', ')}]`,
+    `domains: [${noteDomains(n).join(', ')}]`,
+    `groups: [${noteGroups(n).join(', ')}]`,
+    `parts: [${noteParts(n).join(', ')}]`,
     `tags: [${noteTags(n).join(', ')}]`,
     '---'
   ];
@@ -210,15 +210,15 @@ function buildPortableExportPackage(){
       hash:portableTextHash(markdown),
       meta:{
         type:n.type||'',
-        subjects:noteSubjects(n),
-        chapters:noteChapters(n),
-        sections:noteSections(n),
+        domains:noteDomains(n),
+        groups:noteGroups(n),
+        parts:noteParts(n),
         tags:noteTags(n),
         date:n.date||''
       }
     };
   });
-  const relayItems=mapRelays.map(n=>{
+  const auxnodeItems=mapAuxNodes.map(n=>{
     const markdown=portableNoteMarkdown(n);
     return {
       id:n.id,
@@ -226,11 +226,11 @@ function buildPortableExportPackage(){
       markdown,
       hash:portableTextHash(markdown),
       meta:{
-        nodeKind:'relay',
+        nodeKind:'auxnode',
         type:n.type||'',
-        subjects:noteSubjects(n),
-        chapters:noteChapters(n),
-        sections:noteSections(n),
+        domains:noteDomains(n),
+        groups:noteGroups(n),
+        parts:noteParts(n),
         tags:noteTags(n),
         date:n.date||''
       }
@@ -239,20 +239,20 @@ function buildPortableExportPackage(){
   const relationItems=links.map(l=>({id:l.id,from:l.from,to:l.to,type:normalizeRelationType(l.rel)}));
   const checksumSource=[
     ...noteItems.map(x=>x.hash),
-    ...relayItems.map(x=>x.hash),
+    ...auxnodeItems.map(x=>x.hash),
     ...relationItems.map(x=>`${x.from}->${x.to}`)
   ].join('|');
   return {
     schemaVersion:PORTABLE_EXPORT_SCHEMA_VERSION,
     exportedAt:new Date().toISOString(),
     sourceApp:'KLaws',
-    taxonomy:{types,subjects,chapters,sections},
+    taxonomy:{types,domains,groups,parts},
     notes:noteItems,
-    relays:relayItems,
+    auxnodes:auxnodeItems,
     relations:relationItems,
     manifest:{
       noteCount:noteItems.length,
-      relayCount:relayItems.length,
+      auxnodeCount:auxnodeItems.length,
       relationCount:relationItems.length,
       contentChecksum:portableTextHash(checksumSource)
     }
@@ -280,7 +280,7 @@ function exportPortablePackage(){
   }
 }
 function parseImportPayload(rawText){
-  const report={errors:[],warnings:[],totalNotes:0,validNotes:0,totalRelays:0,validRelays:0,totalLinks:0,validLinks:0};
+  const report={errors:[],warnings:[],totalNotes:0,validNotes:0,totalAuxnodes:0,validAuxnodes:0,totalLinks:0,validLinks:0};
   let parsed=null;
   try{
     parsed=JSON.parse(rawText);
@@ -289,17 +289,17 @@ function parseImportPayload(rawText){
     return {ok:false,report,data:null};
   }
   if(!parsed||typeof parsed!=='object'){
-    report.errors.push('匯入資料格式錯誤：根節點必須為物件');
+    report.errors.push('匯入資料格式錯誤：根點必須為物件');
     return {ok:false,report,data:null};
   }
   const noteList=Array.isArray(parsed.notes)?parsed.notes:[];
-  const relayList=Array.isArray(parsed.mapRelays)?parsed.mapRelays:[];
+  const auxNodeList=Array.isArray(parsed.mapAuxNodes)?parsed.mapAuxNodes:[];
   if(!Array.isArray(parsed.notes)){
     report.errors.push('匯入資料缺少 notes 陣列');
     return {ok:false,report,data:null};
   }
   report.totalNotes=noteList.length;
-  report.totalRelays=relayList.length;
+  report.totalAuxnodes=auxNodeList.length;
   const normalizedNotes=[];
   noteList.forEach((item,idx)=>{
     if(!item||typeof item!=='object'){
@@ -317,24 +317,24 @@ function parseImportPayload(rawText){
     normalizedNotes.push(normalized);
   });
   report.validNotes=normalizedNotes.length;
-  const normalizedRelays=[];
-  relayList.forEach((item,idx)=>{
+  const normalizedAuxnodes=[];
+  auxNodeList.forEach((item,idx)=>{
     if(!item||typeof item!=='object'){
-      report.warnings.push(`第 ${idx+1} 筆 mapRelays 非物件，已略過`);
+      report.warnings.push(`第 ${idx+1} 筆 mapAuxNodes 非物件，已略過`);
       return;
     }
     const backupType=safeStr(item&&item.noteTypeBackup)||safeStr(item&&item.type)||'article';
-    const normalized=normalizeNoteSchema({...item,isRelay:false,noteTypeBackup:'',type:backupType});
+    const normalized=normalizeNoteSchema({...item,isAuxnode:false,noteTypeBackup:'',type:backupType});
     if(!safeStr(normalized.title).trim()&&!safeStr(normalized.body).trim()&&!safeStr(normalized.detail).trim()){
-      report.warnings.push(`第 ${idx+1} 筆 mapRelays 沒有標題與內容，已略過`);
+      report.warnings.push(`第 ${idx+1} 筆 mapAuxNodes 沒有標題與內容，已略過`);
       return;
     }
     if(!Number.isFinite(Number(item.id))){
-      report.warnings.push(`第 ${idx+1} 筆 mapRelays 缺少有效 id，匯入時將自動重編`);
+      report.warnings.push(`第 ${idx+1} 筆 mapAuxNodes 缺少有效 id，匯入時將自動重編`);
     }
-    normalizedRelays.push(normalized);
+    normalizedAuxnodes.push(normalized);
   });
-  report.validRelays=normalizedRelays.length;
+  report.validAuxnodes=normalizedAuxnodes.length;
   const links=Array.isArray(parsed.links)?parsed.links:[];
   report.totalLinks=links.length;
   const normalizedLinks=[];
@@ -352,7 +352,7 @@ function parseImportPayload(rawText){
     normalizedLinks.push({id:Number(item.id),from,to,rel,color:relationColor(rel),note:normalizeRelationNote(item.note)});
   });
   report.validLinks=normalizedLinks.length;
-  if(report.validNotes===0&&report.validRelays===0){
+  if(report.validNotes===0&&report.validAuxnodes===0){
     report.errors.push('匯入資料沒有可用的筆記內容');
     return {ok:false,report,data:null};
   }
@@ -362,7 +362,7 @@ function parseImportPayload(rawText){
     data:{
       raw:parsed,
       notes:normalizedNotes,
-      relays:normalizedRelays,
+      auxnodes:normalizedAuxnodes,
       links:normalizedLinks
     }
   };
@@ -378,19 +378,19 @@ function importData(file) {
       }
       const d=parsed.data.raw;
       const importNotes=parsed.data.notes;
-      const importRelays=parsed.data.relays;
+      const importAuxnodes=parsed.data.auxnodes;
       const importLinks=parsed.data.links;
       if(parsed.report.warnings.length){
         console.warn('[importData warnings]',parsed.report.warnings);
       }
-      if(confirm('確定 = 完整覆蓋（取代所有現有筆記，保留現有科目/章設定）\n取消 = 合併（只加入新筆記）')) {
-        notes=mergeRelaysIntoNotes(importNotes,importRelays);
+      if(confirm('確定 = 完整覆蓋（取代所有現有筆記，保留現有/設定）\n取消 = 合併（只加入新筆記）')) {
+        notes=mergeAuxNodesIntoNotes(importNotes,importAuxnodes);
         links=importLinks;
-        mapRelays=[];
+        mapAuxNodes=[];
         nodeSizes=d.nodeSizes||{};mapCenterNodeId=d.mapCenterNodeId||null;mapCenterNodeIds=(d.mapCenterNodeIds&&typeof d.mapCenterNodeIds==='object')?d.mapCenterNodeIds:{};mapCollapsed=(d.mapCollapsed&&typeof d.mapCollapsed==='object')?d.mapCollapsed:{};
         mapSubpages=(d.mapSubpages&&typeof d.mapSubpages==='object')?d.mapSubpages:{};
         mapPageNotes=(d.mapPageNotes&&typeof d.mapPageNotes==='object')?normalizeMapPageNotes(d.mapPageNotes):{root:notes.map(n=>n.id)};
-        nid=d.nid||Math.max([...notes,...mapRelays].reduce((m,n)=>Math.max(m,n.id||0),0)+1,10);lid=d.lid||10;notes.sort((a,b)=>b.id-a.id);
+        nid=d.nid||Math.max([...notes,...mapAuxNodes].reduce((m,n)=>Math.max(m,n.id||0),0)+1,10);lid=d.lid||10;notes.sort((a,b)=>b.id-a.id);
         normalizeNoteIds(true);
         saveData();rebuildUI();render();showToast(`已覆蓋，共 ${notes.length} 筆筆記`);
       } else {
@@ -410,7 +410,7 @@ function importData(file) {
           added++;
           if(nextId>=nid) nid=nextId+1;
         });
-        importRelays.forEach(r=>{
+        importAuxnodes.forEach(r=>{
           const oldId=Number(r.id);
           let nextId=oldId;
           if(existing.has(nextId)||!Number.isFinite(nextId)) nextId=Math.max(nid,maxNoteId+1);
@@ -469,7 +469,7 @@ function importData(file) {
           mapSubpages={...mapSubpages,...remappedSubpages};
         }
         notes.sort((a,b)=>b.id-a.id);normalizeNoteIds(true);saveData();rebuildUI();render();
-        const skipped=Math.max(0,(parsed.report.totalNotes+parsed.report.totalRelays)-added);
+        const skipped=Math.max(0,(parsed.report.totalNotes+parsed.report.totalAuxnodes)-added);
         showToast(`已合併，新增 ${added} 筆${skipped?`，略過 ${skipped} 筆`:''}`);
       }
       if(parsed.report.warnings.length){
@@ -554,54 +554,54 @@ function purgeRecycleBin(){
 }
 function normalizeNotesTaxonomy(){
   const tSet=new Set(types.map(t=>t.key));
-  const sSet=new Set(subjects.map(s=>s.key));
-  const cSet=new Set(chapters.map(c=>c.key));
-  const secSet=new Set(sections.map(s=>s.key));
-  const chapterByKeyMap={};
-  chapters.forEach(ch=>{ if(ch&&ch.key) chapterByKeyMap[ch.key]=ch; });
-  const sectionByKeyMap={};
-  sections.forEach(sec=>{ if(sec&&sec.key) sectionByKeyMap[sec.key]=sec; });
+  const sSet=new Set(domains.map(s=>s.key));
+  const cSet=new Set(groups.map(c=>c.key));
+  const secSet=new Set(parts.map(s=>s.key));
+  const groupByKeyMap={};
+  groups.forEach(ch=>{ if(ch&&ch.key) groupByKeyMap[ch.key]=ch; });
+  const partByKeyMap={};
+  parts.forEach(sec=>{ if(sec&&sec.key) partByKeyMap[sec.key]=sec; });
   const normalizeSingleNote=n=>{
     if(!tSet.has(n.type)) n.type='';
-    let subjectsList=noteSubjects(n).filter(k=>sSet.has(k));
-    let chaptersList=noteChapters(n).filter(k=>cSet.has(k));
-    let sectionsList=noteSections(n).filter(k=>secSet.has(k));
+    let domainsList=noteDomains(n).filter(k=>sSet.has(k));
+    let groupsList=noteGroups(n).filter(k=>cSet.has(k));
+    let partsList=noteParts(n).filter(k=>secSet.has(k));
 
-    sectionsList.forEach(secKey=>{
-      const sec=sectionByKeyMap[secKey];
-      if(!sec||!sec.chapter||sec.chapter==='all') return;
-      if(!chaptersList.includes(sec.chapter)&&cSet.has(sec.chapter)) chaptersList.push(sec.chapter);
+    partsList.forEach(secKey=>{
+      const sec=partByKeyMap[secKey];
+      if(!sec||!sec.group||sec.group==='all') return;
+      if(!groupsList.includes(sec.group)&&cSet.has(sec.group)) groupsList.push(sec.group);
     });
 
-    chaptersList=uniq(chaptersList.filter(chKey=>{
-      const ch=chapterByKeyMap[chKey];
+    groupsList=uniq(groupsList.filter(chKey=>{
+      const ch=groupByKeyMap[chKey];
       if(!ch) return false;
-      if(!subjectsList.length) return true;
-      return ch.subject==='all'||subjectsList.includes(ch.subject);
+      if(!domainsList.length) return true;
+      return ch.domain==='all'||domainsList.includes(ch.domain);
     }));
 
-    const derivedSubjects=chaptersList
-      .map(chKey=>chapterByKeyMap[chKey]?.subject)
-      .filter(subjectKey=>subjectKey&&subjectKey!=='all'&&sSet.has(subjectKey));
-    if(derivedSubjects.length) subjectsList=uniq([...subjectsList,...derivedSubjects]);
-    subjectsList=uniq(subjectsList.filter(k=>sSet.has(k)));
+    const derivedDomains=groupsList
+      .map(chKey=>groupByKeyMap[chKey]?.domain)
+      .filter(domainKey=>domainKey&&domainKey!=='all'&&sSet.has(domainKey));
+    if(derivedDomains.length) domainsList=uniq([...domainsList,...derivedDomains]);
+    domainsList=uniq(domainsList.filter(k=>sSet.has(k)));
 
-    const chapterSet=new Set(chaptersList);
-    sectionsList=uniq(sectionsList.filter(secKey=>{
-      const sec=sectionByKeyMap[secKey];
+    const groupSet=new Set(groupsList);
+    partsList=uniq(partsList.filter(secKey=>{
+      const sec=partByKeyMap[secKey];
       if(!sec) return false;
-      return sec.chapter==='all'||chapterSet.has(sec.chapter);
+      return sec.group==='all'||groupSet.has(sec.group);
     }));
 
-    n.subjects=subjectsList;
-    n.subject=subjectsList[0]||'';
-    n.chapters=chaptersList;
-    n.chapter=chaptersList[0]||'';
-    n.sections=sectionsList;
-    n.section=sectionsList[0]||'';
+    n.domains=domainsList;
+    n.domain=domainsList[0]||'';
+    n.groups=groupsList;
+    n.group=groupsList[0]||'';
+    n.parts=partsList;
+    n.part=partsList[0]||'';
   };
   notes.forEach(normalizeSingleNote);
-  mapRelays.forEach(normalizeSingleNote);
+  mapAuxNodes.forEach(normalizeSingleNote);
 }
 function createArchiveSnapshot(){
   const name=(prompt('請輸入存檔名稱：',`存檔 ${new Date().toLocaleString('zh-TW')}`)||'').trim();

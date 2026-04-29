@@ -50,18 +50,18 @@ function openForm(isEdit) {
     syncSidePanelState();
     return;
   }
-  if(!isEdit&&formMode!=='relay') formMode='note';
+  if(!isEdit&&formMode!=='auxnode') formMode='note';
   syncFormModeVisibility();
   if(editMode) {
     const n=mapNodeById(openId); if(!n) return;
-    const relay=isRelayNode(n);
-    formMode=relay?'relay':'note';
-    g('form-title').textContent=relay?'編輯中繼站':'編輯筆記';
-    g('ft').value=n.type;setSelectedValues('fs2',noteSubjects(n));g('fti').value=n.title;g('fpath').value=n.path||'';
+    const auxnode=isAuxnodeNode(n);
+    formMode=auxnode?'auxnode':'note';
+    g('form-title').textContent=auxnode?'編輯':'編輯筆記';
+    g('ft').value=n.type;setSelectedValues('fs2',noteDomains(n));g('fti').value=n.title;g('fpath').value=n.path||'';
     if(g('fpathInheritToggle')) g('fpathInheritToggle').checked=false;
     renderDynamicFields(n.type,n);
   } else {
-    g('form-title').textContent=formMode==='relay'?'新增中繼站':'新增筆記';
+    g('form-title').textContent=formMode==='auxnode'?'新增':'新增筆記';
   ['fti','fpath'].forEach(id=>{const el=g(id);if(el)el.value='';});
     const inherited=inheritedParentPath();
     const inheritToggle=g('fpathInheritToggle');
@@ -70,10 +70,10 @@ function openForm(isEdit) {
       if(inherited) g('fpath').value=inherited;
     }
     const pref=loadFormTaxonomyPref();
-    const filterSub=(mapFilter.sub!=='all'&&subjects.some(s=>s.key===mapFilter.sub))?mapFilter.sub:'';
-    const defaultSub=(pref.subject&&subjects.some(s=>s.key===pref.subject))
-      ?pref.subject
-      :(filterSub||(subjects[0]?subjects[0].key:null));
+    const filterSub=(mapFilter.sub!=='all'&&domains.some(s=>s.key===mapFilter.sub))?mapFilter.sub:'';
+    const defaultSub=(pref.domain&&domains.some(s=>s.key===pref.domain))
+      ?pref.domain
+      :(filterSub||(domains[0]?domains[0].key:null));
     if(defaultSub){
       setSelectedValues('fs2',[defaultSub]);
 
@@ -105,11 +105,11 @@ function renderMapAssignSearch(){
   mapAssignTargetPageId=pageId;
   const q=(input.value||'').trim().toLowerCase();
   const assigned=getMapPageAssignedIds(pageId);
-  const pool=[...notes,...mapRelays].filter(n=>{
+  const pool=[...notes,...mapAuxNodes].filter(n=>{
     if(assigned.has(n.id)) return false;
     if(pageId!=='root'&&String(n.id)===pageId) return false;
     if(!q) return true;
-    const hay=`${n.title||''} ${noteSubjectText(n)} ${noteTags(n).join(' ')}`.toLowerCase();
+    const hay=`${n.title||''} ${noteDomainText(n)} ${noteTags(n).join(' ')}`.toLowerCase();
     return hay.includes(q);
   }).slice(0,24);
   if(!pool.length){ result.innerHTML='<div class="dp-link-empty">找不到可加入的筆記</div>'; return; }
@@ -179,7 +179,7 @@ function renderFormLinks() {
   if(!el||!openId){if(el)el.innerHTML='';return;}
   const related=links.filter(l=>l.from===openId||l.to===openId);
   if(!related.length){el.innerHTML='<span style="font-size:12px;color:#bbb">尚無關聯</span>';return;}
-  el.innerHTML=related.map(l=>{const otherId=l.from===openId?l.to:l.from,other=mapNodeById(otherId),tag=isRelayNode(other)?'<span class="chip" style="margin-right:6px;background:#F2E8FF;color:#7A34B0;border-color:#D4B5EF">中繼站</span>':'',relNote=normalizeRelationNote(l.note);return `<div class="fl-item">${tag}<span class="chip" style="margin-right:6px;background:${relationColor(l.rel)};color:#fff;border-color:${relationColor(l.rel)}">${relationLabel(l.rel)}</span><span class="fl-item-title">${other?other.title:'（已刪除）'}</span>${relNote?`<span class="chip" title="${escapeHtml(relNote)}">${escapeHtml(relNote)}</span>`:''}<button class="fl-del" data-lid="${l.id}">✕</button></div>`;}).join('');
+  el.innerHTML=related.map(l=>{const otherId=l.from===openId?l.to:l.from,other=mapNodeById(otherId),tag=isAuxnodeNode(other)?'<span class="chip" style="margin-right:6px;background:#F2E8FF;color:#7A34B0;border-color:#D4B5EF"></span>':'',relNote=normalizeRelationNote(l.note);return `<div class="fl-item">${tag}<span class="chip" style="margin-right:6px;background:${relationColor(l.rel)};color:#fff;border-color:${relationColor(l.rel)}">${relationLabel(l.rel)}</span><span class="fl-item-title">${other?other.title:'（已刪除）'}</span>${relNote?`<span class="chip" title="${escapeHtml(relNote)}">${escapeHtml(relNote)}</span>`:''}<button class="fl-del" data-lid="${l.id}">✕</button></div>`;}).join('');
   el.querySelectorAll('.fl-del').forEach(btn=>btn.addEventListener('click',()=>{links=links.filter(l=>l.id!==parseInt(btn.dataset.lid));saveData();renderFormLinks();if(isMapOpen)scheduleMapRedraw(100);showToast('關聯已刪除');}));
 }
 function renderFormLinkSearch() {
@@ -187,9 +187,9 @@ function renderFormLinkSearch() {
   const q=(val('fl-search')||'').toLowerCase().trim();
   if(!q){el.innerHTML='';updateFormLinkBulkActions();return;}
   const existIds=new Set(links.filter(l=>openId&&(l.from===openId||l.to===openId)).map(l=>l.from===openId?l.to:l.from));
-  const pool=findMapNodesByKeyword(q,openId).filter(n=>!existIds.has(n.id)&&(!isRelayNode(n)||isNodeInCurrentMapPage(n.id)));
+  const pool=findMapNodesByKeyword(q,openId).filter(n=>!existIds.has(n.id)&&(!isAuxnodeNode(n)||isNodeInCurrentMapPage(n.id)));
   if(!pool.length){el.innerHTML='<div style="font-size:12px;color:#bbb;padding:4px 0;">找不到符合的筆記</div>';updateFormLinkBulkActions();return;}
-  el.innerHTML=pool.map(n=>{const tp=isRelayNode(n)?{label:'中繼站',color:'#A855F7'}:typeByKey(n.type);return `<div class="fl-result-item ${formLinkSelections[n.id]?'selected':''}" data-nid="${n.id}"><input type="checkbox" ${formLinkSelections[n.id]?'checked':''}><span class="fl-result-type" style="background:${tp.color}">${tp.label}</span><span class="fl-result-title">${n.title}</span></div>`;}).join('');
+  el.innerHTML=pool.map(n=>{const tp=isAuxnodeNode(n)?{label:'',color:'#A855F7'}:typeByKey(n.type);return `<div class="fl-result-item ${formLinkSelections[n.id]?'selected':''}" data-nid="${n.id}"><input type="checkbox" ${formLinkSelections[n.id]?'checked':''}><span class="fl-result-type" style="background:${tp.color}">${tp.label}</span><span class="fl-result-title">${n.title}</span></div>`;}).join('');
   el.querySelectorAll('.fl-result-item').forEach(item=>{
     item.addEventListener('click',()=>{
       const toId=parseInt(item.dataset.nid);
@@ -336,21 +336,21 @@ function saveNote() {
     showToast('提示：請保持原子化（單一概念、精簡問答）');
   }
   const selectedSubs=selectedValues('fs2').slice(0,1);
-  if(!selectedSubs.length){showToast('請至少選擇一個科目');return;}
-  const primarySubject=selectedSubs[0]||'';
-  saveFormTaxonomyPref(primarySubject,'','');
+  if(!selectedSubs.length){showToast('請至少選擇一個');return;}
+  const primaryDomain=selectedSubs[0]||'';
+  saveFormTaxonomyPref(primaryDomain,'','');
   if(editMode&&openId) {
-    const isRelay=formMode==='relay';
-    const source=isRelay?mapRelays:notes;
+    const isAuxnode=formMode==='auxnode';
+    const source=isAuxnode?mapAuxNodes:notes;
     const idx=source.findIndex(n=>n.id===openId);
     const selectedIdNums=Object.keys(selectedIds||{}).map(Number).filter(id=>selectedIds[id]);
     const shouldSyncMeta=multiSelMode&&selectedIds[openId]&&selectedIdNums.length>1;
     const prevDone=idx!==-1?doneTodoCount(source[idx].todos):0;
     if(idx!==-1){
       const oldPath=source[idx]?.path||'';
-      const updated=normalizeNoteSchema({...source[idx],type:typeKey,subject:primarySubject,subjects:selectedSubs,chapter:'',chapters:[],section:'',sections:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
+      const updated=normalizeNoteSchema({...source[idx],type:typeKey,domain:primaryDomain,domains:selectedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
       console.log('[saveNote][update]',{noteId:source[idx]?.id,oldPath,newPath:updated.path});
-      source[idx]=isRelay?{...updated,isRelay:true,pageRootId:relayPageRootId(source[idx]),noteTypeBackup:typeKey}:updated;
+      source[idx]=isAuxnode?{...updated,isAuxnode:true,pageRootId:auxnodePageRootId(source[idx]),noteTypeBackup:typeKey}:updated;
     }
     const mentionAdded=idx!==-1?autoLinkMentionsForNote(source[idx]):0;
     const nextDone=idx!==-1?doneTodoCount(source[idx].todos):0;
@@ -363,31 +363,31 @@ function saveNote() {
         if(id===openId) return;
         const target=noteById(id);
         if(!target) return;
-        Object.assign(target,{type:typeKey,subject:primarySubject,subjects:[...selectedSubs],chapter:'',chapters:[],section:'',sections:[]});
+        Object.assign(target,{type:typeKey,domain:primaryDomain,domains:[...selectedSubs],group:'',groups:[],part:'',parts:[]});
       });
     }
-    saveData();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isRelay?'中繼站':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
+    saveData();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     setTimeout(()=>openNote(openId),150);
   } else {
     const d=new Date(),dt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const nowIso=new Date().toISOString();
-    const newNote=normalizeNoteSchema({id:nid++,type:typeKey,subject:primarySubject,subjects:selectedSubs,chapter:'',chapters:[],section:'',sections:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,date:dt,created_at:nowIso,last_reviewed:'',next_review:nowIso,todos:fieldData.todos,extraFields:fieldData.extraFields});
+    const newNote=normalizeNoteSchema({id:nid++,type:typeKey,domain:primaryDomain,domains:selectedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,date:dt,created_at:nowIso,last_reviewed:'',next_review:nowIso,todos:fieldData.todos,extraFields:fieldData.extraFields});
     console.log('[saveNote][create]',{noteId:newNote.id,oldPath:'',newPath:newNote.path});
     if(doneTodoCount(newNote.todos)>0&&levelSystem.tasks.length&&levelSystem.skills.length){
       completeLevelTask(levelSystem.tasks[0].id,levelSystem.skills[0].id);
     }
     refreshAchievementProgress();
-    const isRelay=formMode==='relay';
-    const relayRoot=currentSubpageRootId();
-    const created=isRelay?{...newNote,isRelay:true,pageRootId:relayRoot||null,noteTypeBackup:typeKey}:newNote;
-    if(isRelay) mapRelays.push(created);
+    const isAuxnode=formMode==='auxnode';
+    const auxnodeRoot=currentSubpageRootId();
+    const created=isAuxnode?{...newNote,isAuxnode:true,pageRootId:auxnodeRoot||null,noteTypeBackup:typeKey}:newNote;
+    if(isAuxnode) mapAuxNodes.push(created);
     else {
       notes.unshift(created);
       if(isMapOpen) assignNoteToMapPage(created.id,currentSubpageRootId()?String(currentSubpageRootId()):'root');
     }
     openId=created.id;
     const mentionAdded=autoLinkMentionsForNote(created);
-    saveData();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isRelay?'中繼站':'筆記'}已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
+    saveData();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     if(isMapOpen) setTimeout(()=>openNote(created.id),120);
     else setTimeout(()=>{window.scrollTo(0,0);setTimeout(()=>openNote(notes[0].id),300);},100);
   }
@@ -402,7 +402,7 @@ function saveNoteDraftFromForm(){
   const path=resolveInheritedPath(g('fpath').value||'');
   const fieldData=collectFormValuesByType(typeKey);
   const selectedSubs=selectedValues('fs2').slice(0,1);
-  Object.assign(target,normalizeNoteSchema({...target,type:typeKey,subject:selectedSubs[0]||'',subjects:selectedSubs,chapter:'',chapters:[],section:'',sections:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields}));
+  Object.assign(target,normalizeNoteSchema({...target,type:typeKey,domain:selectedSubs[0]||'',domains:selectedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields}));
   saveDataDeferred();
 }
 function duplicateNote(targetId=openId) {
@@ -414,12 +414,12 @@ function duplicateNote(targetId=openId) {
   const newNote=normalizeNoteSchema({
     id:nid++,
     type:src.type,
-    subject:src.subject,
-    subjects:[...noteSubjects(src)],
-    chapter:'',
-    chapters:[],
-    section:'',
-    sections:[],
+    domain:src.domain,
+    domains:[...noteDomains(src)],
+    group:'',
+    groups:[],
+    part:'',
+    parts:[],
     title:copyTitle,
     path:src.path||'',
     question:src.question||'',
@@ -473,13 +473,13 @@ async function copyNoteToClipboard(targetId=openId) {
 }
 function duplicateMapNode(targetId=openId){
   const node=mapNodeById(targetId);
-  if(!node){showToast('找不到要複製的節點');return;}
-  if(isRelayNode(node)){
+  if(!node){showToast('找不到要複製的點');return;}
+  if(isAuxnodeNode(node)){
     const d=new Date(),dt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const copy=normalizeNoteSchema({...node,id:nid++,title:`${node.title}（複製）`,date:dt});
-    mapRelays.push({...copy,isRelay:true,pageRootId:relayPageRootId(node)});
+    mapAuxNodes.push({...copy,isAuxnode:true,pageRootId:auxnodePageRootId(node)});
     openId=copy.id;
-    saveData();render();if(isMapOpen) scheduleMapRedraw(0);showToast('已複製中繼站');
+    saveData();render();if(isMapOpen) scheduleMapRedraw(0);showToast('已複製');
     return;
   }
   duplicateNote(targetId);
@@ -487,7 +487,7 @@ function duplicateMapNode(targetId=openId){
 function deleteMapNode(targetId=openId){
   const node=mapNodeById(targetId);
   if(!node) return;
-  if(isRelayNode(node)){ deleteMapRelay(targetId); return; }
+  if(isAuxnodeNode(node)){ deleteMapAuxnode(targetId); return; }
   deleteNote(targetId);
 }
 function deleteNote(targetId=openId) {
