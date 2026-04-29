@@ -490,15 +490,6 @@ function openNote(id) {
   g('dp-detail').style.display=fields.includes('detail')?'block':'none';
   g('dp-body').innerHTML=n.question?renderMentionText(n.question,n.id):'（尚無問題）';
   g('dp-detail').innerHTML=n.answer?renderDetailRichText(n.answer,n.id):'（尚無答案）';
-  const pathInput=g('dp-path-input');
-  if(pathInput){
-    pathInput.value=n.path||'';
-    pathInput.readOnly=true;
-    pathInput.title='請按「編輯」後在表單內修改路徑';
-    pathInput.oninput=null;
-    pathInput.onkeydown=null;
-    pathInput.onblur=null;
-  }
   bindMentionJumps(g('dp-body'));
   bindMentionJumps(g('dp-detail'));
   const reveal=!!reviewReveal;
