@@ -609,29 +609,38 @@ async function toggleDebugTool(){
   const btn=g('debugToggle');
   if(debugVisible){
     if(debugMode==='eruda'&&window.eruda) window.eruda.hide();
-    if(debugMode==='local') hideLocalDebugConsole();
+    hideLocalDebugConsole();
     debugVisible=false;
     debugMode='';
     btn?.classList.remove('active');
     showToast('偵錯工具已隱藏');
     return;
   }
+
+  // 先顯示內建主控台，避免 CDN 或外部腳本阻塞時「點了沒反應」
+  showLocalDebugConsole();
+  debugVisible=true;
+  debugMode='local';
+  btn?.classList.add('active');
+  showToast('偵錯工具已開啟');
+
   try{
     const er=await ensureEruda();
     if(!er||typeof er.init!=='function') throw new Error('eruda unavailable');
+    if(typeof er.destroy==='function'&&er._isInit===false) er.init();
     if(!er._isInit) er.init();
     er.show();
-    debugVisible=true;
+    hideLocalDebugConsole();
     debugMode='eruda';
-    btn?.classList.add('active');
-    showToast('偵錯工具已開啟');
   }catch(e){
-    showLocalDebugConsole();
-    debugVisible=true;
-    debugMode='local';
-    btn?.classList.add('active');
-    showToast('CDN 偵錯失敗，已改用內建主控台');
     appendDebugLine('warn',['Eruda fallback:',e]);
   }
 }
 installDebugConsoleCapture();
+
+// 雙保險：即使 init 綁定失敗，按鈕仍可直接切換偵錯工具
+const debugToggleBtn=g('debugToggle');
+if(debugToggleBtn&&!debugToggleBtn.dataset.boundDebugToggle){
+  debugToggleBtn.dataset.boundDebugToggle='1';
+  debugToggleBtn.addEventListener('click',toggleDebugTool);
+}
