@@ -32,8 +32,15 @@ function doSubmit(timeUp) {
 function gradeEssay(exam,ans,used,timeUp) {
   const issueList=(exam.issues||[]).join('、');
   const prompt=`你是台灣大學法律系教授，正在批改學生的申論題作答。請給予詳細、具體、有教育價值的評語。\n\n【科目】${subByKey(exam.subject).label}\n【題目】\n${exam.question.slice(0,300)}\n【預設爭點】${issueList}\n【學生作答】\n${(ans||'(未作答)').slice(0,3000)}\n【作答時間】${used}分鐘${timeUp?' (時間到，作答可能不完整)':''}\n\n請依下列 JSON 格式輸出評分（只輸出 JSON，不加任何其他文字或 markdown）：\n{"score":<0-100整數>,"comment":"<100-150字整體總評>","issue_analysis":[{"issue":"<爭點名稱>","hit":<true/false>,"analysis":"<針對此爭點的詳細評析>"}],"strengths":["<具體優點1>"],"weaknesses":["<具體缺點1>"],"suggestions":["<具體改進建議1>"],"reference":"<參考答題要點>"}`;
-  fetch('https://openrouter.ai/api/v1/chat/completions',{
-    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getAiKey(),'HTTP-Referer':'https://kinayaya.github.io/LawsNote','X-Title':'KLaws'},
+  const provider=getAiProvider();
+  const endpoint=provider==='groq'?'https://api.groq.com/openai/v1/chat/completions':'https://openrouter.ai/api/v1/chat/completions';
+  const headers={'Content-Type':'application/json','Authorization':'Bearer '+getAiKey()};
+  if(provider==='openrouter'){
+    headers['HTTP-Referer']='https://kinayaya.github.io/LawsNote';
+    headers['X-Title']='KLaws';
+  }
+  fetch(endpoint,{
+    method:'POST',headers,
     body:JSON.stringify({model:getAiModel(),max_tokens:5000,messages:[{role:'user',content:prompt}]})
   }).then(r=>r.json()).then(d=>{
     if(d.error){g('resultScoreNum').textContent='?';g('resultComment').textContent='AI 錯誤：'+(d.error.message||JSON.stringify(d.error));return;}
@@ -64,4 +71,3 @@ function initMoreMenu(){
   menu.querySelectorAll('button,label').forEach(el=>el.addEventListener('click',()=>menu.classList.remove('open')));
   document.addEventListener('click',e=>{if(!menu.contains(e.target)&&e.target!==btn)menu.classList.remove('open');});
 }
-

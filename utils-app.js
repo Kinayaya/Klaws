@@ -411,6 +411,8 @@ const getAiKey = () => localStorage.getItem('klaws_ai_key')||'';
 const saveAiKey = k => localStorage.setItem('klaws_ai_key',k);
 const getAiModel = () => localStorage.getItem('klaws_ai_model')||'openrouter/free';
 const saveAiModel = m => localStorage.setItem('klaws_ai_model',m);
+const getAiProvider = () => localStorage.getItem('klaws_ai_provider')||'openrouter';
+const saveAiProvider = p => localStorage.setItem('klaws_ai_provider',p);
 const getMapScopeContextKey = () => {
   const pageRoot=mapPageStack.length?mapPageStack[mapPageStack.length-1]:'root';
   return `${mapFilter.sub||'all'}::${mapFilter.chapter||'all'}::${mapFilter.section||'all'}::${pageRoot}`;

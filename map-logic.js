@@ -889,5 +889,15 @@ function bindTagManagerNav(){
 }
 
 // ==================== AI 功能 ====================
-function requireAiKey(action){ const k=getAiKey();if(k){action(k);return;}_aiPendingAction=action;g('aiKeyInput').value='';const sel=g('aiModelSel');if(sel)sel.innerHTML=AI_MODELS.map(m=>`<option value="${m.id}"${m.id===getAiModel()?' selected':''}>${m.label}</option>`).join('');g('aiKeyModal').classList.add('open'); }
-function openAiSettings(){ g('aiKeyInput').value=getAiKey();const sel=g('aiModelSel');if(sel)sel.innerHTML=AI_MODELS.map(m=>`<option value="${m.id}"${m.id===getAiModel()?' selected':''}>${m.label}</option>`).join('');_aiPendingAction=null;g('aiKeyModal').classList.add('open'); }
+function renderAiModelOptions(){
+  const provider=getAiProvider();
+  const list=provider==='groq'?GROQ_MODELS:AI_MODELS;
+  const sel=g('aiModelSel');
+  if(!sel) return;
+  const fallback=list[0]?.id||'';
+  const saved=getAiModel();
+  const selected=list.some(m=>m.id===saved)?saved:fallback;
+  sel.innerHTML=list.map(m=>`<option value="${m.id}"${m.id===selected?' selected':''}>${m.label}</option>`).join('');
+}
+function openAiSettings(){ g('aiKeyInput').value=getAiKey();const psel=g('aiProviderSel');if(psel)psel.value=getAiProvider();renderAiModelOptions();_aiPendingAction=null;g('aiKeyModal').classList.add('open'); }
+function requireAiKey(action){ const k=getAiKey();if(k){action(k);return;}_aiPendingAction=action;g('aiKeyInput').value='';const psel=g('aiProviderSel');if(psel)psel.value=getAiProvider();renderAiModelOptions();g('aiKeyModal').classList.add('open'); }
