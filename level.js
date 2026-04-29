@@ -79,47 +79,47 @@ function renderLevelSystemPage(){
   box.querySelectorAll('[data-task-subtask-del]').forEach(btn=>btn.addEventListener('click',()=>deleteTaskSubtask(Number(btn.dataset.taskSubtaskDel),Number(btn.dataset.subIdx))));
   box.querySelectorAll('[data-task-subtask-check]').forEach(checkbox=>checkbox.addEventListener('change',()=>toggleSubtaskCompletion(Number(checkbox.dataset.taskSubtaskCheck),Number(checkbox.dataset.subIdx),checkbox.checked)));
 }
-function renderTagLists() {
-  renderTagList('typeTagList',types,'type');
-  renderTagList('subTagList',domains,'sub');
+function renderPathLists() {
+  renderPathList('typeTagList',types,'type');
+  renderPathList('subTagList',domains,'sub');
   if(groupDomainFilter&&!domains.some(s=>s.key===groupDomainFilter)) groupDomainFilter='';
   if(partGroupFilter&&!groups.some(ch=>ch.key===partGroupFilter)) partGroupFilter='';
-  renderGroupTagList();
-  renderPartTagList();
+  renderGroupPathList();
+  renderPartPathList();
   const sel=g('newGroupDomain');
   if(sel) sel.innerHTML='<option value="all">全部</option>'+domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
   const secSel=g('newPartGroup');
   if(secSel) secSel.innerHTML='<option value="all">全部</option>'+groups.map(ch=>`<option value="${ch.key}">${ch.label}</option>`).join('');
-  g('tagCategoryNav')?.querySelectorAll('.tag-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.category===activeTagCategory));
+  g('tagCategoryNav')?.querySelectorAll('.tag-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.category===activePathCategory));
   g('tp')?.querySelectorAll('.tag-category-panel').forEach(panel=>{
-    panel.classList.toggle('active',panel.dataset.categoryPanel===activeTagCategory);
+    panel.classList.toggle('active',panel.dataset.categoryPanel===activePathCategory);
   });
 }
-function renderTagList(cid,arr,kind) {
+function renderPathList(cid,arr,kind) {
   const el=g(cid);
 let list=arr.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount(kind,item.key)}));
-  if(tagSearchQ) list=list.filter(item=>item.label.toLowerCase().includes(tagSearchQ));
-  if(tagUnusedOnly) list=list.filter(item=>item._usage===0);
-  if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的標籤）</div>';return;}
+  if(pathSearchQ) list=list.filter(item=>item.label.toLowerCase().includes(pathSearchQ));
+  if(pathUnusedOnly) list=list.filter(item=>item._usage===0);
+  if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的路徑）</div>';return;}
   el.innerHTML=list.map(item=>`<div class="tag-item ${kind==='sub'&&groupDomainFilter===item.key?'active-domain':''}" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="${kind}" ${kind==='sub'?`data-domain-key="${item.key}"`:''}><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div class="tag-color-dot" style="background:${item.color}"></div><span class="tag-item-label">${item.label}</span><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="${kind}" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="${kind}" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="${kind}" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="${kind}" data-del="1">🗑</button></div></div>`).join('');
   if(kind==='sub'){
     el.querySelectorAll('.tag-item[data-domain-key]').forEach(row=>row.addEventListener('click',ev=>{
       if(ev.target.closest('button')) return;
       groupDomainFilter=row.dataset.domainKey||'';
-      activeTagCategory='group';
-      renderTagLists();
+      activePathCategory='group';
+      renderPathLists();
     }));
   }
-  bindTagActions(el);
-  bindTagDrag(el);
+  bindPathActions(el);
+  bindPathDrag(el);
 }
-function renderGroupTagList() {
+function renderGroupPathList() {
   const el=g('groupTagList'); if(!el) return;
   if(!groupDomainFilter){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
 let list=groups.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('group',item.key)}));
   list=list.filter(item=>item.domain===groupDomainFilter||item.domain==='all');
-  if(tagSearchQ) list=list.filter(item=>`${item.label} ${subByKey(item.domain).label}`.toLowerCase().includes(tagSearchQ));
-  if(tagUnusedOnly) list=list.filter(item=>item._usage===0);
+  if(pathSearchQ) list=list.filter(item=>`${item.label} ${subByKey(item.domain).label}`.toLowerCase().includes(pathSearchQ));
+  if(pathUnusedOnly) list=list.filter(item=>item._usage===0);
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
     const subLabel=item.domain==='all'?'全部':subByKey(item.domain).label;
@@ -128,33 +128,33 @@ return `<div class="tag-item ${partGroupFilter===item.key?'active-domain':''}" d
   el.querySelectorAll('.tag-item[data-group-key]').forEach(row=>row.addEventListener('click',ev=>{
     if(ev.target.closest('button')) return;
     partGroupFilter=row.dataset.groupKey||'';
-    activeTagCategory='part';
-    renderTagLists();
+    activePathCategory='part';
+    renderPathLists();
   }));
-  bindTagActions(el);
-  bindTagDrag(el);
+  bindPathActions(el);
+  bindPathDrag(el);
 }
-function renderPartTagList() {
+function renderPartPathList() {
   const el=g('partTagList'); if(!el) return;
   if(!partGroupFilter){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
   let list=parts.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('part',item.key)}));
   list=list.filter(item=>item.group===partGroupFilter||item.group==='all');
-  if(tagSearchQ) list=list.filter(item=>`${item.label} ${groupByKey(item.group).label}`.toLowerCase().includes(tagSearchQ));
-  if(tagUnusedOnly) list=list.filter(item=>item._usage===0);
+  if(pathSearchQ) list=list.filter(item=>`${item.label} ${groupByKey(item.group).label}`.toLowerCase().includes(pathSearchQ));
+  if(pathUnusedOnly) list=list.filter(item=>item._usage===0);
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
     const groupLabel=item.group==='all'?'全部':groupByKey(item.group).label;
     return `<div class="tag-item" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="part"><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;"><span class="tag-item-label">${item.label}</span><span class="tag-item-sub">${groupLabel}</span></div><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="part" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="part" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="part" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="part" data-del="1">🗑</button></div></div>`;
   }).join('');
-  bindTagActions(el);
-  bindTagDrag(el);
+  bindPathActions(el);
+  bindPathDrag(el);
 }
-function bindTagActions(root){
-  root.querySelectorAll('.tag-icon-btn[data-dir]').forEach(b=>b.addEventListener('click',()=>moveTag(parseInt(b.dataset.idx,10),b.dataset.kind,parseInt(b.dataset.dir,10))));
-  root.querySelectorAll('.tag-icon-btn[data-edit]').forEach(b=>b.addEventListener('click',()=>editTag(parseInt(b.dataset.idx,10),b.dataset.kind)));
-  root.querySelectorAll('.tag-icon-btn[data-del]').forEach(b=>b.addEventListener('click',()=>deleteTag(parseInt(b.dataset.idx,10),b.dataset.kind)));
+function bindPathActions(root){
+  root.querySelectorAll('.tag-icon-btn[data-dir]').forEach(b=>b.addEventListener('click',()=>movePath(parseInt(b.dataset.idx,10),b.dataset.kind,parseInt(b.dataset.dir,10))));
+  root.querySelectorAll('.tag-icon-btn[data-edit]').forEach(b=>b.addEventListener('click',()=>editPath(parseInt(b.dataset.idx,10),b.dataset.kind)));
+  root.querySelectorAll('.tag-icon-btn[data-del]').forEach(b=>b.addEventListener('click',()=>deletePath(parseInt(b.dataset.idx,10),b.dataset.kind)));
 }
-function bindTagDrag(root){
+function bindPathDrag(root){
   root.querySelectorAll('.tag-item[data-draggable-tag]').forEach(row=>{
     row.addEventListener('dragstart',ev=>{
       row.classList.add('dragging');
@@ -171,25 +171,25 @@ function bindTagDrag(root){
       try{ data=JSON.parse(raw); }catch(_e){ return; }
       const toIdx=Number(row.dataset.idx), fromIdx=Number(data.idx), kind=row.dataset.kind;
       if(!Number.isFinite(fromIdx)||!Number.isFinite(toIdx)||kind!==data.kind||fromIdx===toIdx) return;
-      reorderTagByIndex(kind,fromIdx,toIdx);
+      reorderPathByIndex(kind,fromIdx,toIdx);
     });
   });
 }
-function reorderTagByIndex(kind,fromIdx,toIdx){
+function reorderPathByIndex(kind,fromIdx,toIdx){
   const arr=tagCollection(kind);
   if(!arr[fromIdx]||!arr[toIdx]) return;
   const [item]=arr.splice(fromIdx,1);
   arr.splice(toIdx,0,item);
-  saveData();renderTagLists();rebuildUI();render();
+  saveData();renderPathLists();rebuildUI();render();
 }
-function moveTag(idx,kind,dir){
+function movePath(idx,kind,dir){
   const arr=tagCollection(kind);
   const target=idx+dir;
   if(!arr[idx]||target<0||target>=arr.length) return;
   [arr[idx],arr[target]]=[arr[target],arr[idx]];
-  saveData();renderTagLists();rebuildUI();render();
+  saveData();renderPathLists();rebuildUI();render();
 }
-function autoCleanupUnusedTags(){
+function autoCleanupUnusedPaths(){
   const now=Date.now();
   const usage={
     type:new Set(notes.map(n=>n.type).filter(Boolean)),
@@ -216,13 +216,13 @@ function autoCleanupUnusedTags(){
   const after=types.length+domains.length+groups.length+parts.length;
   if(after!==before){
     saveData();
-    if(g('tp')?.classList.contains('open')) renderTagLists();
+    if(g('tp')?.classList.contains('open')) renderPathLists();
     rebuildUI();
     render();
-    showToast(`已自動清理 ${before-after} 個未使用標籤`);
+    showToast(`已自動清理 ${before-after} 個未使用路徑`);
   }
 }
-function clearUnusedTags(){
+function clearUnusedPaths(){
   const usedTypes=new Set(notes.map(n=>n.type)),usedSubs=new Set(allMapNodes().flatMap(n=>noteDomains(n))),usedGroups=new Set(allMapNodes().flatMap(n=>noteGroups(n))),usedParts=new Set(allMapNodes().flatMap(n=>noteParts(n)));
   const before={types:types.length,subs:domains.length,groups:groups.length,parts:parts.length};
   types=types.filter(t=>usedTypes.has(t.key));
@@ -233,21 +233,21 @@ function clearUnusedTags(){
   unusedTagTracker={};
   localStorage.setItem(UNUSED_TAG_TRACK_KEY,JSON.stringify(unusedTagTracker));
   const removed=(before.types-types.length)+(before.subs-domains.length)+(before.groups-groups.length)+(before.parts-parts.length);
-  saveData();renderTagLists();rebuildUI();render();showToast(removed?`已清理 ${removed} 個未使用標籤`:'沒有可清理的標籤');
+  saveData();renderPathLists();rebuildUI();render();showToast(removed?`已清理 ${removed} 個未使用路徑`:'沒有可清理的路徑');
 }
-function editTag(idx,kind) {
-  if(kind==='group'){editGroupTag(idx);return;}
-  if(kind==='part'){editPartTag(idx);return;}
+function editPath(idx,kind) {
+  if(kind==='group'){editGroupPath(idx);return;}
+  if(kind==='part'){editPartPath(idx);return;}
   const arr=kind==='type'?types:domains,item=arr[idx];
-  const nl2=prompt('修改標籤名稱：',item.label); if(!nl2) return;
+  const nl2=prompt('修改路徑名稱：',item.label); if(!nl2) return;
   const nv=nl2.trim(); if(!nv){showToast('名稱不能為空');return;}
-  if(arr.some((t,i)=>i!==idx&&t.label===nv)){showToast('標籤名稱重複');return;}
+  if(arr.some((t,i)=>i!==idx&&t.label===nv)){showToast('路徑名稱重複');return;}
   const nc=prompt('修改顏色（#RRGGBB）：',item.color); if(!nc) return;
   const ncv=nc.trim(); if(!/^#[0-9A-Fa-f]{6}$/.test(ncv)){showToast('顏色格式不正確');return;}
   arr[idx].label=nv;arr[idx].color=ncv;
-  saveData();renderTagLists();buildTypeRow();buildSubRow();render();showToast('標籤已更新');
+  saveData();renderPathLists();buildTypeRow();buildSubRow();render();showToast('路徑已更新');
 }
-function editGroupTag(idx) {
+function editGroupPath(idx) {
   const item=groups[idx]; if(!item) return;
   const nl2=prompt('修改名稱：',item.label); if(!nl2) return;
   const nv=nl2.trim(); if(!nv){showToast('名稱不能為空');return;}
@@ -259,9 +259,9 @@ function editGroupTag(idx) {
   const oldKey=item.key;
   item.label=nv;item.domain=domainKey;
   if(!groups.some((c,i)=>i!==idx&&c.key===nv)){item.key=nv;allMapNodes().forEach(n=>{const chs=noteGroups(n).map(x=>x===oldKey?nv:x);n.groups=uniq(chs);n.group=n.groups[0]||'';});parts.forEach(sec=>{if(sec.group===oldKey)sec.group=nv;});if(cch===oldKey)cch='all';if(mapFilter.group===oldKey)mapFilter.group='all';}
-  saveData();renderTagLists();rebuildUI();render();showToast('已更新');
+  saveData();renderPathLists();rebuildUI();render();showToast('已更新');
 }
-function editPartTag(idx){
+function editPartPath(idx){
   const item=parts[idx]; if(!item) return;
   const nl2=prompt('修改名稱：',item.label); if(!nl2) return;
   const nv=nl2.trim(); if(!nv){showToast('名稱不能為空');return;}
@@ -273,9 +273,9 @@ function editPartTag(idx){
   const oldKey=item.key;
   item.label=nv; item.group=groupKey;
   if(!parts.some((s,i)=>i!==idx&&s.key===nv)){item.key=nv;allMapNodes().forEach(n=>{const secs=noteParts(n).map(x=>x===oldKey?nv:x);n.parts=uniq(secs);n.part=n.parts[0]||'';});if(csec===oldKey)csec='all';}
-  saveData();renderTagLists();rebuildUI();render();showToast('已更新');
+  saveData();renderPathLists();rebuildUI();render();showToast('已更新');
 }
-function deleteTag(idx,kind) {
+function deletePath(idx,kind) {
   const arr=tagCollection(kind);
   if(kind==='group'){
     const removed=arr[idx]; if(!removed) return;
@@ -288,17 +288,17 @@ function deleteTag(idx,kind) {
     parts=parts.filter(s=>s.group!==removed.key);
     if(cch===removed.key)cch='all';if(mapFilter.group===removed.key)mapFilter.group='all';
     if(partGroupFilter===removed.key) partGroupFilter='';
-    saveData();renderTagLists();rebuildUI();render();showToast('已刪除');return;
+    saveData();renderPathLists();rebuildUI();render();showToast('已刪除');return;
   }
   if(kind==='part'){
     const removed=arr[idx]; if(!removed) return;
     if(!confirm(`確定刪除「${removed.label}」？已使用此的筆記會改為未分類。`)) return;
     arr.splice(idx,1);allMapNodes().forEach(n=>{n.parts=noteParts(n).filter(sec=>sec!==removed.key);n.part=n.parts[0]||'';});
     if(csec===removed.key)csec='all';
-    saveData();renderTagLists();rebuildUI();render();showToast('已刪除');return;
+    saveData();renderPathLists();rebuildUI();render();showToast('已刪除');return;
   }
   const removed=arr[idx];
-  if(!confirm(`確定刪除標籤「${removed.label}」？`)) return;
+  if(!confirm(`確定刪除路徑「${removed.label}」？`)) return;
   arr.splice(idx,1);
   if(kind==='type'&&removed){
     delete typeFieldConfigs[removed.key];
@@ -319,10 +319,10 @@ function deleteTag(idx,kind) {
     if(groupDomainFilter===removed.key) groupDomainFilter='';
   }
   normalizeNotesTaxonomy();
-  saveData();renderTagLists();rebuildUI();render();showToast('標籤已刪除');
+  saveData();renderPathLists();rebuildUI();render();showToast('路徑已刪除');
 }
 
-function addTag(kind) {
+function addPath(kind) {
   if(kind==='group'){
     const label=(g('newGroupLabel').value||'').trim();
     const domainSel=g('newGroupDomain');
@@ -332,7 +332,7 @@ function addTag(kind) {
     const key=groups.some(ch=>ch.key===label)?`group_${Date.now()}`:label;
     groups.push({key,label,domain});
     g('newGroupLabel').value='';
-    saveData();renderTagLists();rebuildUI();showToast('已新增！');return;
+    saveData();renderPathLists();rebuildUI();showToast('已新增！');return;
   }
   if(kind==='part'){
     const label=(g('newPartLabel').value||'').trim();
@@ -343,19 +343,19 @@ function addTag(kind) {
     const key=parts.some(sec=>sec.key===label)?`part_${Date.now()}`:label;
     parts.push({key,label,group});
     g('newPartLabel').value='';
-    saveData();renderTagLists();rebuildUI();showToast('已新增！');return;
+    saveData();renderPathLists();rebuildUI();showToast('已新增！');return;
   }
   const isType=kind==='type';
   const label=(g(isType?'newTypeLabel':'newSubLabel').value||'').trim();
   const color=g(isType?'newTypeColor':'newSubColor').value;
-  if(!label){showToast('請輸入標籤名稱');return;}
+  if(!label){showToast('請輸入路徑名稱');return;}
   const arr=isType?types:domains;
-  if(arr.some(t=>t.label===label)){showToast('標籤已存在');return;}
+  if(arr.some(t=>t.label===label)){showToast('路徑已存在');return;}
   const newKey='tag_'+Date.now();
   arr.push({key:newKey,label,color});
   if(isType) typeFieldConfigs[newKey]=getTypeFieldKeys(newKey);
   g(isType?'newTypeLabel':'newSubLabel').value='';
-  saveData();renderTagLists();rebuildUI();showToast('標籤已新增！');
+  saveData();renderPathLists();rebuildUI();showToast('路徑已新增！');
 }
 function addSkillItem(){
   const name=safeStr(prompt('技能名稱：','法條理解力')||'').trim();

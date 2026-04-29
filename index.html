@@ -47,7 +47,7 @@
       <div class="primary-tools">
         <button class="tool-btn" id="compactToggleBtn" title="切換分類列顯示">&#9776; 分類</button>
         <button class="tool-btn" id="reviewNowBtn">🧠 Review Now</button>
-        <button class="tool-btn" id="tagMgrBtn">管理</button>
+        <button class="tool-btn" id="pathMgrBtn">管理</button>
         <button class="add-btn" id="addBtn">+ 新增</button>
       </div>
       <div class="more-wrap">
@@ -152,23 +152,23 @@
     </div>
   </div>
 
-  <!-- Tag Manager -->
+  <!-- Path Manager -->
   <div class="panel" id="tp">
-  <div class="ph"><span class="ph-title">管理標籤</span><button class="pcls" id="tpClose">&#215;</button></div>
+  <div class="ph"><span class="ph-title">管理路徑</span><button class="pcls" id="tpClose">&#215;</button></div>
   <div class="tag-tools-row">
     <div class="tag-search-wrap">
       <span class="tag-search-icon">&#128269;</span>
-      <input id="tagSearchInput" placeholder="搜尋標籤 / 路徑">
+      <input id="pathSearchInput" placeholder="搜尋路徑">
     </div>
     <button class="tool-btn tag-settings-btn" id="tagSettingsBtn" title="全域設定">⚙️</button>
   </div>
   <div class="tag-global-options" id="tagGlobalOptions">
-    <label><input type="checkbox" id="tagUnusedOnly"> 只看未使用</label>
-    <button class="tool-btn" id="clearUnusedTagsBtn">&#128465; 清理未使用</button>
+    <label><input type="checkbox" id="pathUnusedOnly"> 只看未使用路徑</label>
+    <button class="tool-btn" id="clearUnusedPathsBtn">&#128465; 清理未使用路徑</button>
   </div>
-  <div id="tagStatsPanel"></div>
+  <div id="pathStatsPanel"></div>
   <div class="tag-manager-layout">
-    <div class="tag-category-nav" id="tagCategoryNav">
+    <div class="tag-category-nav" id="pathCategoryNav">
       <button class="tag-nav-btn active" data-category="type">類型</button>
     </div>
     <div class="tag-manager-content">
@@ -540,7 +540,8 @@
 <script src="view-state.js"></script>
 <script src="utils-app.js"></script>
 <script src="data.js"></script>
-<script src="tags.js"></script>
+<script src="paths.js"></script>
+
 <script src="notes.js"></script>
 <script src="form.js"></script>
 <script src="render-ui.js"></script>

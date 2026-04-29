@@ -844,12 +844,12 @@ function bindCoreButtons(){
   bind('dpClose',closeDetail);bind('fpClose',closeForm);bind('fpCancel',closeForm);
   bind('fpSave',saveNote);bind('delBtn',deleteNote);
 }
-function bindTagManagerNav(){
-  g('tagCategoryNav')?.addEventListener('click',ev=>{
+function bindPathManagerNav(){
+  g('pathCategoryNav')?.addEventListener('click',ev=>{
     const btn=ev.target.closest('.tag-nav-btn');
     if(!btn) return;
-    activeTagCategory=btn.dataset.category||'type';
-    renderTagLists();
+    activePathCategory=btn.dataset.category||'type';
+    renderPathLists();
   });
   on('tagSettingsBtn','click',()=>g('tagGlobalOptions')?.classList.toggle('open'));
 }

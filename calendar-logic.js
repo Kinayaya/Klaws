@@ -1,7 +1,7 @@
 // ==================== 統計 ====================
 function openStats() {
-  openTagMgr();
-  setTimeout(()=>g('tagStatsPanel')?.scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+  openPathMgr();
+  setTimeout(()=>g('pathStatsPanel')?.scrollIntoView({behavior:'smooth',block:'nearest'}),60);
 }
 
 function toggleCalendarView(open){
