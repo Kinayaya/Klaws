@@ -108,6 +108,12 @@
     <div id="fpath-row" style="display:none;">
       <label class="flbl">路徑</label>
       <input class="fi" id="fpath" placeholder="例如：民法 > 總則 > 法律行為 > 代理（之後可只輸入代理）">
+      <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#475569;">
+        <input type="checkbox" id="fpathInheritToggle">
+        套用父路徑（子頁新增時建議）
+      </label>
+      <div id="fpath-inherit-hint" style="font-size:12px;color:#64748B;margin-top:4px;"></div>
+      <div id="fpath-final-preview" style="font-size:12px;color:#334155;margin-top:4px;"></div>
     </div>
     <div style="font-size:12px;color:#6b7280;margin:6px 0 2px;">提示：一筆一概念（Atomic Note），先寫「難回想」的知識點。</div>
     <div id="mapAssignFormWrap" style="display:none;">
