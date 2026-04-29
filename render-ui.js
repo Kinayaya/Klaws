@@ -514,37 +514,26 @@ function openNote(id) {
   const syncPathToForm=(target)=>{
     if(editMode&&openId===id&&g('fpath')) g('fpath').value=target.path||'';
   };
-  const pathSaveBtn=g('dp-path-save');
-  if(pathSaveBtn){
-    pathSaveBtn.onclick=()=>{
-      if(!persistPath(id,pathInput?.value||'')) return;
-      const target=mapNodeById(id);
-      if(pathInput) pathInput.value=target?.path||'';
-      syncPathToForm(target);
-      showToast('路徑已更新');
-    };
-  }
   if(pathInput){
     let pathPersistTimer=null;
-    const persistPathNow=(showSavedToast=false)=>{
+    const persistPathNow=()=>{
       if(pathPersistTimer){clearTimeout(pathPersistTimer);pathPersistTimer=null;}
       if(!persistPath(id,pathInput.value||'')) return;
       const target=mapNodeById(id);
       if(pathInput) pathInput.value=target?.path||'';
       syncPathToForm(target);
-      if(showSavedToast) showToast('路徑已更新');
     };
     pathInput.oninput=()=>{
       if(pathPersistTimer) clearTimeout(pathPersistTimer);
-      pathPersistTimer=setTimeout(()=>persistPathNow(false),350);
+      pathPersistTimer=setTimeout(()=>persistPathNow(),350);
     };
     pathInput.onkeydown=(ev)=>{
       if(ev.key==='Enter'){
         ev.preventDefault();
-        persistPathNow(true);
+        persistPathNow();
       }
     };
-    pathInput.onblur=()=>{persistPathNow(false);};
+    pathInput.onblur=()=>{persistPathNow();};
   }
   bindMentionJumps(g('dp-body'));
   bindMentionJumps(g('dp-detail'));
