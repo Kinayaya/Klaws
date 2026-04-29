@@ -70,7 +70,7 @@
   <summary>進階篩選</summary>
     <div id="sortBar">
     <label>排序：</label>
-    <select id="sortSelect"><option value="date_desc">最新優先</option><option value="date_asc">最舊優先</option><option value="title_asc">標題 A-Z</option><option value="title_desc">標題 Z-A</option><option value="subject">依科目</option><option value="type">依類型</option></select>
+    <select id="sortSelect"><option value="date_desc">最新優先</option><option value="date_asc">最舊優先</option><option value="title_asc">標題 A-Z</option><option value="title_desc">標題 Z-A</option><option value="subject">依路徑</option><option value="type">依類型</option></select>
     <label class="scope-link-toggle"><input type="checkbox" id="scopeLinkedToggle"> 同步顯示關聯筆記</label>
   </div>
   <div id="search-results-bar"></div>
@@ -101,7 +101,7 @@
     <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><button class="pcls" id="fpClose">&#215;</button></div>
     <div class="f2col">
       <div><label class="flbl" style="margin-top:0">類型</label><select class="fs" id="ft"></select></div>
-      <div><label class="flbl" style="margin-top:0">科目</label><select class="fs" id="fs2"></select></div>
+      <div><label class="flbl" style="margin-top:0">路徑主分類</label><select class="fs" id="fs2"></select></div>
           </div>
     <label class="flbl">標題</label>
     <input class="fi" id="fti" placeholder="標題">
@@ -160,7 +160,7 @@
   <div class="tag-tools-row">
     <div class="tag-search-wrap">
       <span class="tag-search-icon">&#128269;</span>
-      <input id="tagSearchInput" placeholder="搜尋標籤 / 章 / 節">
+      <input id="tagSearchInput" placeholder="搜尋標籤 / 路徑">
     </div>
     <button class="tool-btn tag-settings-btn" id="tagSettingsBtn" title="全域設定">⚙️</button>
   </div>
@@ -172,7 +172,7 @@
   <div class="tag-manager-layout">
     <div class="tag-category-nav" id="tagCategoryNav">
       <button class="tag-nav-btn active" data-category="type">類型</button>
-      <button class="tag-nav-btn" data-category="subject">科目</button>
+      <button class="tag-nav-btn" data-category="subject">路徑主分類</button>
           </div>
     <div class="tag-manager-content">
       <div class="tag-category-panel" data-category-panel="type">
@@ -186,10 +186,10 @@
       </div>
 
       <div class="tag-category-panel" data-category-panel="subject">
-        <div class="tag-section-title">科目</div>
+        <div class="tag-section-title">路徑主分類</div>
         <div class="tag-list" id="subTagList"></div>
         <div class="tag-add-row">
-          <input id="newSubLabel" placeholder="新科目名稱">
+          <input id="newSubLabel" placeholder="新主分類名稱">
           <input type="color" class="color-pick" id="newSubColor" value="#1D9E75">
           <button class="tag-add-icon-btn" id="addSubBtn">+</button>
         </div>
