@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>KLaws</title>
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%25" stop-color="%23060c1f"/><stop offset="100%25" stop-color="%230f2a59"/></linearGradient></defs><rect width="52" height="52" rx="14" fill="url(%23g)"/><path d="M15 10V42H21V30L34 42H41L26 26L40 10H33L21 22V10Z" fill="%23e6f0ff"/><path d="M15 10V42H18V10Z" fill="%237eaef8" opacity="0.75"/></svg>'>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="topbar">
+  <div class="title-row">
+    <div class="brand-wrap">
+      <button class="klaws-logo-btn" id="logoArchiveBtn" aria-label="開啟存檔與回收區" title="開啟存檔與回收區">
+        <div class="klaws-logo">
+          <svg width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="lawShieldBg" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#142863"/>
+                <stop offset="1" stop-color="#274F9B"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 4L55 13V31C55 44 45.5 55.6 32 60C18.5 55.6 9 44 9 31V13L32 4Z" fill="url(#lawShieldBg)"/>
+            <path d="M32 14V35" stroke="#F1F5F9" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M17 21H47" stroke="#F1F5F9" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M17 21L13 32H23L17 21Z" fill="none" stroke="#F1F5F9" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M47 21L41 32H51L47 21Z" fill="none" stroke="#F1F5F9" stroke-width="3" stroke-linejoin="round"/>
+            <circle cx="32" cy="36.5" r="2.5" fill="#F1F5F9"/>
+            <path d="M25 46H39" stroke="#F1F5F9" stroke-width="3.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </button>
+      <div class="brand-text"><span class="brand-name">KLaws</span><span class="brand-by">by Kina（張晧翔）</span></div>
+    </div>
+    <div class="header-status-wrap">
+      <button id="headerTitleWrap" class="header-achievement-wrap" title="查看等級系統" aria-label="查看等級系統"><span class="brand-title" id="brandTitleBadge">LV1・節點觀測員</span></button>
+      <button id="headerDatetimeBtn" class="header-time-wrap" title="開啟日曆系統" aria-label="開啟日曆系統">----/--/-- --:--</button>
+      <button class="map-btn" id="mapToggleBtn">&#128279; 體系圖</button>
+      <button class="tool-btn exam-btn-style" id="examBtn">&#9997; 申論</button>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">&#128269;</span>
+      <input id="searchInput" placeholder="搜尋">
+      <button class="search-clear" id="searchClear">&#215;</button>
+    </div>
+    <div class="tool-btns">
+      <div class="primary-tools">
+        <button class="tool-btn" id="compactToggleBtn" title="切換分類列顯示">&#9776; 分類</button>
+        <button class="tool-btn" id="reviewNowBtn">🧠 Review Now</button>
+        <button class="tool-btn" id="tagMgrBtn">管理</button>
+        <button class="add-btn" id="addBtn">+ 新增</button>
+      </div>
+      <div class="more-wrap">
+        <button class="tool-btn more-btn" id="moreToolsBtn">&#8942; 更多</button>
+        <div class="more-menu" id="moreToolsMenu">
+          <button class="tool-btn more-menu-item" id="themeToggleBtn">&#127769; 暗色模式</button>
+          <button class="tool-btn more-menu-item" id="panelDirBtn" title="切換筆記展開方向">&#8646; 面板方向</button>
+          <button class="tool-btn more-menu-item" id="assistToolsBtn">&#9881; 輔助功能</button>
+          <button class="tool-btn more-menu-item" id="undoBtn">&#8630; 恢復上一步</button>
+        </div>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+  </div>
+  <div class="filter-row" id="typeRow"></div>
+</div>
+<div id="selectBar"><span id="selectCount"></span><button class="sel-btn" id="selAllBtn">全選</button><button class="sel-btn" id="selDeleteBtn">&#128465; 刪除</button><button class="sel-btn" id="selCancelBtn">取消</button></div>
+<div id="subbar"></div>
+<details id="filterAdvanced">
+  <summary>進階篩選</summary>
+  <div id="chapterbar"></div>
+  <div id="sectionbar"></div>
+  <div id="sortBar">
+    <label>排序：</label>
+    <select id="sortSelect"><option value="date_desc">最新優先</option><option value="date_asc">最舊優先</option><option value="title_asc">標題 A-Z</option><option value="title_desc">標題 Z-A</option><option value="subject">依科目</option><option value="chapter">依章</option><option value="type">依類型</option></select>
+    <label class="scope-link-toggle"><input type="checkbox" id="scopeLinkedToggle"> 同步顯示關聯筆記</label>
+  </div>
+  <div id="search-results-bar"></div>
+</details>
+
+<div id="notesView">
+  <div id="statsPanel"></div>
+  <div id="content"><div id="grid"></div></div>
+
+  <!-- Detail Panel -->
+  <div class="panel" id="dp">
+    <div class="ph"><span id="dp-badge" class="ctag" style="background:#007AFF"></span><button class="pcls" id="dpClose">&#215;</button></div>
+    <div id="dp-title" class="dp-ttl"></div>
+    <div class="dp-lbl">摘要</div><div id="dp-body" class="dp-txt"></div>
+    <div class="dp-lbl">詳細筆記</div><div id="dp-detail" class="dp-txt"></div>
+    <div class="dp-lbl">路徑</div>
+    <div id="dp-path-editor" class="dp-txt" style="display:flex;gap:8px;align-items:center;">
+      <input class="fi" id="dp-path-input" placeholder="例如：民法 > 總則 > 法律行為 > 代理">
+      <button class="tool-btn" id="dp-path-save" type="button">儲存路徑</button>
+    </div>
+    <div class="dp-lbl" id="dp-todo-label" style="display:none;">&#128221; 待辦清單</div><div id="dp-todo" class="dp-txt" style="display:none;"></div>
+    <div class="dp-lbl">資訊</div><div id="dp-chips" class="dp-chips"></div>
+    <div id="dp-inline-actions" class="dp-inline-actions"></div>
+    <div class="dp-lbl">關聯筆記</div><div id="dp-links"></div>
+    <div id="dp-link-quick-wrap" class="dp-link-quick-wrap">
+      <input class="fi" id="dp-link-search" placeholder="關聯筆記">
+      <div id="dp-link-results" class="dp-link-results"></div>
+    </div>
+  </div>
+
+  <!-- Form Panel -->
+  <div class="panel" id="fp">
+    <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><button class="pcls" id="fpClose">&#215;</button></div>
+    <div class="f2col">
+      <div><label class="flbl" style="margin-top:0">類型</label><select class="fs" id="ft"></select></div>
+      <div><label class="flbl" style="margin-top:0">科目</label><select class="fs" id="fs2"></select></div>
+      <div><label class="flbl" style="margin-top:0">章</label><select class="fs" id="fc"></select></div>
+      <div><label class="flbl" style="margin-top:0">節</label><select class="fs" id="fsec"></select></div>
+    </div>
+    <label class="flbl">標題</label>
+    <input class="fi" id="fti" placeholder="標題">
+    <label class="flbl">路徑</label>
+    <input class="fi" id="fpath" placeholder="例如：民法 > 總則 > 法律行為 > 代理（之後可只輸入代理）">
+    <div style="font-size:12px;color:#6b7280;margin:6px 0 2px;">提示：一筆一概念（Atomic Note），先寫「難回想」的知識點。</div>
+    <div id="mapAssignFormWrap" style="display:none;">
+      <div style="font-size:12px;color:#667;margin:4px 0 10px;">請用和新增/編輯筆記相同的側邊表單，將筆記加入指定頁面。</div>
+      <label class="flbl">目標頁面</label>
+      <select class="fs" id="mapAssignPageSel"></select>
+      <label class="flbl">搜尋筆記</label>
+      <input class="fi" id="mapAssignSearchInput" placeholder="搜尋筆記">
+      <div id="mapAssignSearchResult" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;"></div>
+    </div>
+    <div id="dynamicFieldWrap">
+      <div class="field-config-head">
+        <span>欄位（依類型）</span>
+        <div class="field-config-actions">
+          <button class="tool-btn mini-btn" id="addTypeFieldBtn" type="button">+ 新增欄位</button>
+          <button class="tool-btn mini-btn" id="removeTypeFieldBtn" type="button">− 刪除欄位</button>
+        </div>
+      </div>
+      <div id="dynamicFields"></div>
+    </div>
+    <div id="form-links-wrap" style="margin-top:16px;padding-top:14px;border-top:1px solid #eee;">
+      <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.06em;margin-bottom:8px;">&#128279; 關聯筆記</div>
+      <div id="form-links-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:5px;"></div>
+      <select class="fs" id="fl-relation-type" style="margin-bottom:6px;">
+        <option value="cause">cause</option><option value="example">example</option><option value="contrast">contrast</option><option value="application">application</option><option value="analogy">analogy</option>
+      </select>
+      <input class="fi" id="fl-relation-note" placeholder="關聯說明（部分關聯必填）" style="margin-bottom:6px;display:none;">
+      <input class="fi" id="fl-search" placeholder="搜尋關聯" style="margin-bottom:6px;">
+      <div id="fl-bulk-actions" style="display:none;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 8px;">
+        <button class="tool-btn" id="flSelectAllBtn">全選結果</button>
+        <button class="tool-btn" id="flAddSelectedBtn" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459;">建立 0 筆關聯</button>
+      </div>
+      <div id="fl-results" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+    </div>
+    <div class="frow">
+      <button class="fbtn bcl" id="fpCancel">取消</button>
+      <button class="fbtn bsv" id="fpSave">儲存</button>
+    </div>
+  </div>
+
+  <!-- Tag Manager -->
+  <div class="panel" id="tp">
+  <div class="ph"><span class="ph-title">管理標籤</span><button class="pcls" id="tpClose">&#215;</button></div>
+  <div class="tag-tools-row">
+    <div class="tag-search-wrap">
+      <span class="tag-search-icon">&#128269;</span>
+      <input id="tagSearchInput" placeholder="搜尋標籤 / 章 / 節">
+    </div>
+    <button class="tool-btn tag-settings-btn" id="tagSettingsBtn" title="全域設定">⚙️</button>
+  </div>
+  <div class="tag-global-options" id="tagGlobalOptions">
+    <label><input type="checkbox" id="tagUnusedOnly"> 只看未使用</label>
+    <button class="tool-btn" id="clearUnusedTagsBtn">&#128465; 清理未使用</button>
+  </div>
+  <div id="tagStatsPanel"></div>
+  <div class="tag-manager-layout">
+    <div class="tag-category-nav" id="tagCategoryNav">
+      <button class="tag-nav-btn active" data-category="type">類型</button>
+      <button class="tag-nav-btn" data-category="subject">科目</button>
+      <button class="tag-nav-btn" data-category="chapter">章</button>
+      <button class="tag-nav-btn" data-category="section">節</button>
+    </div>
+    <div class="tag-manager-content">
+      <div class="tag-category-panel" data-category-panel="type">
+        <div class="tag-section-title">類型</div>
+        <div class="tag-list" id="typeTagList"></div>
+        <div class="tag-add-row">
+          <input id="newTypeLabel" placeholder="新類型名稱">
+          <input type="color" class="color-pick" id="newTypeColor" value="#378ADD">
+          <button class="tag-add-icon-btn" id="addTypeBtn">+</button>
+        </div>
+      </div>
+
+      <div class="tag-category-panel" data-category-panel="subject">
+        <div class="tag-section-title">科目</div>
+        <div class="tag-list" id="subTagList"></div>
+        <div class="tag-add-row">
+          <input id="newSubLabel" placeholder="新科目名稱">
+          <input type="color" class="color-pick" id="newSubColor" value="#1D9E75">
+          <button class="tag-add-icon-btn" id="addSubBtn">+</button>
+        </div>
+      </div>
+
+      <div class="tag-category-panel" data-category-panel="chapter">
+        <div class="tag-section-title">章</div>
+        <div class="tag-list" id="chapterTagList"></div>
+        <div class="tag-add-row">
+          <input id="newChapterLabel" placeholder="新章名稱">
+          <select id="newChapterSubject" class="fs" style="max-width:110px;min-width:80px;"></select>
+          <button class="tag-add-icon-btn" id="addChapterBtn">+</button>
+        </div>
+      </div>
+
+      <div class="tag-category-panel" data-category-panel="section">
+        <div class="tag-section-title">節</div>
+        <div class="tag-list" id="sectionTagList"></div>
+        <div class="tag-add-row">
+          <input id="newSectionLabel" placeholder="新節名稱">
+          <select id="newSectionChapter" class="fs" style="max-width:110px;min-width:80px;"></select>
+          <button class="tag-add-icon-btn" id="addSectionBtn">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Archive / Recycle Panel -->
+  <div class="panel" id="ap">
+    <div class="ph"><span class="ph-title">存檔與回收區</span><button class="pcls" id="apClose">&#215;</button></div>
+    <div class="archive-toolbar">
+      <button type="button" class="tool-btn" id="archiveSaveBtn">+ 建立存檔</button>
+      <button type="button" class="tool-btn" id="archiveExportBtn">下載備份</button>
+      <button type="button" class="tool-btn" id="archivePortableExportBtn">下載通用包</button>
+      <button type="button" class="tool-btn" id="archiveImportBtn">匯入備份</button>
+      <button type="button" class="tool-btn" id="cloudLoginBtn">☁️ Google登入</button>
+      <button type="button" class="tool-btn" id="cloudPullBtn">⬇️ 雲端下載</button>
+      <button type="button" class="tool-btn" id="cloudSyncBtn">⬆️ 雲端上傳</button>
+      <button type="button" class="tool-btn" id="cloudLogoutBtn">登出雲端</button>
+    </div>
+    <div class="archive-empty" id="cloudSyncStatus">雲端同步：未登入</div>
+    <div class="archive-cols">
+      <div class="archive-col">
+        <div class="archive-col-title">存檔快照（最多 30 筆）</div>
+        <div id="archiveList"></div>
+      </div>
+      <div class="archive-col">
+        <div class="archive-col-title">回收區（5 天自動清空，30 分鐘內刪除會合併）</div>
+        <div id="recycleList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar View -->
+<div id="calendarView">
+  <div class="calendar-head">
+    <button class="tool-btn" id="calendarPrevBtn">←</button>
+    <div id="calendarTitle">2026年4月</div>
+    <button class="tool-btn" id="calendarTimerBtn">&#9201; 專注計時器</button>
+    <button class="tool-btn" id="calendarNextBtn">→</button>
+    <button class="tool-btn" id="calendarTodayBtn">今天</button>
+    <button class="tool-btn" id="calendarSettingsBtn">⚙️ Email</button>
+    <button class="tool-btn map-primary-action" id="calendarBackBtn">← 返回筆記</button>
+  </div>
+  <div class="calendar-weekdays">
+    <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+  </div>
+  <div id="calendarGrid"></div>
+</div>
+
+<!-- Level System View -->
+<div id="levelSystemView">
+  <div class="calendar-head">
+    <div id="levelSystemTitle">等級系統</div>
+    <button class="tool-btn map-primary-action" id="levelSystemBackBtn">← 返回筆記</button>
+  </div>
+  <div id="levelSystemPanel"></div>
+  <div id="levelEditorModal">
+    <div id="levelEditorBox">
+      <div class="ph"><span class="ph-title" id="levelEditorTitle">編輯項目</span><button class="pcls" id="levelEditorClose">&#215;</button></div>
+      <div id="levelTaskFields">
+        <label class="flbl">任務名稱</label>
+        <input class="fi" id="levelTaskName" placeholder="任務名稱">
+        <div class="f2col">
+          <div>
+            <label class="flbl" style="margin-top:0">難度</label>
+            <select class="fs" id="levelTaskDifficulty">
+              <option value="E">E</option>
+              <option value="N">N</option>
+              <option value="H">H</option>
+            </select>
+          </div>
+          <div>
+            <label class="flbl" style="margin-top:0">重複週期</label>
+            <select class="fs" id="levelTaskRepeat"></select>
+          </div>
+        </div>
+        <label class="flbl">小任務</label>
+        <textarea class="ft" id="levelTaskSubtasks" placeholder="小任務"></textarea>
+      </div>
+      <div id="levelAchievementFields">
+        <label class="flbl">成就名稱</label>
+        <input class="fi" id="levelAchievementName" placeholder="成就名稱">
+        <div class="f2col">
+          <div>
+            <label class="flbl" style="margin-top:0">達成門檻</label>
+            <input class="fi" id="levelAchievementTarget" type="number" min="1" value="10">
+          </div>
+          <div>
+            <label class="flbl" style="margin-top:0">難度</label>
+            <select class="fs" id="levelAchievementDifficulty">
+              <option value="E">E</option>
+              <option value="N">N</option>
+              <option value="H">H</option>
+            </select>
+          </div>
+        </div>
+        <label class="flbl">達成方式</label>
+        <input class="fi" id="levelAchievementCondition" placeholder="達成方式">
+        <label class="flbl">獲得點數</label>
+        <input class="fi" id="levelAchievementPoints" type="number" min="0" value="30">
+      </div>
+      <div class="frow">
+        <button class="fbtn bcl" id="levelEditorCancel">取消</button>
+        <button class="fbtn bsv" id="levelEditorSave">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Map View -->
+<div id="mapView">
+  <div id="mapToolbar">
+    <div class="map-search-wrap">
+      <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#aaa;font-size:12px;pointer-events:none;">&#128269;</span>
+      <input id="mapSearchInput" placeholder="搜尋節點..." autocomplete="off">
+    </div>
+    <select id="mapFilterSub" class="map-filter-sel"><option value="all">全部科目</option></select>
+    <select id="mapFilterChapter" class="map-filter-sel map-adv-item"><option value="all">全部章</option></select>
+    <select id="mapFilterSection" class="map-filter-sel map-adv-item"><option value="all">全部節</option></select>
+    <button class="tool-btn" id="mapAdvancedToggleBtn" style="background:#f5f5f5;color:#555;border-color:#ddd;">⚙️ 進階</button>
+    <button class="tool-btn" id="mapAutoBtn">&#10024; 自動排列</button>
+    <button class="tool-btn map-adv-item" id="mapLinkedOnlyBtn" style="background:#3B6D11;color:#fff;border-color:#3B6D11;">&#128279; 只顯示關聯</button>
+    <button class="tool-btn map-adv-item" id="mapLaneBtn">&#129521; 泳道</button>
+    <button class="tool-btn map-primary-action" id="mapBackBtn">&#8592; 返回</button>
+    <span id="mapPagePath" class="map-page-path">主頁</span>
+    <button class="zoom-btn" id="zoomIn">+</button>
+    <span id="zoomLabel">100%</span>
+    <button class="zoom-btn" id="zoomOut">&#8722;</button>
+    <button class="zoom-btn" id="mapScrollModeBtn">↕ 垂直捲動</button>
+    <button class="zoom-btn" id="zoomFit">適合視窗</button>
+  </div>
+  <div id="mapCanvas">
+    <div class="map-canvas-top-actions">
+      <button class="map-tree-toggle" id="mapTreeToggleBtn" type="button" title="樹狀索引">☰ 索引</button>
+      <button class="tool-btn map-primary-action" id="mapAddNoteBtn">新增</button>
+      <button class="tool-btn" id="mapAssignNoteBtn">加入</button>
+    </div>
+    <aside class="map-tree-sidebar" id="mapTreeSidebar">
+      <div class="map-tree-head">
+        <span>樹狀索引</span>
+        <button class="tool-btn" id="mapTreeCloseBtn" type="button">收合</button>
+      </div>
+      <div class="map-tree-body" id="mapTreeBody"></div>
+    </aside>
+    <div id="lanePanel">
+      <div class="lane-panel-head"><span class="lane-panel-title">泳道設定</span><button class="pcls" id="lanePanelClose">&#215;</button></div>
+      <div class="lane-panel-desc">可依「目前科目/節篩選」分開設定泳道名稱。</div>
+      <div id="laneContextLabel"></div>
+      <div class="lane-count-row"><label for="laneCountInput">泳道數量</label><input id="laneCountInput" type="number" min="2" max="10" value="5"></div>
+      <div id="laneInputs"></div>
+      <div class="lane-panel-actions">
+        <button class="fbtn bcl" id="laneResetBtn">恢復預設</button>
+        <button class="fbtn bsv" id="laneSaveBtn">儲存</button>
+      </div>
+    </div>
+    <div id="mapPopup">
+      <button class="mp-close" id="mpClose">&#215;</button>
+      <span class="mp-badge" id="mpBadge"></span>
+      <div class="mp-title" id="mpTitle"></div>
+      <span class="mp-subject" id="mpSubject"></span>
+      <div class="mp-links" id="mpLinks"></div>
+      <div class="mp-link-quick-wrap" id="mp-link-quick-wrap" style="display:none;">
+        <input class="fi" id="mp-link-search" placeholder="關聯筆記">
+        <div class="dp-link-results" id="mp-link-results"></div>
+      </div>
+      <button class="mp-goto" id="mpGoto">&#128269; 查看完整筆記 &#8594;</button>
+    </div>
+    <svg id="mapSvg" style="will-change:transform;">
+      <defs><marker id="arrowBlue" markerWidth="4" markerHeight="4" refX="3" refY="1.5" orient="auto"><path d="M0,0 L0,3 L4,1.5 z" fill="#6F86A0"/></marker></defs>
+      <g id="linksLayer"></g>
+      <g id="nodesLayer"></g>
+      <g id="arrowsLayer"></g>
+    </svg>
+  </div>
+</div>
+
+<!-- Shortcut Manager -->
+<div class="panel" id="scp" style="display:none;margin:12px 14px;">
+  <div class="ph"><span class="ph-title">&#9000; 快捷鍵設定</span><button class="pcls" id="scpClose">&#215;</button></div>
+  
+  <div id="scpList" style="display:flex;flex-direction:column;gap:6px;"></div>
+  <div style="display:flex;gap:8px;margin-top:14px;">
+    <button class="fbtn bcl" id="scpReset" style="flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;">&#8634; 恢復預設</button>
+    <button class="fbtn bsv" id="scpDone" style="flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;">完成</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="actionToast"><span id="actionToastText"></span><button id="actionToastUndoBtn">復原</button></div>
+<div class="shortcut-hint" id="scHint"></div>
+<button id="debugToggle" title="開啟偵錯工具">🐞</button>
+
+<!-- Exam View -->
+<div id="examView">
+  <div id="examHeader"><span id="examHeaderTitle">&#9997; 申論測驗</span><span id="examTimer">00:00</span></div>
+  <div id="examBody">
+    <div class="exam-section"><div class="exam-section-title">題目</div><div class="exam-question-text" id="examQuestionDisplay"></div><div class="exam-issues" id="examIssueChips"></div></div>
+    <div class="exam-section" style="flex:1;"><div class="exam-section-title">&#9997; 作答欄</div><textarea id="examAnswerBox" placeholder="請在此作答..."></textarea><div class="exam-word-count" id="examWordCount">0 字</div></div>
+    <div class="exam-action-row"><button class="exam-btn exam-btn-end" id="examSubmitBtn">&#10003; 提交作答</button><button class="exam-btn exam-btn-cancel" id="examCancelBtn">&#8592; 放棄離開</button></div>
+  </div>
+  <div id="examResult">
+    <div class="result-score-card"><div class="result-score-num" id="resultScoreNum">--</div><div class="result-score-label">/ 100 分</div></div>
+    <div class="result-section"><h3>&#128221; AI 教授評語</h3><p id="resultComment">評分中...</p></div>
+    <div class="result-section" id="resultIssueSection"><h3>&#128269; 逐點分析</h3><div id="resultIssueAnalysis"></div></div>
+    <div class="result-section"><h3>&#128200; 各項表現</h3><div id="resultTags"></div></div>
+    <div class="result-section"><h3>&#128218; 參考答案要點</h3><p id="resultRef"></p></div>
+    <div class="exam-action-row" style="padding:0 0 20px;"><button class="exam-btn exam-btn-end" id="examRetryBtn">&#8634; 再做一題</button><button class="exam-btn exam-btn-cancel" id="examBackBtn2">&#8592; 返回筆記</button></div>
+  </div>
+</div>
+
+<!-- Exam List -->
+<div id="examListPanel">
+  <div class="ph"><span class="ph-title">&#9997; 申論題庫</span><button class="pcls" id="examListClose">&#215;</button></div>
+  <div id="examListItems"></div>
+  <div style="margin-top:12px;"><button class="fbtn bsv" id="examAddBtn" style="width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:none;cursor:pointer;">+ 新增題目</button></div>
+</div>
+
+<!-- Exam Form -->
+<div class="panel" id="examAddForm">
+  <div class="ph"><span class="ph-title">+ 新增申論題</span><button class="pcls" id="examFormClose">&#215;</button></div>
+  <label class="flbl" style="margin-top:0">科目</label><select class="fs" id="examSubSel"></select>
+  <label class="flbl">題目</label><textarea class="ft" id="examQInput" style="min-height:100px;" placeholder="題目"></textarea>
+  <label class="flbl">爭點</label><input class="fi" id="examIssInput" placeholder="爭點">
+  <label class="flbl">作答時間（分鐘）</label><input class="fi" id="examTimeInput" type="number" value="30" min="5" max="120">
+  <div class="frow"><button class="fbtn bcl" id="examFCancel">取消</button><button class="fbtn bsv" id="examFSave">儲存</button></div>
+</div>
+
+<!-- AI Key Modal -->
+<div id="aiKeyModal">
+  <div id="aiKeyBox">
+    <h3>&#129302; 設定 AI（OpenRouter）</h3>
+    <p>KLaws 使用 <b>OpenRouter</b> 提供的免費 AI 模型。<br>註冊免費帳號後取得 API Key 即可使用，<b>每天最多 200 次，不需信用卡</b>。</p>
+    <div style="background:#f0f7ff;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#0C447C;line-height:1.8;">
+      1. 前往 <b>openrouter.ai</b> 免費註冊<br>
+      2. 右上角頭像 → <b>Keys</b> → <b>Create Key</b><br>
+      3. 複製 <b>sk-or-v1-...</b> 貼到下方
+    </div>
+    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">API Key</label>
+    <input id="aiKeyInput" type="password" placeholder="sk-or-v1-...">
+    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin:10px 0 4px;">AI 模型</label>
+    <select id="aiModelSel" style="width:100%;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#f8f8f8;font-family:inherit;margin-bottom:12px;"></select>
+    <div class="ai-key-row">
+      <button class="fbtn bcl" id="aiKeyCancel" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;">取消</button>
+      <button class="fbtn bsv" id="aiKeySave" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;">儲存並繼續</button>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#bbb;text-align:center;">Key 僅存於您的本機，不會上傳至任何伺服器</div>
+  </div>
+</div>
+
+<div id="calendarEventModal">
+  <div id="calendarEventBox">
+    <h3 id="calendarEventTitle">新增日程</h3>
+    <p id="calendarEventDateLabel"></p>
+    <label class="flbl">類型</label>
+    <select id="calendarEventType" class="fs">
+      <option value="diary">日記</option>
+      <option value="reminder">提醒</option>
+    </select>
+    <label class="flbl">標題</label>
+    <input id="calendarEventName" class="fi" placeholder="標題">
+    <div id="calendarEventBodyWrap">
+      <label class="flbl">內容</label>
+      <textarea id="calendarEventBody" class="ft" style="min-height:90px;" placeholder="內容"></textarea>
+    </div>
+    <div id="calendarReminderWrap" style="display:none;">
+      <label class="flbl">到期時間（當天）</label>
+      <div class="calendar-reminder-row">
+        <input id="dueHour" type="number" min="0" max="23" value="9" class="fi"><span>時</span>
+        <input id="dueMinute" type="number" min="0" max="59" value="0" class="fi"><span>分</span>
+      </div>
+      <label class="flbl">提醒時間（到期前）</label>
+      <div class="calendar-reminder-row">
+        <input id="remindDays" type="number" min="0" value="0" class="fi"><span>天</span>
+        <input id="remindHours" type="number" min="0" value="0" class="fi"><span>小時</span>
+        <input id="remindMinutes" type="number" min="0" value="10" class="fi"><span>分鐘</span>
+      </div>
+      <label class="flbl">提醒方式（可自由勾選）</label>
+      <div class="calendar-reminder-channels">
+        <label><input type="checkbox" id="remindPopup" checked> 筆記內彈窗提醒</label>
+        <label><input type="checkbox" id="remindEmail"> Email 提醒</label>
+      </div>
+    </div>
+    <div class="frow">
+      <button class="fbtn bcl" id="calendarEventCancel">取消</button>
+      <button class="fbtn" id="calendarEventDelete" style="display:none;background:#fff1f2;color:#b91c1c;border:1px solid #fecaca;">刪除</button>
+      <button class="fbtn bsv" id="calendarEventSave">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div id="calendarSettingsModal">
+  <div id="calendarSettingsBox">
+    <h3>提醒 Email 設定</h3>
+    
+    <input id="calendarSmtpToken" class="fi" placeholder="SMTP Secure Token（例如 SMTPJS）">
+    <input id="calendarEmailFrom" class="fi" style="margin-top:8px;" placeholder="寄件者 Email（From）">
+    <textarea id="calendarEmailsInput" class="ft" style="min-height:130px;" placeholder="example@gmail.com"></textarea>
+    <div class="frow">
+      <button class="fbtn bcl" id="calendarSettingsCancel">取消</button>
+      <button class="fbtn bsv" id="calendarSettingsSave">儲存</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="calendarDayDetail" class="calendar-day-detail"></div>
+
+<div id="reminderPopup"></div>
+<div id="focusTimerModal">
+  <div id="focusTimerBox">
+    <div id="focusTimerDragHandle" title="拖曳移動計時器">
+      <h3>⏱️ 專注計時器</h3>
+      <span class="focus-timer-drag-hint">拖曳移動</span>
+    </div>
+    <label class="flbl">倒數時間（m:ss 或 分鐘）</label>
+    <input id="focusTimerMinutes" class="fi" type="text" value="25:00" placeholder="例如 1:30 或 25">
+    <div id="focusTimerDisplay">25:00</div>
+    <div class="focus-timer-actions">
+      <button class="fbtn bsv" id="focusTimerStartBtn">開始</button>
+      <button class="fbtn bcl" id="focusTimerPauseBtn">暫停</button>
+      <button class="fbtn bcl" id="focusTimerResetBtn">重設</button>
+    </div>
+    <div class="frow">
+      <button class="fbtn bcl" id="focusTimerCloseBtn">關閉</button>
+    </div>
+  </div>
+</div>
+<div id="assistToolsModal">
+  <div id="assistToolsBox">
+    <h3>&#9881; 輔助功能</h3>
+    
+    <div class="assist-tools-grid">
+      <button class="tool-btn ai-btn-style" id="assistAiBtn">&#129302; AI</button>
+      <button class="tool-btn" id="assistShortcutBtn">&#9000; 快捷鍵</button>
+    </div>
+    <div class="assist-tools-actions">
+      <button class="fbtn bcl" id="assistToolsCloseBtn">關閉</button>
+    </div>
+  </div>
+</div>
+<div id="focusTimerAlert">
+  <div id="focusTimerAlertBox">
+    <h3>⏰ 時間到！</h3>
+    <p>計時已結束，請休息或開始下一輪。</p>
+    <button class="fbtn bsv" id="focusTimerAlertOkBtn">我知道了</button>
+  </div>
+</div>
+
+<script src="utility.js"></script>
+<script src="storage.js"></script>
+<script src="render.js"></script>
+<script src="map.js"></script>
+<script src="calendar.js"></script>
+<script src="config.js"></script>
+<script src="klaws-core.js"></script>
+<script src="state.js"></script>
+<script src="utils-app.js"></script>
+<script src="data.js"></script>
+<script src="tags.js"></script>
+<script src="notes.js"></script>
+<script src="form.js"></script>
+<script src="render-ui.js"></script>
+<script src="map-logic.js"></script>
+<script src="calendar-logic.js"></script>
+<script src="level.js"></script>
+<script src="exam.js"></script>
+<script src="shortcuts.js"></script>
+<script src="init.js"></script>
+</body>
+</html>

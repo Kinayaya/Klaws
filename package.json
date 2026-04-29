@@ -1,0 +1,7 @@
+{
+  "name": "klaws",
+  "private": true,
+  "scripts": {
+    "test": "node --test klaws-core.test.js"
+  }
+}
