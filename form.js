@@ -10,10 +10,12 @@ function resolveInheritedPath(inputPath=''){
 }
 function syncFormModeVisibility(){
   const isAssign=formMode==='mapAssign';
+  const isPathEditable=editMode&&!isAssign;
   const setDisplay=(id,v)=>{const el=g(id);if(el)el.style.display=v;};
   setDisplay('mapAssignFormWrap',isAssign?'block':'none');
   setDisplay('dynamicFieldWrap',isAssign?'none':'block');
   setDisplay('form-links-wrap',isAssign?'none':'block');
+  setDisplay('fpath-row',isPathEditable?'block':'none');
   setDisplay('fti',isAssign?'none':'block');
   const titleLbl=document.querySelector('label[for="fti"]')||Array.from(document.querySelectorAll('#fp .flbl')).find(el=>el.textContent.trim()==='標題');
   if(titleLbl) titleLbl.style.display=isAssign?'none':'block';
