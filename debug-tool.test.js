@@ -45,3 +45,11 @@ test('bindDebugToggle rebinds after button node replacement', ()=>{
   assert.equal(bindDebugToggle(()=>btnB,()=>{}),true);
   assert.equal(calls,2);
 });
+
+
+test('formatErrorDetail handles non-Error circular payload safely', ()=>{
+  const payload={};
+  payload.self=payload;
+  const txt=formatErrorDetail(payload,'init-load-error');
+  assert.match(txt,/\[init-load-error\] Error:/);
+});
