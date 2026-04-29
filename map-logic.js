@@ -415,7 +415,7 @@ function buildMapTreeIndex(visNotes){
     cursor.notes.push(n);
   });
   const countNode=node=>node.notes.length+Object.values(node.items).reduce((sum,ch)=>sum+countNode(ch),0);
-  const renderNode=(node,depth=0)=>{
+  const renderNode=(node,depth=0,parentPath='')=>{
     const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
     const icon=depth===0?'🗂️':'📁';
     const noteItems=node.notes.map(note=>{
@@ -425,7 +425,8 @@ function buildMapTreeIndex(visNotes){
     const groupItems=keys.map(key=>{
       const child=node.items[key];
       const total=countNode(child);
-      return `<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">${icon} ${escapeHtml(child.label)}</span><span class="map-tree-count">${total}</span></div>${renderNode(child,depth+1)}</li>`;
+      const chainLabel=(typeof buildTreePathLabel==='function'?buildTreePathLabel(parentPath,child.label):(parentPath?`${parentPath}>${child.label}`:child.label));
+      return `<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">${icon} ${escapeHtml(chainLabel)}</span><span class="map-tree-count">${total}</span></div>${renderNode(child,depth+1,chainLabel)}</li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
