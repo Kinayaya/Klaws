@@ -149,36 +149,10 @@ function loadData() {
 function saveData() {
   try {
     const nextRaw=JSON.stringify(getPayload());
-    if(!isUndoApplying&&lastSavedPayloadRaw&&lastSavedPayloadRaw!==nextRaw) undoSnapshotRaw=lastSavedPayloadRaw;
     writeJSON(SKEY,getPayload());
     lastSavedPayloadRaw=nextRaw;
   } catch(e){}
 }
-function applySnapshotRaw(raw){
-  if(!raw) return false;
-  try{
-    isUndoApplying=true;
-    localStorage.setItem(SKEY,raw);
-    loadData();
-    rebuildUI();
-    render();
-    if(isMapOpen){buildMapFilters();forceLayout();drawMap();}
-    return true;
-  }catch(e){
-    return false;
-  }finally{
-    isUndoApplying=false;
-  }
-}
-function undoLastAction(){
-  if(!undoSnapshotRaw){showToast('目前沒有可恢復的上一步');return;}
-  const currentRaw=lastSavedPayloadRaw||localStorage.getItem(SKEY)||'';
-  if(applySnapshotRaw(undoSnapshotRaw)){
-    undoSnapshotRaw=currentRaw;
-    showToast('已恢復上一步');
-  }else showToast('恢復失敗');
-}
-
 // ==================== 匯入/匯出 ====================
 function exportData() {
   const json=JSON.stringify({notes,mapRelays:[],links,nid,lid,types,subjects,chapters,sections,nodeSizes,mapCenterNodeId,mapCenterNodeIds,mapCollapsed,mapSubpages,mapPageNotes,exported:new Date().toISOString()},null,2);

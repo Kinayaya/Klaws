@@ -26,7 +26,6 @@ const COMPACT_FILTER_KEY = 'klaws_compact_filters_v1';
 const USAGE_START_KEY = 'klaws_usage_start_v1';
 const FORM_TAXONOMY_PREF_KEY = 'klaws_form_taxonomy_pref_v1';
 const LAST_VIEW_STATE_KEY = 'klaws_last_view_state_v1';
-const THEME_MODE_KEY = 'klaws_theme_mode_v1';
 const GOOGLE_DRIVE_CLIENT_ID_KEY = 'klaws_google_drive_client_id_v1';
 const GOOGLE_DRIVE_SYNC_FILE_NAME = 'klaws-sync-v1.json';
 const GOOGLE_DRIVE_SYNC_MIME = 'application/json';

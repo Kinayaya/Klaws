@@ -666,18 +666,5 @@ body.panel-dir-bottom #tp.open{transform:translateY(0)}
 .assist-tools-actions{display:flex;justify-content:flex-end;margin-top:14px}
 .assist-tools-actions .fbtn{padding:8px 14px;border-radius:9px;border:none;cursor:pointer}
 
-body.dark-mode{background:#0b1220;color:#e5e7eb}
-body.dark-mode #topbar{background:rgba(15,23,42,.88);border-bottom-color:#22324b}
-body.dark-mode #subbar,body.dark-mode #filterAdvanced,body.dark-mode #chapterbar,body.dark-mode #sectionbar,body.dark-mode #sortBar{background:#0f172a;border-color:#22324b}
-body.dark-mode .card,body.dark-mode .panel,body.dark-mode #mapToolbar,body.dark-mode #mapCanvas,body.dark-mode #calendarView,body.dark-mode #levelSystemView,body.dark-mode #examView{background:#0f172a;border-color:#22324b;color:#e5e7eb}
-body.dark-mode .tool-btn,body.dark-mode .map-btn,body.dark-mode .tab,body.dark-mode .sc,body.dark-mode .ch{background:#1e293b;border-color:#334155;color:#d1d5db}
-body.dark-mode .search-wrap input,body.dark-mode .fi,body.dark-mode .ft,body.dark-mode .fs,body.dark-mode select,body.dark-mode textarea{background:#111827;border-color:#334155;color:#e5e7eb}
-body.dark-mode .empty,body.dark-mode .stat-lbl,body.dark-mode .brand-by{color:#9ca3af}
-body.dark-mode .brand-name,body.dark-mode .dp-ttl,body.dark-mode .ph-title,body.dark-mode .calendar-day-title{color:#e5e7eb}
-body.dark-mode .chip{background:#172033;color:#cbd5e1;border-color:#324158}
-body.dark-mode .cbody,body.dark-mode .dp-txt,body.dark-mode .calendar-day-item pre{color:#cbd5e1}
-body.dark-mode #assistToolsBox{background:#0f172a;border-color:#334155}
-body.dark-mode #assistToolsBox h3{color:#e5e7eb}
-body.dark-mode .header-time-wrap{background:#1d293f;border-color:#334155;color:#cfe5ff}
 
 .header-achievement-wrap:focus-visible,.header-time-wrap:focus-visible,.klaws-logo-btn:focus-visible{outline:2px solid #8cbcff;outline-offset:3px;border-radius:999px}

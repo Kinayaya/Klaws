@@ -65,18 +65,6 @@ function saveLastViewState(){
   const mapStack=(view==='map')?normalizeMapPageStack(mapPageStack):[];
   localStorage.setItem(LAST_VIEW_STATE_KEY,JSON.stringify({view,mapPageStack:mapStack}));
 }
-function applyThemeMode(mode='light'){
-  const dark=mode==='dark';
-  document.body.classList.toggle('dark-mode',dark);
-  localStorage.setItem(THEME_MODE_KEY,dark?'dark':'light');
-  const btn=g('themeToggleBtn');
-  if(btn) btn.textContent=dark?'☀️ 淺色模式':'🌙 暗色模式';
-}
-function toggleThemeMode(){
-  const isDark=document.body.classList.contains('dark-mode');
-  applyThemeMode(isDark?'light':'dark');
-  showToast(isDark?'已切換淺色模式':'已切換暗色模式');
-}
 function updateNotesHomeVisibility(){
   if(currentView!=='notes') return;
   const hasSearch=!!searchQ.trim()||reviewMode;
