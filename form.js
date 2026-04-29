@@ -335,9 +335,11 @@ function saveNote() {
   if((fieldData.question.length+fieldData.answer.length)>600){
     showToast('提示：請保持原子化（單一概念、精簡問答）');
   }
+  const fallbackDomain=domains[0]?.key||'';
   const selectedSubs=selectedValues('fs2').slice(0,1);
-  if(!selectedSubs.length){showToast('請至少選擇一個');return;}
-  const primaryDomain=selectedSubs[0]||'';
+  const effectiveDomain=selectedSubs[0]||fallbackDomain;
+  const normalizedSubs=effectiveDomain?[effectiveDomain]:[];
+  const primaryDomain=effectiveDomain;
   saveFormTaxonomyPref(primaryDomain,'','');
   if(editMode&&openId) {
     const isAuxnode=formMode==='auxnode';
@@ -348,7 +350,7 @@ function saveNote() {
     const prevDone=idx!==-1?doneTodoCount(source[idx].todos):0;
     if(idx!==-1){
       const oldPath=source[idx]?.path||'';
-      const updated=normalizeNoteSchema({...source[idx],type:typeKey,domain:primaryDomain,domains:selectedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
+      const updated=normalizeNoteSchema({...source[idx],type:typeKey,domain:primaryDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
       console.log('[saveNote][update]',{noteId:source[idx]?.id,oldPath,newPath:updated.path});
       source[idx]=isAuxnode?{...updated,isAuxnode:true,pageRootId:auxnodePageRootId(source[idx]),noteTypeBackup:typeKey}:updated;
     }
@@ -363,7 +365,7 @@ function saveNote() {
         if(id===openId) return;
         const target=noteById(id);
         if(!target) return;
-        Object.assign(target,{type:typeKey,domain:primaryDomain,domains:[...selectedSubs],group:'',groups:[],part:'',parts:[]});
+        Object.assign(target,{type:typeKey,domain:primaryDomain,domains:[...normalizedSubs],group:'',groups:[],part:'',parts:[]});
       });
     }
     saveData();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
@@ -371,7 +373,7 @@ function saveNote() {
   } else {
     const d=new Date(),dt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const nowIso=new Date().toISOString();
-    const newNote=normalizeNoteSchema({id:nid++,type:typeKey,domain:primaryDomain,domains:selectedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,date:dt,created_at:nowIso,last_reviewed:'',next_review:nowIso,todos:fieldData.todos,extraFields:fieldData.extraFields});
+    const newNote=normalizeNoteSchema({id:nid++,type:typeKey,domain:primaryDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,date:dt,created_at:nowIso,last_reviewed:'',next_review:nowIso,todos:fieldData.todos,extraFields:fieldData.extraFields});
     console.log('[saveNote][create]',{noteId:newNote.id,oldPath:'',newPath:newNote.path});
     if(doneTodoCount(newNote.todos)>0&&levelSystem.tasks.length&&levelSystem.skills.length){
       completeLevelTask(levelSystem.tasks[0].id,levelSystem.skills[0].id);
@@ -401,8 +403,11 @@ function saveNoteDraftFromForm(){
   const typeKey=g('ft').value;
   const path=resolveInheritedPath(g('fpath').value||'');
   const fieldData=collectFormValuesByType(typeKey);
+  const fallbackDomain=domains[0]?.key||'';
   const selectedSubs=selectedValues('fs2').slice(0,1);
-  Object.assign(target,normalizeNoteSchema({...target,type:typeKey,domain:selectedSubs[0]||'',domains:selectedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields}));
+  const effectiveDomain=selectedSubs[0]||fallbackDomain;
+  const normalizedSubs=effectiveDomain?[effectiveDomain]:[];
+  Object.assign(target,normalizeNoteSchema({...target,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields}));
   saveDataDeferred();
 }
 function duplicateNote(targetId=openId) {
