@@ -3,8 +3,24 @@
     return String(stack||'').split('\n').map(line=>line.trim()).filter(Boolean).slice(0,8).join(' | ');
   }
 
+  function safeSerialize(value){
+    if(typeof value==='string') return value;
+    const seen=new WeakSet();
+    try{
+      return JSON.stringify(value,(k,v)=>{
+        if(v&&typeof v==='object'){
+          if(seen.has(v)) return '[Circular]';
+          seen.add(v);
+        }
+        return v;
+      });
+    }catch(_){
+      return String(value);
+    }
+  }
+
   function formatErrorDetail(err, context=''){
-    const e = err instanceof Error ? err : new Error(typeof err==='string'?err:JSON.stringify(err));
+    const e = err instanceof Error ? err : new Error(safeSerialize(err));
     const name=e.name||'Error';
     const msg=e.message||'Unknown error';
     const stack=normalizeStack(e.stack||'');

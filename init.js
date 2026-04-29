@@ -9,7 +9,13 @@
   if(pathSample.some(x=>typeof x.path!=='string')) console.warn('[loadData][path-warning] invalid path type detected');
   rebuildUI();
   initMoreMenu();
-  g('sortSelect').value=sortMode;g('sortSelect').addEventListener('change',()=>{sortMode=g('sortSelect').value;gridPage=1;render();saveData();});
+  const sortSelect=g('sortSelect');
+  if(sortSelect){
+    sortSelect.value=sortMode;
+    sortSelect.addEventListener('change',()=>{sortMode=sortSelect.value;gridPage=1;render();saveData();});
+  }else{
+    console.warn('[init-missing-element] sortSelect');
+  }
   const scopeLinkedToggle=g('scopeLinkedToggle');
   if(scopeLinkedToggle){
     scopeLinkedToggle.checked=scopeLinkedEnabled;
@@ -32,12 +38,16 @@
   on('ft','change',()=>renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null));
   if(g('fc')) on('fc','change',()=>syncSectionSelect(selectedValues('fc'),selectedValues('fsec'),[]));
   const si=g('searchInput'),sc=g('searchClear');
-  si.addEventListener('input',debounce(()=>{
-    searchQ=si.value;gridPage=1;sc.style.display=searchQ?'block':'none';
-    if(searchQ.trim()&&isMapOpen) toggleMapView(false);
-    updateNotesHomeVisibility();render();
-  },250));
-  sc.addEventListener('click',()=>{si.value='';searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
+  if(si&&sc){
+    si.addEventListener('input',debounce(()=>{
+      searchQ=si.value;gridPage=1;sc.style.display=searchQ?'block':'none';
+      if(searchQ.trim()&&isMapOpen) toggleMapView(false);
+      updateNotesHomeVisibility();render();
+    },250));
+    sc.addEventListener('click',()=>{si.value='';searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
+  }else{
+    console.warn('[init-missing-element] searchInput/searchClear',{hasSearchInput:!!si,hasSearchClear:!!sc});
+  }
   const compactDefault=localStorage.getItem(COMPACT_FILTER_KEY);
   applyCompactFilterMode(compactDefault===null?true:compactDefault==='1');
   on('compactToggleBtn','click',()=>applyCompactFilterMode(!document.body.classList.contains('compact-filters')));
@@ -209,6 +219,9 @@
   on('calendarEventDelete','click',()=>{ if(editingCalendarEventId!=null) deleteCalendarEvent(editingCalendarEventId); });
   on('lanePanelClose','click',closeLanePanel);on('laneSaveBtn','click',saveLanePanel);on('laneResetBtn','click',resetLanePanel);
   const canvas=g('mapCanvas');let panStart=null,panOffXStart=0,panOffYStart=0;
+  if(!canvas){
+    throw new Error('[init] mapCanvas not found');
+  }
   const pointerInCanvas=(x,y)=>{
     const rect=canvas.getBoundingClientRect();
     return { x:x-rect.left, y:y-rect.top+(mapVerticalScrollMode?canvas.scrollTop:0) };
@@ -262,6 +275,7 @@
   render();
   restoreLastViewState();
   }catch(err){
-    console.error('[init-load-error]',err);
+    const detail={name:err&&err.name,message:err&&err.message,stack:err&&err.stack};
+    console.error('[init-load-error]',detail,err);
   }
 });
