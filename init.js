@@ -21,7 +21,7 @@
     });
   }
   if(g('selAllBtn')) g('selAllBtn').textContent='複製';
-  g('selAllBtn').addEventListener('click',copySelectedNotes);g('selDeleteBtn').addEventListener('click',deleteSelected);g('selCancelBtn').addEventListener('click',exitMultiSel);
+  on('selAllBtn','click',copySelectedNotes);on('selDeleteBtn','click',deleteSelected);on('selCancelBtn','click',exitMultiSel);
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
   on('headerTitleWrap','click',()=>toggleLevelSystemView(true));
@@ -68,7 +68,7 @@
   on('cloudPullBtn','click',()=>cloudSyncPullLatest());
   on('cloudSyncBtn','click',()=>cloudSyncPushNow());
   on('cloudLogoutBtn','click',logoutGoogleDriveSync);
-  g('tpClose').addEventListener('click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
+  on('tpClose','click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
   on('tagSearchInput','input',debounce(()=>{tagSearchQ=(val('tagSearchInput')||'').toLowerCase().trim();renderTagLists();},150));
   on('tagUnusedOnly','change',()=>{tagUnusedOnly=!!g('tagUnusedOnly').checked;renderTagLists();});
   on('clearUnusedTagsBtn','click',clearUnusedTags);
@@ -96,12 +96,12 @@
   on('examRetryBtn','click',()=>{closeExamView();setTimeout(openExamPanel,100);});on('examBackBtn2','click',closeExamView);
   on('examAnswerBox','input',()=>{g('examWordCount').textContent=g('examAnswerBox').value.replace(/\s/g,'').length+' 字';});
   g('aiProviderSel')?.addEventListener('change',()=>{saveAiProvider(g('aiProviderSel').value||'openrouter');renderAiModelOptions();});
-  g('aiKeySave').addEventListener('click',()=>{const k=(g('aiKeyInput').value||'').trim();if(!k){showToast('請輸入 API Key');return;}saveAiKey(k);const psel=g('aiProviderSel');if(psel&&psel.value)saveAiProvider(psel.value);const sel=g('aiModelSel');if(sel&&sel.value)saveAiModel(sel.value);g('aiKeyModal').classList.remove('open');if(_aiPendingAction){_aiPendingAction(k);_aiPendingAction=null;}else showToast('AI 設定已儲存！');});
-  g('aiKeyCancel').addEventListener('click',()=>{g('aiKeyModal').classList.remove('open');_aiPendingAction=null;});
-  g('importFile').addEventListener('change',e=>{if(e.target.files&&e.target.files[0])importData(e.target.files[0]);e.target.value='';});
+  on('aiKeySave','click',()=>{const k=(g('aiKeyInput').value||'').trim();if(!k){showToast('請輸入 API Key');return;}saveAiKey(k);const psel=g('aiProviderSel');if(psel&&psel.value)saveAiProvider(psel.value);const sel=g('aiModelSel');if(sel&&sel.value)saveAiModel(sel.value);g('aiKeyModal').classList.remove('open');if(_aiPendingAction){_aiPendingAction(k);_aiPendingAction=null;}else showToast('AI 設定已儲存！');});
+  on('aiKeyCancel','click',()=>{g('aiKeyModal').classList.remove('open');_aiPendingAction=null;});
+  on('importFile','change',e=>{if(e.target.files&&e.target.files[0])importData(e.target.files[0]);e.target.value='';});
   on('debugToggle','click',toggleDebugTool);
-  g('scpClose').addEventListener('click',closeShortcutMgr);g('scpDone').addEventListener('click',closeShortcutMgr);
-  g('scpReset').addEventListener('click',()=>{shortcuts=DEFAULT_SHORTCUTS.map(s=>({...s}));saveShortcuts();renderShortcutList();showToast('已恢復預設快捷鍵');});
+  on('scpClose','click',closeShortcutMgr);on('scpDone','click',closeShortcutMgr);
+  on('scpReset','click',()=>{shortcuts=DEFAULT_SHORTCUTS.map(s=>({...s}));saveShortcuts();renderShortcutList();showToast('已恢復預設快捷鍵');});
   loadShortcuts();document.addEventListener('keydown',handleGlobalKey);
   loadRecycleBin();
   purgeRecycleBin();
@@ -136,8 +136,8 @@
     if(now-lastTouchEndTs<320) e.preventDefault();
     lastTouchEndTs=now;
   },{passive:false});
-  g('mapToggleBtn').addEventListener('click',()=>toggleMapView(true));
-  g('mapBackBtn').addEventListener('click',()=>{if(isMapOpen&&leaveMapSubpage())return;toggleMapView(false);});
+  on('mapToggleBtn','click',()=>toggleMapView(true));
+  on('mapBackBtn','click',()=>{if(isMapOpen&&leaveMapSubpage())return;toggleMapView(false);});
   on('mapAddNoteBtn','click',()=>{formMode='note';openForm(false);});
   on('mapAssignNoteBtn','click',openMapAssignPanel);
   on('mapSearchInput','input',debounce(()=>{mapFilter.q=g('mapSearchInput').value;saveDataDeferred();if(isMapOpen)drawMap();},250));
