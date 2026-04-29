@@ -437,22 +437,22 @@
 <!-- AI Key Modal -->
 <div id="aiKeyModal">
   <div id="aiKeyBox">
-    <h3>&#129302; 設定 AI（OpenRouter）</h3>
-    <p>KLaws 使用 <b>OpenRouter</b> 提供的免費 AI 模型。<br>註冊免費帳號後取得 API Key 即可使用，<b>每天最多 200 次，不需信用卡</b>。</p>
-    <div style="background:#f0f7ff;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#0C447C;line-height:1.8;">
-      1. 前往 <b>openrouter.ai</b> 免費註冊<br>
-      2. 右上角頭像 → <b>Keys</b> → <b>Create Key</b><br>
-      3. 複製 <b>sk-or-v1-...</b> 貼到下方
-    </div>
+    <h3>&#129302; AI 設定</h3>
+    <p>選擇提供商並貼上 API Key，即可使用 AI 批改。</p>
+    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">AI 提供商</label>
+    <select id="aiProviderSel" style="width:100%;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#f8f8f8;font-family:inherit;margin-bottom:10px;">
+      <option value="openrouter">OpenRouter</option>
+      <option value="groq">Groq</option>
+    </select>
     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">API Key</label>
-    <input id="aiKeyInput" type="password" placeholder="sk-or-v1-...">
+    <input id="aiKeyInput" type="password" placeholder="輸入 API Key">
     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin:10px 0 4px;">AI 模型</label>
     <select id="aiModelSel" style="width:100%;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#f8f8f8;font-family:inherit;margin-bottom:12px;"></select>
     <div class="ai-key-row">
       <button class="fbtn bcl" id="aiKeyCancel" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;">取消</button>
       <button class="fbtn bsv" id="aiKeySave" style="flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;">儲存並繼續</button>
     </div>
-    <div style="margin-top:10px;font-size:11px;color:#bbb;text-align:center;">Key 僅存於您的本機，不會上傳至任何伺服器</div>
+    <div style="margin-top:10px;font-size:11px;color:#bbb;text-align:center;">Key 僅存於本機瀏覽器</div>
   </div>
 </div>
 

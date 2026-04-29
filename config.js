@@ -38,6 +38,12 @@ const AI_MODELS = [
   {id:'deepseek/deepseek-r1:free', label:'DeepSeek R1（推理強）'},
   {id:'mistralai/mistral-small-3.1-24b-instruct:free', label:'Mistral Small 3.1'}
 ];
+const GROQ_MODELS = [
+  {id:'llama-3.3-70b-versatile', label:'Llama 3.3 70B Versatile'},
+  {id:'llama-3.1-8b-instant', label:'Llama 3.1 8B Instant（快速）'},
+  {id:'deepseek-r1-distill-llama-70b', label:'DeepSeek R1 Distill Llama 70B'},
+  {id:'mixtral-8x7b-32768', label:'Mixtral 8x7B'}
+];
 const DEFAULT_SHORTCUTS = [
   {id:'new',label:'新增筆記',code:'KeyN',alt:true},{id:'search',label:'搜尋',code:'KeyF',alt:true},
   {id:'map',label:'開啟體系圖',code:'KeyM',alt:true},{id:'back',label:'返回筆記列表',code:'Escape'},
