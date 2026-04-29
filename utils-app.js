@@ -87,8 +87,16 @@ function restoreLastViewState(){
     if(['notes','map','calendar','level'].includes(raw.view)) state.view=raw.view;
     if(Array.isArray(raw.mapPageStack)) state.mapPageStack=normalizeMapPageStack(raw.mapPageStack);
   }catch(e){}
+  const toggles=(window.KLawsViewState&&window.KLawsViewState.getViewToggles)
+    ? window.KLawsViewState.getViewToggles(window)
+    : {
+      toggleMapView: typeof window.toggleMapView==='function'?window.toggleMapView:null,
+      toggleCalendarView: typeof window.toggleCalendarView==='function'?window.toggleCalendarView:null,
+      toggleLevelSystemView: typeof window.toggleLevelSystemView==='function'?window.toggleLevelSystemView:null
+    };
   if(state.view==='map'){
-    toggleMapView(true);
+    if(!toggles.toggleMapView) return;
+    toggles.toggleMapView(true);
     if(state.mapPageStack.length){
       mapPageStack=state.mapPageStack.slice();
       updateMapPagePath();
@@ -100,14 +108,14 @@ function restoreLastViewState(){
     return;
   }
   if(state.view==='calendar'){
-    toggleCalendarView(true);
+    if(toggles.toggleCalendarView) toggles.toggleCalendarView(true);
     return;
   }
   if(state.view==='level'){
-    toggleLevelSystemView(true);
+    if(toggles.toggleLevelSystemView) toggles.toggleLevelSystemView(true);
     return;
   }
-  toggleMapView(false);
+  if(toggles.toggleMapView) toggles.toggleMapView(false);
 }
 function playFocusTimerAlarm(){
   try{
