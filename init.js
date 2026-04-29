@@ -31,7 +31,7 @@
   startHeaderDatetimeTicker();
   applyThemeMode(localStorage.getItem(THEME_MODE_KEY)||'light');
   on('ft','change',()=>renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null));
-  on('fc','change',()=>syncSectionSelect(selectedValues('fc'),selectedValues('fsec'),[]));
+  if(g('fc')) on('fc','change',()=>syncSectionSelect(selectedValues('fc'),selectedValues('fsec'),[]));
   const si=g('searchInput'),sc=g('searchClear');
   si.addEventListener('input',debounce(()=>{
     searchQ=si.value;gridPage=1;sc.style.display=searchQ?'block':'none';
