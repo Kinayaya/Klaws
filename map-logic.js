@@ -405,51 +405,35 @@ function scheduleMapRedraw(ms=60){ if(mapRedrawTimer)clearTimeout(mapRedrawTimer
 function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
   if(!Array.isArray(visNotes)||!visNotes.length){body.innerHTML='<div class="map-tree-empty">目前沒有可顯示節點。</div>';return;}
-  const tree={};
-  const chapterOrder={};chapters.forEach((ch,idx)=>{if(ch&&ch.key) chapterOrder[ch.key]=idx;});
-  const sectionOrder={};sections.forEach((sec,idx)=>{if(sec&&sec.key) sectionOrder[sec.key]=idx;});
-  const chapterRank=key=>key==='none'?Number.MAX_SAFE_INTEGER:(chapterOrder[key]??Number.MAX_SAFE_INTEGER-1);
-  const sectionRank=key=>key==='none'?Number.MAX_SAFE_INTEGER:(sectionOrder[key]??Number.MAX_SAFE_INTEGER-1);
+  const tree={label:'',items:{},notes:[]};
   visNotes.forEach(n=>{
-    const subKeys=noteSubjects(n).length?noteSubjects(n):['none'];
-    const chKeys=noteChapters(n).length?noteChapters(n):['none'];
-    const secKeys=noteSections(n).length?noteSections(n):['none'];
-    subKeys.forEach(sk=>{
-      if(!tree[sk]) tree[sk]={items:{}};
-      chKeys.forEach(ck=>{
-        if(!tree[sk].items[ck]) tree[sk].items[ck]={items:{}};
-        secKeys.forEach(sek=>{
-          if(!tree[sk].items[ck].items[sek]) tree[sk].items[ck].items[sek]=[];
-          tree[sk].items[ck].items[sek].push(n);
-        });
-      });
+    const pathSegs=notePathSegments(n);
+    if(!pathSegs.length){tree.notes.push(n);return;}
+    let cursor=tree;
+    pathSegs.forEach(seg=>{
+      if(!cursor.items[seg]) cursor.items[seg]={label:seg,items:{},notes:[]};
+      cursor=cursor.items[seg];
     });
+    cursor.notes.push(n);
   });
-  const subOrder=Object.keys(tree).sort((a,b)=>subByKey(a).label.localeCompare(subByKey(b).label,'zh'));
-  const secLabel=key=>key==='none'?'（無節）':sectionByKey(key).label;
-  const chLabel=key=>key==='none'?'（無章）':chapterByKey(key).label;
-  const subLabel=key=>key==='none'?'（未設定科目）':subByKey(key).label;
-  body.innerHTML=`<ul class="map-tree-list">${subOrder.map(sk=>{
-    const chMap=tree[sk].items,chOrder=Object.keys(chMap).sort((a,b)=>chapterRank(a)-chapterRank(b)||chLabel(a).localeCompare(chLabel(b),'zh'));
-    const subCount=chOrder.reduce((sum,ck)=>sum+Object.values(chMap[ck].items).reduce((s,arr)=>s+arr.length,0),0);
-    return `<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📚 ${escapeHtml(subLabel(sk))}</span><span class="map-tree-count">${subCount}</span></div>
-      <ul>${chOrder.map(ck=>{
-        const secMap=chMap[ck].items,secOrder=Object.keys(secMap).sort((a,b)=>sectionRank(a)-sectionRank(b)||secLabel(a).localeCompare(secLabel(b),'zh'));
-        const chCount=secOrder.reduce((sum,sek)=>sum+secMap[sek].length,0);
-        return `<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📁 ${escapeHtml(chLabel(ck))}</span><span class="map-tree-count">${chCount}</span></div>
-          <ul>${secOrder.map(sek=>{
-            const sorted=secMap[sek];
-            return `<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 ${escapeHtml(secLabel(sek))}</span><span class="map-tree-count">${sorted.length}</span></div>
-              <ul>${sorted.map(note=>{
-                const type=typeByKey(note.type);
-                return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`節點#${note.id}`)}</span></button></li>`;
-              }).join('')}</ul>
-            </li>`;
-          }).join('')}</ul>
-        </li>`;
-      }).join('')}</ul>
-    </li>`;
-  }).join('')}</ul>`;
+  const countNode=node=>node.notes.length+Object.values(node.items).reduce((sum,ch)=>sum+countNode(ch),0);
+  const renderNode=(node,depth=0)=>{
+    const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
+    const icon=depth===0?'🗂️':'📁';
+    const noteItems=node.notes.map(note=>{
+      const type=typeByKey(note.type);
+      return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`節點#${note.id}`)}</span></button></li>`;
+    }).join('');
+    const groupItems=keys.map(key=>{
+      const child=node.items[key];
+      const total=countNode(child);
+      return `<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">${icon} ${escapeHtml(child.label)}</span><span class="map-tree-count">${total}</span></div>${renderNode(child,depth+1)}</li>`;
+    }).join('');
+    if(!groupItems&&!noteItems) return '';
+    return `<ul>${groupItems}${noteItems}</ul>`;
+  };
+  const uncategorized=tree.notes.length?`<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 （未設定路徑）</span><span class="map-tree-count">${tree.notes.length}</span></div><ul>${tree.notes.map(note=>{const type=typeByKey(note.type);return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`節點#${note.id}`)}</span></button></li>`;}).join('')}</ul></li>`:'';
+  body.innerHTML=`<ul class="map-tree-list">${renderNode(tree)}${uncategorized}</ul>`;
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const id=parseInt(btn.dataset.treeNoteId,10);
     if(!Number.isFinite(id)||!mapNodeById(id)) return;
