@@ -104,11 +104,21 @@
   purgeRecycleBin();
   try{unusedTagTracker=JSON.parse(localStorage.getItem(UNUSED_TAG_TRACK_KEY)||'{}')||{};}catch(e){unusedTagTracker={};}
   setInterval(()=>{purgeRecycleBin();autoCleanupUnusedTags();},60000);
-  const isInsideMapCanvas = target => !!(target&&target.closest&&target.closest('#mapCanvas'));
-  const isInteractiveTouchTarget = target => {
-    if(!(target&&target.closest)) return false;
-    return !!target.closest('button, a, input, select, textarea, label, [role="button"], [data-allow-touch-default]');
+  const touchGuard=window.KLawsTouchGuard||{};
+  const eventTargetElement = touchGuard.eventTargetElement||((target)=>{
+    if(target&&typeof target.closest==='function') return target;
+    if(target&&target.parentElement&&typeof target.parentElement.closest==='function') return target.parentElement;
+    return null;
+  });
+  const isInsideMapCanvas = target => {
+    const el=eventTargetElement(target);
+    return !!(el&&el.closest('#mapCanvas'));
   };
+  const isInteractiveTouchTarget = touchGuard.isInteractiveTouchTarget||(target=>{
+    const el=eventTargetElement(target);
+    if(!el) return false;
+    return !!el.closest('button, a, input, select, textarea, label, summary, [role="button"], [data-allow-touch-default], [onclick]');
+  });
   let lastTouchEndTs=0, lastTouchTs=0, lastTouchX=0, lastTouchY=0;
   document.addEventListener('dblclick',e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{capture:true,passive:false});
   document.addEventListener('wheel',e=>{ if(e.ctrlKey&&!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
