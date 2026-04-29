@@ -51,7 +51,7 @@
   const compactDefault=localStorage.getItem(COMPACT_FILTER_KEY);
   applyCompactFilterMode(compactDefault===null?true:compactDefault==='1');
   on('compactToggleBtn','click',()=>applyCompactFilterMode(!document.body.classList.contains('compact-filters')));
-  on('tagMgrBtn','click',openTagMgr);
+  on('pathMgrBtn','click',openPathMgr);
   on('reviewNowBtn','click',()=>{
     reviewMode=!reviewMode;
     reviewReveal=false;
@@ -67,7 +67,7 @@
   g('fp')?.addEventListener('input',()=>{ if(editMode) draftSaver(); });
   g('fp')?.addEventListener('focusout',()=>{ if(editMode) saveNoteDraftFromForm(); });
   applyBrandTitle();
-  bindTagManagerNav();
+  bindPathManagerNav();
   on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
   on('archiveSaveBtn','click',createArchiveSnapshot);
   on('archiveExportBtn','click',exportData);
@@ -78,10 +78,10 @@
   on('cloudSyncBtn','click',()=>cloudSyncPushNow());
   on('cloudLogoutBtn','click',logoutGoogleDriveSync);
   on('tpClose','click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
-  on('tagSearchInput','input',debounce(()=>{tagSearchQ=(val('tagSearchInput')||'').toLowerCase().trim();renderTagLists();},150));
-  on('tagUnusedOnly','change',()=>{tagUnusedOnly=!!g('tagUnusedOnly').checked;renderTagLists();});
-  on('clearUnusedTagsBtn','click',clearUnusedTags);
-  g('addTypeBtn')?.addEventListener('click',()=>addTag('type'));
+  on('pathSearchInput','input',debounce(()=>{pathSearchQ=(val('pathSearchInput')||'').toLowerCase().trim();renderPathLists();},150));
+  on('pathUnusedOnly','change',()=>{pathUnusedOnly=!!g('pathUnusedOnly').checked;renderPathLists();});
+  on('clearUnusedPathsBtn','click',clearUnusedPaths);
+  g('addTypeBtn')?.addEventListener('click',()=>addPath('type'));
   on('panelDirBtn','click',togglePanelDir);
   on('addTypeFieldBtn','click',addTypeFieldForCurrentType);
   on('removeTypeFieldBtn','click',removeTypeFieldForCurrentType);
@@ -113,7 +113,7 @@
   loadRecycleBin();
   purgeRecycleBin();
   try{unusedTagTracker=JSON.parse(localStorage.getItem(UNUSED_TAG_TRACK_KEY)||'{}')||{};}catch(e){unusedTagTracker={};}
-  setInterval(()=>{purgeRecycleBin();autoCleanupUnusedTags();},60000);
+  setInterval(()=>{purgeRecycleBin();autoCleanupUnusedPaths();},60000);
   const touchGuard=window.KLawsTouchGuard||{};
   const eventTargetElement = touchGuard.eventTargetElement||((target)=>{
     if(target&&typeof target.closest==='function') return target;
