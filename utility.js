@@ -50,14 +50,13 @@
     n.path=safeStr(n.path).trim();
     if(!n.extraFields||typeof n.extraFields!=='object'||Array.isArray(n.extraFields)) n.extraFields={};
     const subjects=Array.isArray(n.subjects)?n.subjects:(safeStr(n.subject)?[n.subject]:[]);
-    const chapters=Array.isArray(n.chapters)?n.chapters:(safeStr(n.chapter)?[n.chapter]:[]);
-    const sections=Array.isArray(n.sections)?n.sections:(safeStr(n.section)?[n.section]:[]);
     n.subjects=uniq(subjects.map(x=>safeStr(x).trim()).filter(Boolean));
-    n.chapters=uniq(chapters.map(x=>safeStr(x).trim()).filter(Boolean));
-    n.sections=uniq(sections.map(x=>safeStr(x).trim()).filter(Boolean));
+    // 章/節功能已由 path 路徑系統取代，統一清空避免舊資料殘留造成篩選錯誤
+    n.chapters=[];
+    n.sections=[];
     n.subject=n.subjects[0]||'';
-    n.chapter=n.chapters[0]||'';
-    n.section=n.sections[0]||'';
+    n.chapter='';
+    n.section='';
     n.date=formatDate(n.date)||'1970-01-01';
     n.created_at=safeStr(n.created_at)||new Date(`${n.date}T00:00:00`).toISOString();
     n.last_reviewed=safeStr(n.last_reviewed);

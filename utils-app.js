@@ -291,12 +291,12 @@ const noteScopeKeys = (n,arrKey,singleKey) => {
   return uniq(arr.length?arr:((n&&n[singleKey])?[n[singleKey]]:[]));
 };
 const noteSubjects = n => noteScopeKeys(n,'subjects','subject');
-const noteChapters = n => noteScopeKeys(n,'chapters','chapter');
-const noteSections = n => noteScopeKeys(n,'sections','section');
+const noteChapters = _n => [];
+const noteSections = _n => [];
 const noteSubjectText = n => noteSubjects(n).join(' ');
 const noteChapterText = n => noteChapters(n).join(' ');
 const noteSectionText = n => noteSections(n).join(' ');
-const mapHasTaxonomyFilter = () => mapFilter.sub!=='all'||mapFilter.chapter!=='all'||mapFilter.section!=='all';
+const mapHasTaxonomyFilter = () => mapFilter.sub!=='all';
 const intersects = (arr1,arr2) => arr1.some(x=>arr2.includes(x));
 const TAG_COLLECTIONS = {type:()=>types, sub:()=>subjects, subject:()=>subjects, chapter:()=>chapters, section:()=>sections};
 const tagCollection = kind => (TAG_COLLECTIONS[kind]||(()=>[]))();
