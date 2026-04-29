@@ -290,9 +290,8 @@ function redrawLines(affectedId){
     if(els.a) els.a.setAttribute('d',`M${c.c2x},${c.c2y} L${c.x2},${c.y2}`);
   });
 }
-function mapNodeMatchesTaxonomyFilter(n){
-  const subs=noteDomains(n);
-  return (mapFilter.sub==='all'||subs.includes(mapFilter.sub));
+function mapNodeMatchesTaxonomyFilter(_n){
+  return true;
 }
 function visibleNotes(){
   const q=(mapFilter.q||'').toLowerCase(),linkedIds={};
@@ -772,18 +771,16 @@ function startDragTouch(e,id){
   dragOffY=touch.clientY-rect.top+scrollTop-(pos.y*mapScale+mapOffY);
 }
 function buildMapFilters(){
-  const ss=g('mapFilterSub'),sch=g('mapFilterGroup'),ssc=g('mapFilterPart'),sd=g('mapDepthSel');if(!ss)return;
-  ss.innerHTML='<option value="all">全部</option>'+domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
-  if(!domains.some(s=>s.key===mapFilter.sub))mapFilter.sub='all';
+  const sch=g('mapFilterGroup'),ssc=g('mapFilterPart'),sd=g('mapDepthSel');
+  mapFilter.sub='all';
   mapFilter.group='all';
   mapFilter.part='all';
   if(sch){sch.innerHTML='<option value="all">全部</option>';sch.value='all';}
   if(ssc){ssc.innerHTML='<option value="all">全部</option>';ssc.value='all';}
-  ss.value=mapFilter.sub;
   if(sd)sd.value=['all','1','2','3'].includes(mapDepth)?mapDepth:'all';
   updateMapPinnedGroup();
 }
-function laneContextLabelText(){ const s=mapFilter.sub==='all'?'全部':subByKey(mapFilter.sub).label;return `目前篩選：${s}`; }
+function laneContextLabelText(){ return '目前篩選：全部'; }
 function ensureLanePanel(){
   const existing=g('lanePanel');if(existing)return existing;
   const canvas=g('mapCanvas');if(!canvas)return null;
