@@ -558,21 +558,29 @@ const isNodeInCurrentSubpage = noteId => {
 };
 const mapTitleMarkers = noteId => {
   const marks=[];
-  if(getMapCenterFromScopes()===noteId) marks.push('⭐️');
+  if(getMapCentersFromScopes().includes(noteId)) marks.push('⭐️');
   if(hasSubpageForNode(noteId)) marks.push('△');
   return marks.join('');
 };
-const getMapCenterFromScopes = () => {
-  const key=getMapCenterContextKey();
-  const scopedId=mapCenterNodeIds[key];
-  if(scopedId&&mapNodeById(scopedId)) return scopedId;
-  return (mapCenterNodeId&&mapNodeById(mapCenterNodeId))?mapCenterNodeId:null;
+const normalizeCenterIds = raw => {
+  const arr=Array.isArray(raw)?raw:[raw];
+  return [...new Set(arr.map(v=>parseInt(v,10)).filter(Number.isFinite).filter(id=>!!mapNodeById(id)))];
 };
+const getMapCentersFromScopes = () => {
+  const key=getMapCenterContextKey();
+  const scopedIds=normalizeCenterIds(mapCenterNodeIds[key]);
+  if(scopedIds.length) return scopedIds;
+  return normalizeCenterIds(mapCenterNodeId);
+};
+const getMapCenterFromScopes = () => getMapCentersFromScopes()[0]||null;
 const setMapCenterForCurrentScope = (id,opt={}) => {
   if(!Number.isFinite(id)) return;
-  const {updateGlobal=false}=opt||{};
-  mapCenterNodeIds[getMapCenterContextKey()]=id;
-  if(updateGlobal) mapCenterNodeId=id;
+  const {updateGlobal=false,multi=false}=opt||{};
+  const key=getMapCenterContextKey();
+  const current=normalizeCenterIds(mapCenterNodeIds[key]);
+  const next=multi?(current.includes(id)?current.filter(cid=>cid!==id):[...current,id]):[id];
+  mapCenterNodeIds[key]=next;
+  if(updateGlobal) mapCenterNodeId=next[0]||null;
 };
 const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
   const root=parseInt(subpageRootId,10),target=parseInt(id,10);
@@ -945,9 +953,9 @@ function normalizeNoteIds(forceReindexAll=false) {
   if(mapCenterNodeIds&&typeof mapCenterNodeIds==='object'){
     const remappedCenters={};
     Object.keys(mapCenterNodeIds).forEach(key=>{
-      const oldId=Number(mapCenterNodeIds[key]);
-      const newId=firstMap[oldId];
-      if(newId!==undefined) remappedCenters[key]=newId;
+      const oldIds=Array.isArray(mapCenterNodeIds[key])?mapCenterNodeIds[key]:[mapCenterNodeIds[key]];
+      const newIds=[...new Set(oldIds.map(v=>firstMap[Number(v)]).filter(Number.isFinite))];
+      if(newIds.length) remappedCenters[key]=newIds;
     });
     mapCenterNodeIds=remappedCenters;
   }
