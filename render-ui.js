@@ -490,45 +490,14 @@ function openNote(id) {
   g('dp-detail').style.display=fields.includes('detail')?'block':'none';
   g('dp-body').innerHTML=n.question?renderMentionText(n.question,n.id):'（尚無問題）';
   g('dp-detail').innerHTML=n.answer?renderDetailRichText(n.answer,n.id):'（尚無答案）';
-  const NOTE_PATH_CACHE_KEY='klaws_note_paths_v1';
-  const loadPathOverrides=()=>{try{return JSON.parse(localStorage.getItem(NOTE_PATH_CACHE_KEY)||'{}');}catch(_e){return {};}};
-  const savePathOverride=(noteId,path)=>{
-    const cache=loadPathOverrides();
-    const key=String(noteId);
-    if(path) cache[key]=path;
-    else delete cache[key];
-    localStorage.setItem(NOTE_PATH_CACHE_KEY,JSON.stringify(cache));
-  };
-  const persistPath=(targetId,rawPath='')=>{
-    const target=mapNodeById(targetId);
-    if(!target) return false;
-    target.path=resolvePathInput(rawPath);
-    savePathOverride(targetId,target.path||'');
-    saveData();
-    return true;
-  };
   const pathInput=g('dp-path-input');
-  const pathOverrides=loadPathOverrides();
-  const fallbackPath=typeof pathOverrides[String(id)]==='string'?pathOverrides[String(id)]:'';
-  if(pathInput) pathInput.value=n.path||fallbackPath||'';
-  const syncPathToForm=(target)=>{
-    if(editMode&&openId===id&&g('fpath')) g('fpath').value=target.path||'';
-  };
   if(pathInput){
-    const persistPathNow=(normalizeInput=false)=>{
-      if(!persistPath(id,pathInput.value||'')) return;
-      const target=mapNodeById(id);
-      if(normalizeInput&&pathInput) pathInput.value=target?.path||'';
-      syncPathToForm(target);
-    };
-    pathInput.oninput=()=>{persistPathNow(false);};
-    pathInput.onkeydown=(ev)=>{
-      if(ev.key==='Enter'){
-        ev.preventDefault();
-        persistPathNow(true);
-      }
-    };
-    pathInput.onblur=()=>{persistPathNow(true);};
+    pathInput.value=n.path||'';
+    pathInput.readOnly=true;
+    pathInput.title='請按「編輯」後在表單內修改路徑';
+    pathInput.oninput=null;
+    pathInput.onkeydown=null;
+    pathInput.onblur=null;
   }
   bindMentionJumps(g('dp-body'));
   bindMentionJumps(g('dp-detail'));
