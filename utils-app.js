@@ -290,13 +290,23 @@ const noteScopeKeys = (n,arrKey,singleKey) => {
   const arr=Array.isArray(n&&n[arrKey])?n[arrKey].filter(Boolean):[];
   return uniq(arr.length?arr:((n&&n[singleKey])?[n[singleKey]]:[]));
 };
-const noteSubjects = n => noteScopeKeys(n,'subjects','subject');
-const noteChapters = _n => [];
-const noteSections = _n => [];
+const notePathSegments = n => safeStr(n&&n.path).split('/').map(x=>x.trim()).filter(Boolean);
+const noteSubjects = n => {
+  const segs=notePathSegments(n);
+  return segs[0]?[segs[0]]:[];
+};
+const noteChapters = n => {
+  const segs=notePathSegments(n);
+  return segs[1]?[segs[1]]:[];
+};
+const noteSections = n => {
+  const segs=notePathSegments(n);
+  return segs[2]?[segs[2]]:[];
+};
 const noteSubjectText = n => noteSubjects(n).join(' ');
 const noteChapterText = n => noteChapters(n).join(' ');
 const noteSectionText = n => noteSections(n).join(' ');
-const mapHasTaxonomyFilter = () => mapFilter.sub!=='all';
+const mapHasTaxonomyFilter = () => (mapFilter.sub!=='all'||mapFilter.chapter!=='all'||mapFilter.section!=='all');
 const intersects = (arr1,arr2) => arr1.some(x=>arr2.includes(x));
 const TAG_COLLECTIONS = {type:()=>types, sub:()=>subjects, subject:()=>subjects, chapter:()=>chapters, section:()=>sections};
 const tagCollection = kind => (TAG_COLLECTIONS[kind]||(()=>[]))();
