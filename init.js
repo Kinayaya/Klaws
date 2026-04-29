@@ -108,6 +108,10 @@
   try{unusedTagTracker=JSON.parse(localStorage.getItem(UNUSED_TAG_TRACK_KEY)||'{}')||{};}catch(e){unusedTagTracker={};}
   setInterval(()=>{purgeRecycleBin();autoCleanupUnusedTags();},60000);
   const isInsideMapCanvas = target => !!(target&&target.closest&&target.closest('#mapCanvas'));
+  const isInteractiveTouchTarget = target => {
+    if(!(target&&target.closest)) return false;
+    return !!target.closest('button, a, input, select, textarea, label, [role="button"], [data-allow-touch-default]');
+  };
   let lastTouchEndTs=0, lastTouchTs=0, lastTouchX=0, lastTouchY=0;
   document.addEventListener('dblclick',e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{capture:true,passive:false});
   document.addEventListener('wheel',e=>{ if(e.ctrlKey&&!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
@@ -115,7 +119,7 @@
     document.addEventListener(evt,e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
   });
   document.addEventListener('touchstart',e=>{
-    if(isInsideMapCanvas(e.target)) return;
+    if(isInsideMapCanvas(e.target)||isInteractiveTouchTarget(e.target)) return;
     if(e.touches.length>1){ e.preventDefault(); return; }
     const t=e.touches[0];
     if(!t) return;
@@ -127,7 +131,7 @@
     if(!isInsideMapCanvas(e.target)&&e.touches.length>1) e.preventDefault();
   },{passive:false});
   document.addEventListener('touchend',e=>{
-    if(isInsideMapCanvas(e.target)) return;
+    if(isInsideMapCanvas(e.target)||isInteractiveTouchTarget(e.target)) return;
     const now=Date.now();
     if(now-lastTouchEndTs<320) e.preventDefault();
     lastTouchEndTs=now;
