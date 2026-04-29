@@ -1,5 +1,6 @@
 // ==================== 初始化 ====================
   window.addEventListener('load',()=>{
+  try{
   detachSidePanelsFromNotesView();
   ensureUsageStart();
   loadData();
@@ -253,5 +254,8 @@
   clearInterval(reminderTimer); reminderTimer=setInterval(checkReminders,30000); checkReminders();
   updateNotesHomeVisibility();
   render();
-  setTimeout(restoreLastViewState,120);
+  restoreLastViewState();
+  }catch(err){
+    console.error('[init-load-error]',err);
+  }
 });
