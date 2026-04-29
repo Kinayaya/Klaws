@@ -515,25 +515,20 @@ function openNote(id) {
     if(editMode&&openId===id&&g('fpath')) g('fpath').value=target.path||'';
   };
   if(pathInput){
-    let pathPersistTimer=null;
-    const persistPathNow=()=>{
-      if(pathPersistTimer){clearTimeout(pathPersistTimer);pathPersistTimer=null;}
+    const persistPathNow=(normalizeInput=false)=>{
       if(!persistPath(id,pathInput.value||'')) return;
       const target=mapNodeById(id);
-      if(pathInput) pathInput.value=target?.path||'';
+      if(normalizeInput&&pathInput) pathInput.value=target?.path||'';
       syncPathToForm(target);
     };
-    pathInput.oninput=()=>{
-      if(pathPersistTimer) clearTimeout(pathPersistTimer);
-      pathPersistTimer=setTimeout(()=>persistPathNow(),350);
-    };
+    pathInput.oninput=()=>{persistPathNow(false);};
     pathInput.onkeydown=(ev)=>{
       if(ev.key==='Enter'){
         ev.preventDefault();
-        persistPathNow();
+        persistPathNow(true);
       }
     };
-    pathInput.onblur=()=>{persistPathNow();};
+    pathInput.onblur=()=>{persistPathNow(true);};
   }
   bindMentionJumps(g('dp-body'));
   bindMentionJumps(g('dp-detail'));
