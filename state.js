@@ -1,15 +1,15 @@
 // ==================== 全域變數 ====================
-let notes=[], mapRelays=[], links=[], nid=10, lid=10, types=[], subjects=[], chapters=[], sections=[];
+let notes=[], mapAuxNodes=[], links=[], nid=10, lid=10, types=[], domains=[], groups=[], parts=[];
 let recycleBin=[], unusedTagTracker={};
 let cv='all', cs='all', cch='all', csec='all', searchQ='', openId=null, editMode=false;
-let selectedSubjects=[], selectedChapters=[], selectedSections=[];
+let selectedDomains=[], selectedGroups=[], selectedParts=[];
 let scopeLinkedEnabled = localStorage.getItem(SCOPE_LINKED_TOGGLE_KEY)==='1';
 let formLinkSelections={}, tagSearchQ='', tagUnusedOnly=false;
-let chapterSubjectFilter='', sectionChapterFilter='';
+let groupDomainFilter='', partGroupFilter='';
 let activeTagCategory='type';
 let nodePos={}, dragNode=null, dragOffX=0, dragOffY=0, mapW=800, mapH=500;
 let nodeSizes={};
-let mapScale=1, mapOffX=0, mapOffY=0, mapFilter={sub:'all',chapter:'all',section:'all',q:''}, mapLinkedOnly=true;
+let mapScale=1, mapOffX=0, mapOffY=0, mapFilter={sub:'all',group:'all',part:'all',q:''}, mapLinkedOnly=true;
 let mapDepth='all', mapFocusMode=false, mapFocusedNodeId=null;
 let mapVerticalScrollMode=false;
 let mapContentH=500;
@@ -50,7 +50,7 @@ const LEVEL_STAGES=[
   {min:99,max:99,rank:'SS'},{min:100,max:100,rank:'SSS'}
 ];
 const TITLE_LEVELS=[
-  {level:1,min:0,name:'節點觀測員'},
+  {level:1,min:0,name:'點觀測員'},
   {level:2,min:120,name:'條文解析者'},
   {level:3,min:300,name:'脈絡梳理師'},
   {level:4,min:650,name:'邏輯鏈編織手'},
@@ -68,6 +68,6 @@ const TASK_REPEAT_OPTIONS=[
   {key:'monthly',label:'每月'},
   {key:'yearly',label:'每年'}
 ];
-function mergeRelaysIntoNotes(baseNotes=[], relayList=[]){
-  return KLawsCore.mergeRelaysIntoNotes(baseNotes, relayList, {normalizeNoteSchema, safeStr});
+function mergeAuxNodesIntoNotes(baseNotes=[], auxNodeList=[]){
+  return KLawsCore.mergeAuxNodesIntoNotes(baseNotes, auxNodeList, {normalizeNoteSchema, safeStr});
 }

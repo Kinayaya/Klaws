@@ -56,9 +56,9 @@ function renderLevelSystemPage(){
   const allTaskCount=(levelSystem.tasks||[]).reduce((sum,t)=>sum+(Number(t.completions)||0),0);
   let html=`<div style="margin-top:2px;padding:10px;border:1px solid #e8edf6;border-radius:10px;background:#f8fbff;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span class="brand-title">LV${titleInfo.level}・${titleInfo.name}</span><span style="font-size:12px;color:#445;">成就點數：<b>${getLevelAchievementPoints()}</b></span><span style="font-size:12px;color:#445;">任務完成：<b>${allTaskCount}</b> 次</span><span style="font-size:12px;color:#445;">已解鎖：<b>${unlockedCount}</b> 項</span></div></div>`;
   html+=`<div class="level-toolbar"><button class="tool-btn" id="addSkillBtn">+ 技能</button><button class="tool-btn" id="addTaskBtn">+ 任務</button><button class="tool-btn" id="addAchievementBtn">+ 成就</button><button class="tool-btn" id="resetSkillLevelBtn">重置技能等級</button></div>`;
-  html+=`<div class="level-section-title">技能</div>${renderLevelRows('skills')}`;
-  html+=`<div class="level-section-title">任務（E/N/H）</div>${renderLevelRows('tasks')}`;
-  html+=`<div class="level-section-title">成就進度</div>${renderLevelRows('achievements')}`;
+  html+=`<div class="level-part-title">技能</div>${renderLevelRows('skills')}`;
+  html+=`<div class="level-part-title">任務（E/N/H）</div>${renderLevelRows('tasks')}`;
+  html+=`<div class="level-part-title">成就進度</div>${renderLevelRows('achievements')}`;
   box.innerHTML=html;
   g('addSkillBtn')?.addEventListener('click',addSkillItem);
   g('addTaskBtn')?.addEventListener('click',addTaskItem);
@@ -81,15 +81,15 @@ function renderLevelSystemPage(){
 }
 function renderTagLists() {
   renderTagList('typeTagList',types,'type');
-  renderTagList('subTagList',subjects,'sub');
-  if(chapterSubjectFilter&&!subjects.some(s=>s.key===chapterSubjectFilter)) chapterSubjectFilter='';
-  if(sectionChapterFilter&&!chapters.some(ch=>ch.key===sectionChapterFilter)) sectionChapterFilter='';
-  renderChapterTagList();
-  renderSectionTagList();
-  const sel=g('newChapterSubject');
-  if(sel) sel.innerHTML='<option value="all">全部科目</option>'+subjects.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
-  const secSel=g('newSectionChapter');
-  if(secSel) secSel.innerHTML='<option value="all">全部章</option>'+chapters.map(ch=>`<option value="${ch.key}">${ch.label}</option>`).join('');
+  renderTagList('subTagList',domains,'sub');
+  if(groupDomainFilter&&!domains.some(s=>s.key===groupDomainFilter)) groupDomainFilter='';
+  if(partGroupFilter&&!groups.some(ch=>ch.key===partGroupFilter)) partGroupFilter='';
+  renderGroupTagList();
+  renderPartTagList();
+  const sel=g('newGroupDomain');
+  if(sel) sel.innerHTML='<option value="all">全部</option>'+domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  const secSel=g('newPartGroup');
+  if(secSel) secSel.innerHTML='<option value="all">全部</option>'+groups.map(ch=>`<option value="${ch.key}">${ch.label}</option>`).join('');
   g('tagCategoryNav')?.querySelectorAll('.tag-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.category===activeTagCategory));
   g('tp')?.querySelectorAll('.tag-category-panel').forEach(panel=>{
     panel.classList.toggle('active',panel.dataset.categoryPanel===activeTagCategory);
@@ -101,50 +101,50 @@ let list=arr.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount(kind,item.k
   if(tagSearchQ) list=list.filter(item=>item.label.toLowerCase().includes(tagSearchQ));
   if(tagUnusedOnly) list=list.filter(item=>item._usage===0);
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的標籤）</div>';return;}
-  el.innerHTML=list.map(item=>`<div class="tag-item ${kind==='sub'&&chapterSubjectFilter===item.key?'active-subject':''}" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="${kind}" ${kind==='sub'?`data-subject-key="${item.key}"`:''}><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div class="tag-color-dot" style="background:${item.color}"></div><span class="tag-item-label">${item.label}</span><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="${kind}" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="${kind}" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="${kind}" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="${kind}" data-del="1">🗑</button></div></div>`).join('');
+  el.innerHTML=list.map(item=>`<div class="tag-item ${kind==='sub'&&groupDomainFilter===item.key?'active-domain':''}" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="${kind}" ${kind==='sub'?`data-domain-key="${item.key}"`:''}><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div class="tag-color-dot" style="background:${item.color}"></div><span class="tag-item-label">${item.label}</span><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="${kind}" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="${kind}" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="${kind}" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="${kind}" data-del="1">🗑</button></div></div>`).join('');
   if(kind==='sub'){
-    el.querySelectorAll('.tag-item[data-subject-key]').forEach(row=>row.addEventListener('click',ev=>{
+    el.querySelectorAll('.tag-item[data-domain-key]').forEach(row=>row.addEventListener('click',ev=>{
       if(ev.target.closest('button')) return;
-      chapterSubjectFilter=row.dataset.subjectKey||'';
-      activeTagCategory='chapter';
+      groupDomainFilter=row.dataset.domainKey||'';
+      activeTagCategory='group';
       renderTagLists();
     }));
   }
   bindTagActions(el);
   bindTagDrag(el);
 }
-function renderChapterTagList() {
-  const el=g('chapterTagList'); if(!el) return;
-  if(!chapterSubjectFilter){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「科目」面板選擇一個科目，再管理章。</div>';return;}
-let list=chapters.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('chapter',item.key)}));
-  list=list.filter(item=>item.subject===chapterSubjectFilter||item.subject==='all');
-  if(tagSearchQ) list=list.filter(item=>`${item.label} ${subByKey(item.subject).label}`.toLowerCase().includes(tagSearchQ));
+function renderGroupTagList() {
+  const el=g('groupTagList'); if(!el) return;
+  if(!groupDomainFilter){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
+let list=groups.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('group',item.key)}));
+  list=list.filter(item=>item.domain===groupDomainFilter||item.domain==='all');
+  if(tagSearchQ) list=list.filter(item=>`${item.label} ${subByKey(item.domain).label}`.toLowerCase().includes(tagSearchQ));
   if(tagUnusedOnly) list=list.filter(item=>item._usage===0);
-  if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的章）</div>';return;}
+  if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
-    const subLabel=item.subject==='all'?'全部':subByKey(item.subject).label;
-return `<div class="tag-item ${sectionChapterFilter===item.key?'active-subject':''}" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="chapter" data-chapter-key="${item.key}"><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;"><span class="tag-item-label">${item.label}</span><span class="tag-item-sub">${subLabel}</span></div><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="chapter" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="chapter" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="chapter" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="chapter" data-del="1">🗑</button></div></div>`;
+    const subLabel=item.domain==='all'?'全部':subByKey(item.domain).label;
+return `<div class="tag-item ${partGroupFilter===item.key?'active-domain':''}" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="group" data-group-key="${item.key}"><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;"><span class="tag-item-label">${item.label}</span><span class="tag-item-sub">${subLabel}</span></div><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="group" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="group" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="group" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="group" data-del="1">🗑</button></div></div>`;
   }).join('');
-  el.querySelectorAll('.tag-item[data-chapter-key]').forEach(row=>row.addEventListener('click',ev=>{
+  el.querySelectorAll('.tag-item[data-group-key]').forEach(row=>row.addEventListener('click',ev=>{
     if(ev.target.closest('button')) return;
-    sectionChapterFilter=row.dataset.chapterKey||'';
-    activeTagCategory='section';
+    partGroupFilter=row.dataset.groupKey||'';
+    activeTagCategory='part';
     renderTagLists();
   }));
   bindTagActions(el);
   bindTagDrag(el);
 }
-function renderSectionTagList() {
-  const el=g('sectionTagList'); if(!el) return;
-  if(!sectionChapterFilter){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「章」面板選擇一個章，再管理節。</div>';return;}
-  let list=sections.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('section',item.key)}));
-  list=list.filter(item=>item.chapter===sectionChapterFilter||item.chapter==='all');
-  if(tagSearchQ) list=list.filter(item=>`${item.label} ${chapterByKey(item.chapter).label}`.toLowerCase().includes(tagSearchQ));
+function renderPartTagList() {
+  const el=g('partTagList'); if(!el) return;
+  if(!partGroupFilter){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
+  let list=parts.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('part',item.key)}));
+  list=list.filter(item=>item.group===partGroupFilter||item.group==='all');
+  if(tagSearchQ) list=list.filter(item=>`${item.label} ${groupByKey(item.group).label}`.toLowerCase().includes(tagSearchQ));
   if(tagUnusedOnly) list=list.filter(item=>item._usage===0);
-  if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的節）</div>';return;}
+  if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
-    const chapterLabel=item.chapter==='all'?'全部章':chapterByKey(item.chapter).label;
-    return `<div class="tag-item" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="section"><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;"><span class="tag-item-label">${item.label}</span><span class="tag-item-sub">${chapterLabel}</span></div><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="section" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="section" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="section" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="section" data-del="1">🗑</button></div></div>`;
+    const groupLabel=item.group==='all'?'全部':groupByKey(item.group).label;
+    return `<div class="tag-item" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="part"><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;"><span class="tag-item-label">${item.label}</span><span class="tag-item-sub">${groupLabel}</span></div><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="part" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="part" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="part" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="part" data-del="1">🗑</button></div></div>`;
   }).join('');
   bindTagActions(el);
   bindTagDrag(el);
@@ -193,9 +193,9 @@ function autoCleanupUnusedTags(){
   const now=Date.now();
   const usage={
     type:new Set(notes.map(n=>n.type).filter(Boolean)),
-    subject:new Set(allMapNodes().flatMap(n=>noteSubjects(n)).filter(Boolean)),
-    chapter:new Set(allMapNodes().flatMap(n=>noteChapters(n)).filter(Boolean)),
-    section:new Set(allMapNodes().flatMap(n=>noteSections(n)).filter(Boolean))
+    domain:new Set(allMapNodes().flatMap(n=>noteDomains(n)).filter(Boolean)),
+    group:new Set(allMapNodes().flatMap(n=>noteGroups(n)).filter(Boolean)),
+    part:new Set(allMapNodes().flatMap(n=>noteParts(n)).filter(Boolean))
   };
   const nextTracker={};
   const keepOrTrack=(kind,key)=>{
@@ -205,15 +205,15 @@ function autoCleanupUnusedTags(){
     nextTracker[trackerKey]=since;
     return now-since<UNUSED_TAG_PURGE_MS;
   };
-  const before=types.length+subjects.length+chapters.length+sections.length;
+  const before=types.length+domains.length+groups.length+parts.length;
   types=types.filter(t=>keepOrTrack('type',t.key));
-  subjects=subjects.filter(s=>keepOrTrack('subject',s.key));
-  chapters=chapters.filter(c=>keepOrTrack('chapter',c.key));
-  sections=sections.filter(s=>keepOrTrack('section',s.key));
+  domains=domains.filter(s=>keepOrTrack('domain',s.key));
+  groups=groups.filter(c=>keepOrTrack('group',c.key));
+  parts=parts.filter(s=>keepOrTrack('part',s.key));
   unusedTagTracker=nextTracker;
   localStorage.setItem(UNUSED_TAG_TRACK_KEY,JSON.stringify(unusedTagTracker));
   normalizeNotesTaxonomy();
-  const after=types.length+subjects.length+chapters.length+sections.length;
+  const after=types.length+domains.length+groups.length+parts.length;
   if(after!==before){
     saveData();
     if(g('tp')?.classList.contains('open')) renderTagLists();
@@ -223,22 +223,22 @@ function autoCleanupUnusedTags(){
   }
 }
 function clearUnusedTags(){
-  const usedTypes=new Set(notes.map(n=>n.type)),usedSubs=new Set(allMapNodes().flatMap(n=>noteSubjects(n))),usedChapters=new Set(allMapNodes().flatMap(n=>noteChapters(n))),usedSections=new Set(allMapNodes().flatMap(n=>noteSections(n)));
-  const before={types:types.length,subs:subjects.length,chapters:chapters.length,sections:sections.length};
+  const usedTypes=new Set(notes.map(n=>n.type)),usedSubs=new Set(allMapNodes().flatMap(n=>noteDomains(n))),usedGroups=new Set(allMapNodes().flatMap(n=>noteGroups(n))),usedParts=new Set(allMapNodes().flatMap(n=>noteParts(n)));
+  const before={types:types.length,subs:domains.length,groups:groups.length,parts:parts.length};
   types=types.filter(t=>usedTypes.has(t.key));
-  subjects=subjects.filter(s=>usedSubs.has(s.key));
-  chapters=chapters.filter(c=>usedChapters.has(c.key));
-  sections=sections.filter(s=>usedSections.has(s.key));
+  domains=domains.filter(s=>usedSubs.has(s.key));
+  groups=groups.filter(c=>usedGroups.has(c.key));
+  parts=parts.filter(s=>usedParts.has(s.key));
   normalizeNotesTaxonomy();
   unusedTagTracker={};
   localStorage.setItem(UNUSED_TAG_TRACK_KEY,JSON.stringify(unusedTagTracker));
-  const removed=(before.types-types.length)+(before.subs-subjects.length)+(before.chapters-chapters.length)+(before.sections-sections.length);
+  const removed=(before.types-types.length)+(before.subs-domains.length)+(before.groups-groups.length)+(before.parts-parts.length);
   saveData();renderTagLists();rebuildUI();render();showToast(removed?`已清理 ${removed} 個未使用標籤`:'沒有可清理的標籤');
 }
 function editTag(idx,kind) {
-  if(kind==='chapter'){editChapterTag(idx);return;}
-  if(kind==='section'){editSectionTag(idx);return;}
-  const arr=kind==='type'?types:subjects,item=arr[idx];
+  if(kind==='group'){editGroupTag(idx);return;}
+  if(kind==='part'){editPartTag(idx);return;}
+  const arr=kind==='type'?types:domains,item=arr[idx];
   const nl2=prompt('修改標籤名稱：',item.label); if(!nl2) return;
   const nv=nl2.trim(); if(!nv){showToast('名稱不能為空');return;}
   if(arr.some((t,i)=>i!==idx&&t.label===nv)){showToast('標籤名稱重複');return;}
@@ -247,55 +247,55 @@ function editTag(idx,kind) {
   arr[idx].label=nv;arr[idx].color=ncv;
   saveData();renderTagLists();buildTypeRow();buildSubRow();render();showToast('標籤已更新');
 }
-function editChapterTag(idx) {
-  const item=chapters[idx]; if(!item) return;
-  const nl2=prompt('修改章名稱：',item.label); if(!nl2) return;
+function editGroupTag(idx) {
+  const item=groups[idx]; if(!item) return;
+  const nl2=prompt('修改名稱：',item.label); if(!nl2) return;
   const nv=nl2.trim(); if(!nv){showToast('名稱不能為空');return;}
-  if(chapters.some((c,i)=>i!==idx&&c.label===nv&&c.subject===item.subject)){showToast('相同科目下章重複');return;}
-  const guide=['all: 全部科目'].concat(subjects.map(s=>`${s.key}: ${s.label}`)).join('\n');
-  const ns=prompt(`修改章科目（請輸入 key）\n${guide}`,item.subject||'all'); if(ns===null) return;
-  const subjectKey=(ns||'').trim()||'all';
-  if(subjectKey!=='all'&&!subjects.some(s=>s.key===subjectKey)){showToast('章科目不存在');return;}
+  if(groups.some((c,i)=>i!==idx&&c.label===nv&&c.domain===item.domain)){showToast('相同下重複');return;}
+  const guide=['all: 全部'].concat(domains.map(s=>`${s.key}: ${s.label}`)).join('\n');
+  const ns=prompt(`修改（請輸入 key）\n${guide}`,item.domain||'all'); if(ns===null) return;
+  const domainKey=(ns||'').trim()||'all';
+  if(domainKey!=='all'&&!domains.some(s=>s.key===domainKey)){showToast('不存在');return;}
   const oldKey=item.key;
-  item.label=nv;item.subject=subjectKey;
-  if(!chapters.some((c,i)=>i!==idx&&c.key===nv)){item.key=nv;allMapNodes().forEach(n=>{const chs=noteChapters(n).map(x=>x===oldKey?nv:x);n.chapters=uniq(chs);n.chapter=n.chapters[0]||'';});sections.forEach(sec=>{if(sec.chapter===oldKey)sec.chapter=nv;});if(cch===oldKey)cch='all';if(mapFilter.chapter===oldKey)mapFilter.chapter='all';}
-  saveData();renderTagLists();rebuildUI();render();showToast('章已更新');
+  item.label=nv;item.domain=domainKey;
+  if(!groups.some((c,i)=>i!==idx&&c.key===nv)){item.key=nv;allMapNodes().forEach(n=>{const chs=noteGroups(n).map(x=>x===oldKey?nv:x);n.groups=uniq(chs);n.group=n.groups[0]||'';});parts.forEach(sec=>{if(sec.group===oldKey)sec.group=nv;});if(cch===oldKey)cch='all';if(mapFilter.group===oldKey)mapFilter.group='all';}
+  saveData();renderTagLists();rebuildUI();render();showToast('已更新');
 }
-function editSectionTag(idx){
-  const item=sections[idx]; if(!item) return;
-  const nl2=prompt('修改節名稱：',item.label); if(!nl2) return;
+function editPartTag(idx){
+  const item=parts[idx]; if(!item) return;
+  const nl2=prompt('修改名稱：',item.label); if(!nl2) return;
   const nv=nl2.trim(); if(!nv){showToast('名稱不能為空');return;}
-  if(sections.some((s,i)=>i!==idx&&s.label===nv&&s.chapter===item.chapter)){showToast('相同章下節重複');return;}
-  const guide=['all: 全部章'].concat(chapters.map(ch=>`${ch.key}: ${ch.label}`)).join('\n');
-  const nc=prompt(`修改節所屬章（請輸入 key）\n${guide}`,item.chapter||'all'); if(nc===null) return;
-  const chapterKey=(nc||'').trim()||'all';
-  if(chapterKey!=='all'&&!chapters.some(ch=>ch.key===chapterKey)){showToast('章不存在');return;}
+  if(parts.some((s,i)=>i!==idx&&s.label===nv&&s.group===item.group)){showToast('相同下重複');return;}
+  const guide=['all: 全部'].concat(groups.map(ch=>`${ch.key}: ${ch.label}`)).join('\n');
+  const nc=prompt(`修改所屬（請輸入 key）\n${guide}`,item.group||'all'); if(nc===null) return;
+  const groupKey=(nc||'').trim()||'all';
+  if(groupKey!=='all'&&!groups.some(ch=>ch.key===groupKey)){showToast('不存在');return;}
   const oldKey=item.key;
-  item.label=nv; item.chapter=chapterKey;
-  if(!sections.some((s,i)=>i!==idx&&s.key===nv)){item.key=nv;allMapNodes().forEach(n=>{const secs=noteSections(n).map(x=>x===oldKey?nv:x);n.sections=uniq(secs);n.section=n.sections[0]||'';});if(csec===oldKey)csec='all';}
-  saveData();renderTagLists();rebuildUI();render();showToast('節已更新');
+  item.label=nv; item.group=groupKey;
+  if(!parts.some((s,i)=>i!==idx&&s.key===nv)){item.key=nv;allMapNodes().forEach(n=>{const secs=noteParts(n).map(x=>x===oldKey?nv:x);n.parts=uniq(secs);n.part=n.parts[0]||'';});if(csec===oldKey)csec='all';}
+  saveData();renderTagLists();rebuildUI();render();showToast('已更新');
 }
 function deleteTag(idx,kind) {
   const arr=tagCollection(kind);
-  if(kind==='chapter'){
+  if(kind==='group'){
     const removed=arr[idx]; if(!removed) return;
-    if(!confirm(`確定刪除章「${removed.label}」？已使用此章的筆記會改為未分類。`)) return;
-    const removedSectionKeys=sections.filter(s=>s.chapter===removed.key).map(s=>s.key);
+    if(!confirm(`確定刪除「${removed.label}」？已使用此的筆記會改為未分類。`)) return;
+    const removedPartKeys=parts.filter(s=>s.group===removed.key).map(s=>s.key);
     arr.splice(idx,1);allMapNodes().forEach(n=>{
-      n.chapters=noteChapters(n).filter(ch=>ch!==removed.key);n.chapter=n.chapters[0]||'';
-      n.sections=noteSections(n).filter(sec=>!removedSectionKeys.includes(sec));n.section=n.sections[0]||'';
+      n.groups=noteGroups(n).filter(ch=>ch!==removed.key);n.group=n.groups[0]||'';
+      n.parts=noteParts(n).filter(sec=>!removedPartKeys.includes(sec));n.part=n.parts[0]||'';
     });
-    sections=sections.filter(s=>s.chapter!==removed.key);
-    if(cch===removed.key)cch='all';if(mapFilter.chapter===removed.key)mapFilter.chapter='all';
-    if(sectionChapterFilter===removed.key) sectionChapterFilter='';
-    saveData();renderTagLists();rebuildUI();render();showToast('章已刪除');return;
+    parts=parts.filter(s=>s.group!==removed.key);
+    if(cch===removed.key)cch='all';if(mapFilter.group===removed.key)mapFilter.group='all';
+    if(partGroupFilter===removed.key) partGroupFilter='';
+    saveData();renderTagLists();rebuildUI();render();showToast('已刪除');return;
   }
-  if(kind==='section'){
+  if(kind==='part'){
     const removed=arr[idx]; if(!removed) return;
-    if(!confirm(`確定刪除節「${removed.label}」？已使用此節的筆記會改為未分類。`)) return;
-    arr.splice(idx,1);allMapNodes().forEach(n=>{n.sections=noteSections(n).filter(sec=>sec!==removed.key);n.section=n.sections[0]||'';});
+    if(!confirm(`確定刪除「${removed.label}」？已使用此的筆記會改為未分類。`)) return;
+    arr.splice(idx,1);allMapNodes().forEach(n=>{n.parts=noteParts(n).filter(sec=>sec!==removed.key);n.part=n.parts[0]||'';});
     if(csec===removed.key)csec='all';
-    saveData();renderTagLists();rebuildUI();render();showToast('節已刪除');return;
+    saveData();renderTagLists();rebuildUI();render();showToast('已刪除');return;
   }
   const removed=arr[idx];
   if(!confirm(`確定刪除標籤「${removed.label}」？`)) return;
@@ -306,50 +306,50 @@ function deleteTag(idx,kind) {
     if(cv===removed.key) cv='all';
   }
   if(kind==='sub'&&removed){
-    const removedChapterKeys=chapters.filter(ch=>ch.subject===removed.key).map(ch=>ch.key);
-    const removedSectionKeys=sections.filter(sec=>removedChapterKeys.includes(sec.chapter)).map(sec=>sec.key);
-    chapters=chapters.filter(ch=>ch.subject!==removed.key);
-    sections=sections.filter(sec=>!removedChapterKeys.includes(sec.chapter));
+    const removedGroupKeys=groups.filter(ch=>ch.domain===removed.key).map(ch=>ch.key);
+    const removedPartKeys=parts.filter(sec=>removedGroupKeys.includes(sec.group)).map(sec=>sec.key);
+    groups=groups.filter(ch=>ch.domain!==removed.key);
+    parts=parts.filter(sec=>!removedGroupKeys.includes(sec.group));
     allMapNodes().forEach(n=>{
-      n.subjects=noteSubjects(n).filter(sk=>sk!==removed.key);n.subject=n.subjects[0]||'';
-      n.chapters=noteChapters(n).filter(ch=>!removedChapterKeys.includes(ch));n.chapter=n.chapters[0]||'';
-      n.sections=noteSections(n).filter(sec=>!removedSectionKeys.includes(sec));n.section=n.sections[0]||'';
+      n.domains=noteDomains(n).filter(sk=>sk!==removed.key);n.domain=n.domains[0]||'';
+      n.groups=noteGroups(n).filter(ch=>!removedGroupKeys.includes(ch));n.group=n.groups[0]||'';
+      n.parts=noteParts(n).filter(sec=>!removedPartKeys.includes(sec));n.part=n.parts[0]||'';
     });
-    if(selectedSubjects.includes(removed.key)) selectedSubjects=selectedSubjects.filter(k=>k!==removed.key);
-    if(chapterSubjectFilter===removed.key) chapterSubjectFilter='';
+    if(selectedDomains.includes(removed.key)) selectedDomains=selectedDomains.filter(k=>k!==removed.key);
+    if(groupDomainFilter===removed.key) groupDomainFilter='';
   }
   normalizeNotesTaxonomy();
   saveData();renderTagLists();rebuildUI();render();showToast('標籤已刪除');
 }
 
 function addTag(kind) {
-  if(kind==='chapter'){
-    const label=(g('newChapterLabel').value||'').trim();
-    const subjectSel=g('newChapterSubject');
-    const subject=subjectSel?(subjectSel.value||'all'):'all';
-    if(!label){showToast('請輸入章名稱');return;}
-    if(chapters.some(ch=>ch.label===label&&ch.subject===subject)){showToast('章已存在');return;}
-    const key=chapters.some(ch=>ch.key===label)?`chapter_${Date.now()}`:label;
-    chapters.push({key,label,subject});
-    g('newChapterLabel').value='';
-    saveData();renderTagLists();rebuildUI();showToast('章已新增！');return;
+  if(kind==='group'){
+    const label=(g('newGroupLabel').value||'').trim();
+    const domainSel=g('newGroupDomain');
+    const domain=domainSel?(domainSel.value||'all'):'all';
+    if(!label){showToast('請輸入名稱');return;}
+    if(groups.some(ch=>ch.label===label&&ch.domain===domain)){showToast('已存在');return;}
+    const key=groups.some(ch=>ch.key===label)?`group_${Date.now()}`:label;
+    groups.push({key,label,domain});
+    g('newGroupLabel').value='';
+    saveData();renderTagLists();rebuildUI();showToast('已新增！');return;
   }
-  if(kind==='section'){
-    const label=(g('newSectionLabel').value||'').trim();
-    const chapterSel=g('newSectionChapter');
-    const chapter=chapterSel?(chapterSel.value||'all'):'all';
-    if(!label){showToast('請輸入節名稱');return;}
-    if(sections.some(sec=>sec.label===label&&sec.chapter===chapter)){showToast('節已存在');return;}
-    const key=sections.some(sec=>sec.key===label)?`section_${Date.now()}`:label;
-    sections.push({key,label,chapter});
-    g('newSectionLabel').value='';
-    saveData();renderTagLists();rebuildUI();showToast('節已新增！');return;
+  if(kind==='part'){
+    const label=(g('newPartLabel').value||'').trim();
+    const groupSel=g('newPartGroup');
+    const group=groupSel?(groupSel.value||'all'):'all';
+    if(!label){showToast('請輸入名稱');return;}
+    if(parts.some(sec=>sec.label===label&&sec.group===group)){showToast('已存在');return;}
+    const key=parts.some(sec=>sec.key===label)?`part_${Date.now()}`:label;
+    parts.push({key,label,group});
+    g('newPartLabel').value='';
+    saveData();renderTagLists();rebuildUI();showToast('已新增！');return;
   }
   const isType=kind==='type';
   const label=(g(isType?'newTypeLabel':'newSubLabel').value||'').trim();
   const color=g(isType?'newTypeColor':'newSubColor').value;
   if(!label){showToast('請輸入標籤名稱');return;}
-  const arr=isType?types:subjects;
+  const arr=isType?types:domains;
   if(arr.some(t=>t.label===label)){showToast('標籤已存在');return;}
   const newKey='tag_'+Date.now();
   arr.push({key:newKey,label,color});

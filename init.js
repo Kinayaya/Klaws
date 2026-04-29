@@ -24,7 +24,7 @@
       localStorage.setItem(SCOPE_LINKED_TOGGLE_KEY,scopeLinkedEnabled?'1':'0');
       gridPage=1;
       render();
-      showToast(scopeLinkedEnabled?'已啟用跨科目關聯顯示':'已關閉跨科目關聯顯示');
+      showToast(scopeLinkedEnabled?'已啟用跨關聯顯示':'已關閉跨關聯顯示');
     });
   }
   if(g('selAllBtn')) g('selAllBtn').textContent='複製';
@@ -36,7 +36,7 @@
   on('logoArchiveBtn','click',manageArchives);
   startHeaderDatetimeTicker();
   on('ft','change',()=>renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null));
-  if(g('fc')) on('fc','change',()=>syncSectionSelect(selectedValues('fc'),selectedValues('fsec'),[]));
+  if(g('fc')) on('fc','change',()=>syncPartSelect(selectedValues('fc'),selectedValues('fsec'),[]));
   const si=g('searchInput'),sc=g('searchClear');
   if(si&&sc){
     si.addEventListener('input',debounce(()=>{
@@ -97,9 +97,9 @@
   on('focusTimerResetBtn','click',resetFocusTimer);
   on('focusTimerCloseBtn','click',()=>{stopFocusTimer();g('focusTimerModal')?.classList.remove('open');});
   on('focusTimerAlertOkBtn','click',()=>g('focusTimerAlert')?.classList.remove('open'));
-  on('examAddBtn','click',()=>{const esel=g('examSubSel');if(esel)esel.innerHTML=subjects.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');g('examListPanel').classList.remove('open');g('examAddForm').classList.add('open');setTimeout(()=>g('examAddForm').scrollIntoView({behavior:'smooth',block:'nearest'}),60);});
+  on('examAddBtn','click',()=>{const esel=g('examSubSel');if(esel)esel.innerHTML=domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');g('examListPanel').classList.remove('open');g('examAddForm').classList.add('open');setTimeout(()=>g('examAddForm').scrollIntoView({behavior:'smooth',block:'nearest'}),60);});
   on('examFormClose','click',()=>{g('examAddForm').classList.remove('open');openExamPanel();});on('examFCancel','click',()=>{g('examAddForm').classList.remove('open');openExamPanel();});
-  on('examFSave','click',()=>{const q=(g('examQInput').value||'').trim();if(!q){showToast('請輸入題目');return;}const iss=(g('examIssInput').value||'').split(',').map(x=>x.trim()).filter(Boolean);const tl=parseInt(g('examTimeInput').value)||30;const sub=g('examSubSel').value||(subjects[0]?subjects[0].key:'all');examList.push({id:Date.now(),subject:sub,question:q,issues:iss,timeLimit:tl});saveExams();g('examQInput').value='';g('examIssInput').value='';g('examTimeInput').value='30';g('examAddForm').classList.remove('open');openExamPanel();showToast('題目已儲存！');});
+  on('examFSave','click',()=>{const q=(g('examQInput').value||'').trim();if(!q){showToast('請輸入題目');return;}const iss=(g('examIssInput').value||'').split(',').map(x=>x.trim()).filter(Boolean);const tl=parseInt(g('examTimeInput').value)||30;const sub=g('examSubSel').value||(domains[0]?domains[0].key:'all');examList.push({id:Date.now(),domain:sub,question:q,issues:iss,timeLimit:tl});saveExams();g('examQInput').value='';g('examIssInput').value='';g('examTimeInput').value='30';g('examAddForm').classList.remove('open');openExamPanel();showToast('題目已儲存！');});
   on('examSubmitBtn','click',()=>doSubmit(false));on('examCancelBtn','click',()=>{clearInterval(examTimer);closeExamView();});
   on('examRetryBtn','click',()=>{closeExamView();setTimeout(openExamPanel,100);});on('examBackBtn2','click',closeExamView);
   on('examAnswerBox','input',()=>{g('examWordCount').textContent=g('examAnswerBox').value.replace(/\s/g,'').length+' 字';});
@@ -159,16 +159,16 @@
   on('mapAssignNoteBtn','click',openMapAssignPanel);
   on('mapSearchInput','input',debounce(()=>{mapFilter.q=g('mapSearchInput').value;saveDataDeferred();if(isMapOpen)drawMap();},250));
   on('mapFilterSub','change',()=>{
-    const beforeRelayVisibleIds=new Set(visibleNotes().filter(isRelayNode).map(n=>n.id));
-    mapFilter.sub=g('mapFilterSub').value;updateMapPagePath();buildMapFilters();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenRelaysByFilter(beforeRelayVisibleIds);}
+    const beforeAuxnodeVisibleIds=new Set(visibleNotes().filter(isAuxnodeNode).map(n=>n.id));
+    mapFilter.sub=g('mapFilterSub').value;updateMapPagePath();buildMapFilters();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenAuxnodesByFilter(beforeAuxnodeVisibleIds);}
   });
-  on('mapFilterChapter','change',()=>{
-    const beforeRelayVisibleIds=new Set(visibleNotes().filter(isRelayNode).map(n=>n.id));
-    mapFilter.chapter=g('mapFilterChapter').value;updateMapPagePath();buildMapFilters();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenRelaysByFilter(beforeRelayVisibleIds);}
+  on('mapFilterGroup','change',()=>{
+    const beforeAuxnodeVisibleIds=new Set(visibleNotes().filter(isAuxnodeNode).map(n=>n.id));
+    mapFilter.group=g('mapFilterGroup').value;updateMapPagePath();buildMapFilters();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenAuxnodesByFilter(beforeAuxnodeVisibleIds);}
   });
-  on('mapFilterSection','change',()=>{
-    const beforeRelayVisibleIds=new Set(visibleNotes().filter(isRelayNode).map(n=>n.id));
-    mapFilter.section=g('mapFilterSection').value;updateMapPagePath();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenRelaysByFilter(beforeRelayVisibleIds);}
+  on('mapFilterPart','change',()=>{
+    const beforeAuxnodeVisibleIds=new Set(visibleNotes().filter(isAuxnodeNode).map(n=>n.id));
+    mapFilter.part=g('mapFilterPart').value;updateMapPagePath();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenAuxnodesByFilter(beforeAuxnodeVisibleIds);}
   });
   on('mapAdvancedToggleBtn','click',()=>setMapAdvanced(!mapAdvancedOpen));
   mapDepth='all';
@@ -195,8 +195,8 @@
   });
   on('zoomFit','click',()=>{const vis=visibleNotes();if(!vis.length)return;const xs=vis.map(n=>nodePos[n.id]?nodePos[n.id].x:mapW/2),ys=vis.map(n=>nodePos[n.id]?nodePos[n.id].y:mapH/2);const minX=Math.min(...xs)-40,maxX=Math.max(...xs)+40,minY=Math.min(...ys)-40,maxY=Math.max(...ys)+40;const sc=Math.min(mapW/(maxX-minX||1),mapH/(maxY-minY||1),2.5);mapScale=sc;mapOffX=-minX*sc+(mapW-(maxX-minX)*sc)/2;mapOffY=-minY*sc+(mapH-(maxY-minY)*sc)/2;g('zoomLabel').textContent=Math.round(sc*100)+'%';drawMap();});
   on('mpClose','click',closeMapPopup);
-  on('mapLinkedOnlyBtn','click',()=>{mapLinkedOnly=!mapLinkedOnly;setMapLinkedOnlyBtnStyle();drawMap();saveDataDeferred();showToast(mapLinkedOnly?`顯示 ${visibleNotes().length} 個有關聯節點`:'顯示全部節點');});
-  on('mapAutoBtn','click',()=>{const btn=g('mapAutoBtn'),orig=btn.textContent;btn.textContent='排列中...';btn.disabled=true;setTimeout(()=>{nodePos={};mapScale=1;mapOffX=mapOffY=0;forceLayout();drawMap();saveDataDeferred();g('zoomLabel').textContent='100%';btn.textContent=orig;btn.disabled=false;showToast('已自動排列（保留核心節點）');},30);});
+  on('mapLinkedOnlyBtn','click',()=>{mapLinkedOnly=!mapLinkedOnly;setMapLinkedOnlyBtnStyle();drawMap();saveDataDeferred();showToast(mapLinkedOnly?`顯示 ${visibleNotes().length} 個有關聯點`:'顯示全部點');});
+  on('mapAutoBtn','click',()=>{const btn=g('mapAutoBtn'),orig=btn.textContent;btn.textContent='排列中...';btn.disabled=true;setTimeout(()=>{nodePos={};mapScale=1;mapOffX=mapOffY=0;forceLayout();drawMap();saveDataDeferred();g('zoomLabel').textContent='100%';btn.textContent=orig;btn.disabled=false;showToast('已自動排列（保留核心點）');},30);});
   on('mapLaneBtn','click',()=>{const panel=ensureLanePanel();if(!panel){showToast('泳道面板載入失敗');return;}if(panel.classList.contains('open'))closeLanePanel();else openLanePanel();});
   updateMapScrollModeBtn();
   on('calendarBackBtn','click',()=>toggleCalendarView(false));

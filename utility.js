@@ -49,14 +49,14 @@
     n.detail=safeStr(n.detail);
     n.path=safeStr(n.path).trim();
     if(!n.extraFields||typeof n.extraFields!=='object'||Array.isArray(n.extraFields)) n.extraFields={};
-    const subjects=Array.isArray(n.subjects)?n.subjects:(safeStr(n.subject)?[n.subject]:[]);
-    n.subjects=uniq(subjects.map(x=>safeStr(x).trim()).filter(Boolean));
-    // 章/節功能已由 path 路徑系統取代，統一清空避免舊資料殘留造成篩選錯誤
-    n.chapters=[];
-    n.sections=[];
-    n.subject=n.subjects[0]||'';
-    n.chapter='';
-    n.section='';
+    const domains=Array.isArray(n.domains)?n.domains:(safeStr(n.domain)?[n.domain]:[]);
+    n.domains=uniq(domains.map(x=>safeStr(x).trim()).filter(Boolean));
+    // /功能已由 path 路徑系統取代，統一清空避免舊資料殘留造成篩選錯誤
+    n.groups=[];
+    n.parts=[];
+    n.domain=n.domains[0]||'';
+    n.group='';
+    n.part='';
     n.date=formatDate(n.date)||'1970-01-01';
     n.created_at=safeStr(n.created_at)||new Date(`${n.date}T00:00:00`).toISOString();
     n.last_reviewed=safeStr(n.last_reviewed);

@@ -4,9 +4,9 @@ const fs = require('node:fs');
 
 const renderUi = fs.readFileSync('./render-ui.js','utf8');
 
-test('buildFormSelects guards missing type and subject selects', ()=>{
+test('buildFormSelects guards missing type and domain selects', ()=>{
   assert.match(renderUi, /const typeSelect=g\('ft'\);/);
   assert.match(renderUi, /if\(typeSelect\) typeSelect\.innerHTML=/);
-  assert.match(renderUi, /const subjectSelect=g\('fs2'\);/);
-  assert.match(renderUi, /if\(subjectSelect\) subjectSelect\.innerHTML=/);
+  assert.match(renderUi, /const domainSelect=g\('fs2'\);/);
+  assert.match(renderUi, /if\(domainSelect\) domainSelect\.innerHTML=/);
 });

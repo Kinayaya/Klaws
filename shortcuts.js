@@ -51,14 +51,14 @@ function setMapLinkedOnlyBtnStyle(){
   btn.style.background=mapLinkedOnly?'#edf4fb':'#f5f5f5';
   btn.style.color=mapLinkedOnly?'#0C447C':'#666';
   btn.style.borderColor=mapLinkedOnly?'#b7d1eb':'#ddd';
-  btn.textContent=mapLinkedOnly?'✓ 關聯節點':'🔗 關聯節點';
+  btn.textContent=mapLinkedOnly?'✓ 關聯點':'🔗 關聯點';
 }
-function updateMapPinnedChapter(){
-  const el=g('mapPinnedChapter');
+function updateMapPinnedGroup(){
+  const el=g('mapPinnedGroup');
   if(!el) return;
-  if(mapFilter.chapter==='none'){el.textContent='章：無章';return;}
-  const ch=mapFilter.chapter==='all'?null:chapterByKey(mapFilter.chapter);
-  el.textContent=ch?`章：${ch.label}`:'章：未設定';
+  if(mapFilter.group==='none'){el.textContent='：無';return;}
+  const ch=mapFilter.group==='all'?null:groupByKey(mapFilter.group);
+  el.textContent=ch?`：${ch.label}`:'：未設定';
 }
 function setMapAdvanced(open){
   mapAdvancedOpen=!!open;
@@ -84,10 +84,10 @@ function toggleMapView(open) {
   if(open){
     mapPageStack=normalizeMapPageStack(mapPageStack);
     setMapAdvanced(false);
-    if(cch!=='all') mapFilter.chapter=cch;
-    else if(selectedChapters.length) mapFilter.chapter=selectedChapters[0];
+    if(cch!=='all') mapFilter.group=cch;
+    else if(selectedGroups.length) mapFilter.group=selectedGroups[0];
     buildMapFilters();
-    updateMapPinnedChapter();
+    updateMapPinnedGroup();
     const mapSearch=g('mapSearchInput');if(mapSearch)mapSearch.value=mapFilter.q||'';
     g('zoomLabel').textContent=Math.round(mapScale*100)+'%';
     setMapLinkedOnlyBtnStyle();

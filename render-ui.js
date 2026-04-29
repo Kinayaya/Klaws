@@ -7,79 +7,79 @@ function buildTypeRow() {
 function buildSubRow() {
   normalizeFilterSelections();
   const row=g('subbar');
-  const isAll=selectedSubjects.length===0;
-  row.innerHTML=`<button class="sc ${isAll?'on':''}" data-s="all">全部</button>`+subjects.map(s=>{
-    const active=selectedSubjects.includes(s.key);
+  const isAll=selectedDomains.length===0;
+  row.innerHTML=`<button class="sc ${isAll?'on':''}" data-s="all">全部</button>`+domains.map(s=>{
+    const active=selectedDomains.includes(s.key);
     return `<button class="sc ${active?'on':''}" data-s="${s.key}" style="${active?`background:${s.color};color:#fff;`:''}">${s.label}</button>`;
   }).join('');
   row.querySelectorAll('.sc').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.s;
-    if(key==='all') selectedSubjects=[];
-    else selectedSubjects=selectedSubjects[0]===key?[]:[key];
-    cs=selectedSubjects.length===1?selectedSubjects[0]:'all';
-    selectedChapters=[];selectedSections=[];cch='all';csec='all';
+    if(key==='all') selectedDomains=[];
+    else selectedDomains=selectedDomains[0]===key?[]:[key];
+    cs=selectedDomains.length===1?selectedDomains[0]:'all';
+    selectedGroups=[];selectedParts=[];cch='all';csec='all';
     gridPage=1;buildSubRow();render();
   }));
 }
-function buildChapterRow() {
+function buildGroupRow() {
   normalizeFilterSelections();
-  const row=g('chapterbar'); if(!row) return;
-  const available=chaptersBySubjects(selectedSubjects);
-  const isAll=selectedChapters.length===0;
+  const row=g('groupbar'); if(!row) return;
+  const available=groupsByDomains(selectedDomains);
+  const isAll=selectedGroups.length===0;
   row.innerHTML=available.length?`<button class="ch ${isAll?'on':''}" data-ch="all">全部</button>`+available.map(ch=>{
-    const active=selectedChapters.includes(ch.key);
+    const active=selectedGroups.includes(ch.key);
     return `<button class="ch ${active?'on':''}" data-ch="${ch.key}">${ch.label}</button>`;
   }).join(''):'';
   row.style.display=available.length?'flex':'none';
   row.querySelectorAll('.ch').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.ch;
-    if(key==='all') selectedChapters=[];
-    else selectedChapters=selectedChapters[0]===key?[]:[key];
-    const sectionKeys=new Set(sectionsByChapters(selectedChapters).map(sec=>sec.key));
-    selectedSections=selectedSections.filter(k=>sectionKeys.has(k));
-    cch=selectedChapters.length===1?selectedChapters[0]:'all';
-    csec=selectedSections.length===1?selectedSections[0]:'all';
-    gridPage=1;buildChapterRow();buildSectionRow();render();
+    if(key==='all') selectedGroups=[];
+    else selectedGroups=selectedGroups[0]===key?[]:[key];
+    const partKeys=new Set(partsByGroups(selectedGroups).map(sec=>sec.key));
+    selectedParts=selectedParts.filter(k=>partKeys.has(k));
+    cch=selectedGroups.length===1?selectedGroups[0]:'all';
+    csec=selectedParts.length===1?selectedParts[0]:'all';
+    gridPage=1;buildGroupRow();buildPartRow();render();
   }));
 }
-function buildSectionRow() {
+function buildPartRow() {
   normalizeFilterSelections();
-  const row=g('sectionbar'); if(!row) return;
-  const available=sectionsByChapters(selectedChapters);
-  const isAll=selectedSections.length===0;
+  const row=g('partbar'); if(!row) return;
+  const available=partsByGroups(selectedGroups);
+  const isAll=selectedParts.length===0;
   row.innerHTML=available.length?`<button class="ch ${isAll?'on':''}" data-sec="all">全部</button>`+available.map(sec=>{
-    const active=selectedSections.includes(sec.key);
+    const active=selectedParts.includes(sec.key);
     return `<button class="ch ${active?'on':''}" data-sec="${sec.key}">${sec.label}</button>`;
   }).join(''):'';
   row.style.display=available.length?'flex':'none';
   row.querySelectorAll('.ch').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.sec;
-    if(key==='all') selectedSections=[];
-    else selectedSections=selectedSections[0]===key?[]:[key];
-    csec=selectedSections.length===1?selectedSections[0]:'all';
-    gridPage=1;buildSectionRow();render();
+    if(key==='all') selectedParts=[];
+    else selectedParts=selectedParts[0]===key?[]:[key];
+    csec=selectedParts.length===1?selectedParts[0]:'all';
+    gridPage=1;buildPartRow();render();
   }));
 }
-function chaptersBySubjects(subKeys){
-  if(!Array.isArray(subKeys)||!subKeys.length) return chapters.slice();
-  return chapters.filter(ch=>subKeys.includes(ch.subject)||ch.subject==='all');
+function groupsByDomains(subKeys){
+  if(!Array.isArray(subKeys)||!subKeys.length) return groups.slice();
+  return groups.filter(ch=>subKeys.includes(ch.domain)||ch.domain==='all');
 }
-function sectionsByChapters(chKeys){
-  if(!Array.isArray(chKeys)||!chKeys.length) return sections.slice();
-  return sections.filter(sec=>chKeys.includes(sec.chapter)||sec.chapter==='all');
+function partsByGroups(chKeys){
+  if(!Array.isArray(chKeys)||!chKeys.length) return parts.slice();
+  return parts.filter(sec=>chKeys.includes(sec.group)||sec.group==='all');
 }
 function normalizeFilterSelections(){
-  const validSubjectKeys=new Set(subjects.map(s=>s.key));
-  selectedSubjects=selectedSubjects.filter(k=>validSubjectKeys.has(k)).slice(0,1);
-  const validChapterKeys=new Set(chaptersBySubjects(selectedSubjects).map(ch=>ch.key));
-  selectedChapters=selectedChapters.filter(k=>validChapterKeys.has(k)).slice(0,1);
-  const validSectionKeys=new Set(sectionsByChapters(selectedChapters).map(sec=>sec.key));
-  selectedSections=selectedSections.filter(k=>validSectionKeys.has(k)).slice(0,1);
-  cs=selectedSubjects.length===1?selectedSubjects[0]:'all';
-  cch=selectedChapters.length===1?selectedChapters[0]:'all';
-  csec=selectedSections.length===1?selectedSections[0]:'all';
+  const validDomainKeys=new Set(domains.map(s=>s.key));
+  selectedDomains=selectedDomains.filter(k=>validDomainKeys.has(k)).slice(0,1);
+  const validGroupKeys=new Set(groupsByDomains(selectedDomains).map(ch=>ch.key));
+  selectedGroups=selectedGroups.filter(k=>validGroupKeys.has(k)).slice(0,1);
+  const validPartKeys=new Set(partsByGroups(selectedGroups).map(sec=>sec.key));
+  selectedParts=selectedParts.filter(k=>validPartKeys.has(k)).slice(0,1);
+  cs=selectedDomains.length===1?selectedDomains[0]:'all';
+  cch=selectedGroups.length===1?selectedGroups[0]:'all';
+  csec=selectedParts.length===1?selectedParts[0]:'all';
 }
-function chaptersBySubject(subKey){ return chapters.filter(ch=>subKey==='all'||ch.subject===subKey||ch.subject==='all'); }
+function groupsByDomain(subKey){ return groups.filter(ch=>subKey==='all'||ch.domain===subKey||ch.domain==='all'); }
 function selectedValues(id){
   const el=g(id); if(!el) return [];
   return Array.from(el.selectedOptions||[]).map(opt=>opt.value).filter(Boolean);
@@ -89,24 +89,24 @@ function setSelectedValues(id, values=[]){
   const set=new Set(values);
   Array.from(el.options||[]).forEach(opt=>{opt.selected=set.has(opt.value);});
 }
-function syncChapterSelect(subjectKeys, selected=[]) {
+function syncGroupSelect(domainKeys, selected=[]) {
   const fc=g('fc'); if(!fc) return;
-  const keys=Array.isArray(subjectKeys)?subjectKeys.filter(Boolean):(subjectKeys?[subjectKeys]:[]);
-  const available=keys.length?chaptersBySubjects(keys):chapters.slice();
+  const keys=Array.isArray(domainKeys)?domainKeys.filter(Boolean):(domainKeys?[domainKeys]:[]);
+  const available=keys.length?groupsByDomains(keys):groups.slice();
   fc.innerHTML=`<option value="">無</option>`+available.map(ch=>`<option value="${ch.key}">${ch.label}</option>`).join('');
   const selectedKeys=(Array.isArray(selected)?selected.filter(Boolean):(selected?[selected]:[])).slice(0,1);
   const validSelected=selectedKeys.filter(k=>available.some(ch=>ch.key===k));
   if(validSelected.length) setSelectedValues('fc',validSelected);
   else fc.value='';
 }
-function syncSectionSelect(chapterKeys, selected=[], subjectKeys=[]){
+function syncPartSelect(groupKeys, selected=[], domainKeys=[]){
   const sec=g('fsec'); if(!sec) return;
-  const chKeys=Array.isArray(chapterKeys)?chapterKeys.filter(Boolean):(chapterKeys?[chapterKeys]:[]);
-  const subKeys=Array.isArray(subjectKeys)?subjectKeys.filter(Boolean):(subjectKeys?[subjectKeys]:[]);
-  const availableChapterKeys=chKeys.length
+  const chKeys=Array.isArray(groupKeys)?groupKeys.filter(Boolean):(groupKeys?[groupKeys]:[]);
+  const subKeys=Array.isArray(domainKeys)?domainKeys.filter(Boolean):(domainKeys?[domainKeys]:[]);
+  const availableGroupKeys=chKeys.length
     ? chKeys
-    : (subKeys.length?chaptersBySubjects(subKeys).map(ch=>ch.key):chapters.map(ch=>ch.key));
-  const available=availableChapterKeys.length?sectionsByChapters(availableChapterKeys):[];
+    : (subKeys.length?groupsByDomains(subKeys).map(ch=>ch.key):groups.map(ch=>ch.key));
+  const available=availableGroupKeys.length?partsByGroups(availableGroupKeys):[];
   sec.innerHTML=`<option value="">無</option>`+available.map(item=>`<option value="${item.key}">${item.label}</option>`).join('');
   const selectedKeys=(Array.isArray(selected)?selected.filter(Boolean):(selected?[selected]:[])).slice(0,1);
   const validSelected=selectedKeys.filter(k=>available.some(item=>item.key===k));
@@ -116,32 +116,32 @@ function syncSectionSelect(chapterKeys, selected=[], subjectKeys=[]){
 function buildFormSelects() {
   const typeSelect=g('ft');
   if(typeSelect) typeSelect.innerHTML=types.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');
-  const subjectSelect=g('fs2');
-  if(subjectSelect) subjectSelect.innerHTML=`<option value="">無</option>`+subjects.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
-  syncChapterSelect(selectedValues('fs2'));
-  syncSectionSelect(selectedValues('fc'),[],selectedValues('fs2'));
+  const domainSelect=g('fs2');
+  if(domainSelect) domainSelect.innerHTML=`<option value="">無</option>`+domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  syncGroupSelect(selectedValues('fs2'));
+  syncPartSelect(selectedValues('fc'),[],selectedValues('fs2'));
 }
 function rebuildUI() { buildTypeRow();buildSubRow();buildFormSelects(); }
 
 function hasTaxonomyFilter() {
-  return !!selectedSubjects.length;
+  return !!selectedDomains.length;
 }
 function baseScopeMatch(note) {
-  const subs=noteSubjects(note), chs=noteChapters(note), secs=noteSections(note);
+  const subs=noteDomains(note), chs=noteGroups(note), secs=noteParts(note);
   return (cv==='all'||note.type===cv)
-    &&(!selectedSubjects.length||intersects(selectedSubjects,subs))
+    &&(!selectedDomains.length||intersects(selectedDomains,subs))
 ;
 }
 function noteMatchesSearch(note, q, normalizedDate='') {
   if(!q) return true;
-  const subs=noteSubjects(note), chs=noteChapters(note), secs=noteSections(note);
+  const subs=noteDomains(note), chs=noteGroups(note), secs=noteParts(note);
   const hay=`${note.title} ${note.question||''} ${note.answer||''} ${note.prompt||''} ${note.application||''} ${note.body} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')} ${note.date||''}`.toLowerCase();
   return hay.includes(q)||(normalizedDate&&formatDate(note.date)===normalizedDate);
 }
-function relayMatchesSearch(relay, q) {
+function auxnodeMatchesSearch(auxnode, q) {
   if(!q) return true;
-  const subs=noteSubjects(relay), chs=noteChapters(relay), secs=noteSections(relay);
-  const hay=`${relay.title} ${relay.body||''} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')}`.toLowerCase();
+  const subs=noteDomains(auxnode), chs=noteGroups(auxnode), secs=noteParts(auxnode);
+  const hay=`${auxnode.title} ${auxnode.body||''} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')}`.toLowerCase();
   return hay.includes(q);
 }
 function expandWithLinkedNotes(seedIds) {
@@ -176,13 +176,13 @@ function render() {
   const shouldExpand=scopeLinkedEnabled&&hasTaxonomyFilter();
   const visibleIds=shouldExpand?expandWithLinkedNotes(seedIds):seedIds;
   const dueSet=new Set(dueReviewNotes().map(n=>n.id));
-  const filtered=sortedNotes(notes,{sortMode,safeStr,noteSubjectText,noteChapterText}).filter(n=>visibleIds.has(n.id)&&noteMatchesSearch(n,q,normalizedDate)&&(!reviewMode||dueSet.has(n.id)));
+  const filtered=sortedNotes(notes,{sortMode,safeStr,noteDomainText,noteGroupText}).filter(n=>visibleIds.has(n.id)&&noteMatchesSearch(n,q,normalizedDate)&&(!reviewMode||dueSet.has(n.id)));
   const sb=g('search-results-bar');
   if(q){sb.style.display='block';sb.textContent=`搜尋「${searchQ}」：找到 ${filtered.length} 筆筆記`;}
   else if(shouldExpand){
     const linkedCount=Math.max(0,filtered.length-seedIds.size);
     sb.style.display='block';
-    sb.textContent=linkedCount>0?`已額外顯示 ${linkedCount} 筆跨科目關聯筆記`:'已啟用跨科目關聯顯示（目前無新增筆記）';
+    sb.textContent=linkedCount>0?`已額外顯示 ${linkedCount} 筆跨關聯筆記`:'已啟用跨關聯顯示（目前無新增筆記）';
   }else sb.style.display='none';
   const grid=g('grid');
   const pager=g('gridPager'); if(pager) pager.remove();
@@ -198,7 +198,7 @@ function render() {
   const pgF=mixed.slice((gridPage-1)*PAGE_SIZE,gridPage*PAGE_SIZE);
   grid.innerHTML=pgF.map(n=>{
     const isReminder=!!n.__isReminder;
-    const tp=isReminder?{label:'提醒',color:'#b91c1c'}:typeByKey(n.type),subs=isReminder?[]:noteSubjects(n),chs=isReminder?[]:noteChapters(n),secs=isReminder?[]:noteSections(n);
+    const tp=isReminder?{label:'提醒',color:'#b91c1c'}:typeByKey(n.type),subs=isReminder?[]:noteDomains(n),chs=isReminder?[]:noteGroups(n),secs=isReminder?[]:noteParts(n);
     const subChips=subs.map(sk=>{const sb2=subByKey(sk);return `<span class="chip" style="background:${lightC(sb2.color)};color:${darkC(sb2.color)}">${sb2.label}</span>`;}).join('');
     const noteActionChips=isReminder?'':`<span class="chip card-action-chip" data-action="duplicate">建立副本</span><span class="chip card-action-chip" data-action="copy">複製內容</span><span class="chip card-action-chip" data-action="delete">刪除</span>`;
     const linkedChip=(shouldExpand&&!seedIds.has(n.id))?'<span class="chip" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459">跨科關聯</span>':'';
@@ -237,7 +237,7 @@ function createRelationLink(fromId,toId,relType='cause',relNote=''){
   if(!Number.isFinite(a)||!Number.isFinite(b)||a===b) return false;
   const src=mapNodeById(a),target=mapNodeById(b);
   if(!src||!target) return false;
-  if((isRelayNode(src)||isRelayNode(target))&&(!isNodeInCurrentMapPage(a)||!isNodeInCurrentMapPage(b))) return false;
+  if((isAuxnodeNode(src)||isAuxnodeNode(target))&&(!isNodeInCurrentMapPage(a)||!isNodeInCurrentMapPage(b))) return false;
   if(links.some(l=>(l.from===a&&l.to===b)||(l.from===b&&l.to===a))) return false;
   const rel=normalizeRelationType(relType);
   links.push({id:lid++,from:a,to:b,rel,color:relationColor(rel),note:normalizeRelationNote(relNote)});
@@ -254,7 +254,7 @@ function setMapLinkSource(id){
   if(!mapNodeById(id)) return;
   mapLinkSourceId=id;
   if(isMapOpen) drawMap();
-  showToast('已選擇地圖連線起點，請再點一個節點建立關聯');
+  showToast('已選擇地圖連線起點，請再點一個點建立關聯');
 }
 function handleMapNodeLinkTap(targetId){
   if(!mapLinkSourceId) return false;
@@ -272,19 +272,19 @@ function handleMapNodeLinkTap(targetId){
   saveData();
   drawMap();
   if(openId===src||openId===targetId) renderLinksForNote(openId);
-  showToast('已建立關聯，可繼續點下一個節點串接');
+  showToast('已建立關聯，可繼續點下一個點串接');
   return true;
 }
 function findMapNodesByKeyword(keyword,excludeId){
   const q=safeStr(keyword).replace(/^@/,'').trim().toLowerCase();
   if(!q) return [];
   const blocked=Number(excludeId);
-  return [...notes,...mapRelays].filter(n=>n.id!==blocked&&`${n.title} ${noteSubjectText(n)} ${isRelayNode(n)?'中繼站':typeByKey(n.type).label}`.toLowerCase().includes(q)).slice(0,18);
+  return [...notes,...mapAuxNodes].filter(n=>n.id!==blocked&&`${n.title} ${noteDomainText(n)} ${isAuxnodeNode(n)?'':typeByKey(n.type).label}`.toLowerCase().includes(q)).slice(0,18);
 }
 function mapPageRootOptions(){
-  const subpages=[...notes,...mapRelays]
+  const subpages=[...notes,...mapAuxNodes]
     .filter(n=>hasSubpageForNode(n.id))
-    .map(n=>({id:n.id,title:n.title||`節點#${n.id}`}));
+    .map(n=>({id:n.id,title:n.title||`點#${n.id}`}));
   return [{id:'root',title:'主頁'},...subpages];
 }
 function ensureMapSubpageRoot(rootId){
@@ -303,7 +303,7 @@ function getMapSubpageAssignedIds(rootId){
   return new Set(arr.map(v=>parseInt(v,10)).filter(Number.isFinite).filter(v=>v!==rootId));
 }
 function addNoteToMapPage(pageRootId,noteId){
-  const note=noteById(noteId)||relayById(noteId);
+  const note=noteById(noteId)||auxnodeById(noteId);
   const pageKey=String(pageRootId);
   if(!note){showToast('加入失敗：筆記不存在');return false;}
   if(pageKey!=='root'){
@@ -320,7 +320,7 @@ function openMapAssignPanel(){
   openMapPageAssignForm();
 }
 function openMapNodeFromLink(id){
-  if(!mapNodeById(id)){ showToast('節點已被刪除'); return; }
+  if(!mapNodeById(id)){ showToast('點已被刪除'); return; }
   openNote(id);
 }
 function renderDetailQuickLinkSearch(){
@@ -329,10 +329,10 @@ function renderDetailQuickLinkSearch(){
   const q=(g('dp-link-search')?.value||'').trim();
   if(!q){root.innerHTML='<div class="dp-link-empty">輸入關鍵字即可快速建立關聯</div>';return;}
   const existingIds=new Set(links.filter(l=>l.from===openId||l.to===openId).map(l=>l.from===openId?l.to:l.from));
-  const pool=findMapNodesByKeyword(q,openId).filter(n=>!existingIds.has(n.id)&&(!isRelayNode(n)||isNodeInCurrentMapPage(n.id)));
+  const pool=findMapNodesByKeyword(q,openId).filter(n=>!existingIds.has(n.id)&&(!isAuxnodeNode(n)||isNodeInCurrentMapPage(n.id)));
   if(!pool.length){root.innerHTML='<div class="dp-link-empty">找不到可關聯的筆記</div>';return;}
   root.innerHTML=pool.map(n=>{
-    const tp=isRelayNode(n)?{label:'中繼站',color:'#A855F7'}:typeByKey(n.type);
+    const tp=isAuxnodeNode(n)?{label:'',color:'#A855F7'}:typeByKey(n.type);
     return `<div class="fl-result-item quick-add" data-quick-link-id="${n.id}"><span class="fl-result-type" style="background:${tp.color}">${tp.label}</span><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`;
   }).join('');
   root.querySelectorAll('[data-quick-link-id]').forEach(row=>row.addEventListener('click',()=>{
@@ -349,12 +349,12 @@ function renderMapPopupQuickLinkSearch(sourceId=null){
   const input=g('mp-link-search'),root=g('mp-link-results');
   if(!input||!root) return;
   const srcId=parseInt(sourceId??input.dataset.sourceId,10);
-  if(!srcId||!relayById(srcId)){root.innerHTML='';return;}
+  if(!srcId||!auxnodeById(srcId)){root.innerHTML='';return;}
   input.dataset.sourceId=String(srcId);
   const q=(input.value||'').trim();
   if(!q){root.innerHTML='<div class="dp-link-empty">輸入關鍵字即可快速建立關聯</div>';return;}
   const existingIds=new Set(links.filter(l=>l.from===srcId||l.to===srcId).map(l=>l.from===srcId?l.to:l.from));
-  const pool=findMapNodesByKeyword(q,srcId).filter(n=>!existingIds.has(n.id)&&!isRelayNode(n)&&isNodeInCurrentMapPage(n.id));
+  const pool=findMapNodesByKeyword(q,srcId).filter(n=>!existingIds.has(n.id)&&!isAuxnodeNode(n)&&isNodeInCurrentMapPage(n.id));
   if(!pool.length){root.innerHTML='<div class="dp-link-empty">找不到可關聯的筆記</div>';return;}
   root.innerHTML=pool.map(n=>{
     const tp=typeByKey(n.type);
@@ -415,7 +415,7 @@ function extractSlashLinks(raw,selfId){
   if(!text) return [];
   const tokens=[...text.matchAll(/\/([^\s/@#，。；、,.!?！？:：()（）\[\]【】]+)/g)].map(m=>safeStr(m[1]).trim()).filter(Boolean);
   const ids=uniq(tokens.map(token=>findSlashNoteId(token,selfId)).filter(Number.isFinite));
-  return ids.map(id=>({id,title:mapNodeById(id)?.title||`節點#${id}`}));
+  return ids.map(id=>({id,title:mapNodeById(id)?.title||`點#${id}`}));
 }
 function renderMentionText(raw,selfId){
   const text=safeStr(raw);
@@ -470,10 +470,10 @@ function applyReviewResult(noteId,status){
 }
 function openNote(id) {
   const n=mapNodeById(id); if(!n) return;
-  const relay=isRelayNode(n);
+  const auxnode=isAuxnodeNode(n);
   openId=id;
-  const tp=typeByKey(n.type),subs=noteSubjects(n),chs=noteChapters(n),secs=noteSections(n);
-  g('dp-badge').textContent=relay?'中繼站':tp.label; g('dp-badge').style.background=relay?'#A855F7':tp.color;
+  const tp=typeByKey(n.type),subs=noteDomains(n),chs=noteGroups(n),secs=noteParts(n);
+  g('dp-badge').textContent=auxnode?'':tp.label; g('dp-badge').style.background=auxnode?'#A855F7':tp.color;
   g('dp-title').textContent=n.title;
   const bodyLabel=g('dp-body')?.previousElementSibling,detailLabel=g('dp-detail')?.previousElementSibling;
   const todoWrap=g('dp-todo'),todoLabel=g('dp-todo-label');
@@ -666,7 +666,7 @@ function bindDebugToggleButton(){
 }
 bindDebugToggleButton();
 
-// 若 UI 被重建導致按鈕節點替換，透過事件代理補綁，避免「點擊無反應」
+// 若 UI 被重建導致按鈕點替換，透過事件代理補綁，避免「點擊無反應」
 document.addEventListener('click',ev=>{
   const btn=ev.target&&ev.target.closest?ev.target.closest('#debugToggle'):null;
   if(!btn) return;

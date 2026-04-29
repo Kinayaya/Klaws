@@ -23,20 +23,20 @@ function pushNodeOffLinks(nodeId,visLinks,pad=0){
   visLinks.forEach(lk=>{if(lk.from===nodeId||lk.to===nodeId)return;const a=nodePos[lk.from],b=nodePos[lk.to];if(!a||!b)return;const hit=pointToSegmentDistance(pos.x,pos.y,a.x,a.y,b.x,b.y);if(hit.dist<need){const push=need-hit.dist+.8;pos.x+=hit.nx*push;pos.y+=hit.ny*push;clampNodeToCanvas(nodeId);moved=true;}});
   return moved;
 }
-const chapterIndexMap = () => {
+const groupIndexMap = () => {
   const map={};
-  chapters.forEach((ch,idx)=>{ if(ch&&ch.key) map[ch.key]=idx; });
+  groups.forEach((ch,idx)=>{ if(ch&&ch.key) map[ch.key]=idx; });
   return map;
 };
-const sectionIndexMap = () => {
+const partIndexMap = () => {
   const map={};
-  sections.forEach((sec,idx)=>{ if(sec&&sec.key) map[sec.key]=idx; });
+  parts.forEach((sec,idx)=>{ if(sec&&sec.key) map[sec.key]=idx; });
   return map;
 };
 const nodePreferredRank = (nodeId,chIdxMap,secIdxMap) => {
   const note=mapNodeById(nodeId)||{};
-  const chIdxs=noteChapters(note).map(key=>chIdxMap[key]).filter(idx=>Number.isFinite(idx));
-  const secIdxs=noteSections(note).map(key=>secIdxMap[key]).filter(idx=>Number.isFinite(idx));
+  const chIdxs=noteGroups(note).map(key=>chIdxMap[key]).filter(idx=>Number.isFinite(idx));
+  const secIdxs=noteParts(note).map(key=>secIdxMap[key]).filter(idx=>Number.isFinite(idx));
   const minChIdx=chIdxs.length?Math.min(...chIdxs):9999;
   const minSecIdx=secIdxs.length?Math.min(...secIdxs):9999;
   const title=safeStr(note.title).trim();
@@ -62,7 +62,7 @@ function forceLayout() {
   const LANE_CARD_GAP_Y=20,TOP_PAD=72,BOT_PAD=40;
   const laneLeft=Math.max(80,mapW*.1),laneRight=Math.min(mapW-80,mapW*.9);
   const laneGapX=laneCount>1?(laneRight-laneLeft)/(laneCount-1):0;
-  const chIdxMap=chapterIndexMap(),secIdxMap=sectionIndexMap();
+  const chIdxMap=groupIndexMap(),secIdxMap=partIndexMap();
   const adj={};layoutNotes.forEach(n=>adj[n.id]=[]);visLinks.forEach(lk=>{if(adj[lk.from])adj[lk.from].push(lk.to);if(adj[lk.to])adj[lk.to].push(lk.from);});
   const layers={},visited=new Set(),queue=[layoutCenterNodeId];layers[layoutCenterNodeId]=0;visited.add(layoutCenterNodeId);
   while(queue.length){const current=queue.shift(),cl=layers[current];(adj[current]||[]).forEach(neighbor=>{if(!visited.has(neighbor)){visited.add(neighbor);layers[neighbor]=cl+1;queue.push(neighbor);}});}
@@ -165,7 +165,7 @@ function getDescendantIds(rootId,limitIds=null){
 function updateMapPagePath(){
   const el=g('mapPagePath'); if(!el) return;
   if(!mapPageStack.length){el.textContent='主頁';return;}
-  const labels=mapPageStack.map(id=>mapNodeById(id)?.title||`節點#${id}`);
+  const labels=mapPageStack.map(id=>mapNodeById(id)?.title||`點#${id}`);
   el.textContent=`主頁 / ${labels.join(' / ')}`;
 }
 function enterMapSubpage(rootId){
@@ -291,7 +291,7 @@ function redrawLines(affectedId){
   });
 }
 function mapNodeMatchesTaxonomyFilter(n){
-  const subs=noteSubjects(n);
+  const subs=noteDomains(n);
   return (mapFilter.sub==='all'||subs.includes(mapFilter.sub));
 }
 function visibleNotes(){
@@ -300,18 +300,18 @@ function visibleNotes(){
   if(mapLinkedOnly)links.forEach(l=>{linkedIds[l.from]=true;linkedIds[l.to]=true;});
   const baseFiltered=notes.filter(n=>{
     if(!pageAssignedIds.has(n.id)) return false;
-    const subs=noteSubjects(n),chs=noteChapters(n),secs=noteSections(n);
+    const subs=noteDomains(n),chs=noteGroups(n),secs=noteParts(n);
     return mapNodeMatchesTaxonomyFilter(n)
       &&(!q||`${n.title}${subs.join('')}${chs.join('')}${secs.join('')}${noteTags(n).join('')}`.toLowerCase().includes(q));
   });
-  const relayFiltered=mapRelays.filter(n=>{
+  const auxnodeFiltered=mapAuxNodes.filter(n=>{
     if(!pageAssignedIds.has(n.id)) return false;
-    return mapNodeMatchesTaxonomyFilter(n)&&relayMatchesSearch(n,q);
+    return mapNodeMatchesTaxonomyFilter(n)&&auxnodeMatchesSearch(n,q);
   });
   const shouldExpandLinked=mapHasTaxonomyFilter();
-  let filtered=baseFiltered, relayVisible=relayFiltered;
+  let filtered=baseFiltered, auxnodeVisible=auxnodeFiltered;
   if(shouldExpandLinked){
-    const seedIds=new Set([...baseFiltered,...relayFiltered].map(n=>n.id));
+    const seedIds=new Set([...baseFiltered,...auxnodeFiltered].map(n=>n.id));
     const expandedIds=new Set(seedIds);
     links.forEach(lk=>{
       const fromInSeed=seedIds.has(lk.from),toInSeed=seedIds.has(lk.to);
@@ -319,12 +319,12 @@ function visibleNotes(){
       if(toInSeed&&!fromInSeed&&pageAssignedIds.has(lk.from)) expandedIds.add(lk.from);
     });
     filtered=notes.filter(n=>expandedIds.has(n.id)&&noteMatchesSearch(n,q));
-    relayVisible=mapRelays.filter(n=>expandedIds.has(n.id)&&relayMatchesSearch(n,q));
+    auxnodeVisible=mapAuxNodes.filter(n=>expandedIds.has(n.id)&&auxnodeMatchesSearch(n,q));
   }
-  let base=[...filtered,...relayVisible].filter(n=>!mapLinkedOnly||isRelayNode(n)||linkedIds[n.id]);
+  let base=[...filtered,...auxnodeVisible].filter(n=>!mapLinkedOnly||isAuxnodeNode(n)||linkedIds[n.id]);
   if(mapLinkedOnly&&!base.length&&filtered.length){
     mapLinkedOnly=false;setMapLinkedOnlyBtnStyle();
-    showToast('目前沒有關聯節點，已自動顯示全部節點');saveDataDeferred();base=filtered;
+    showToast('目前沒有關聯點，已自動顯示全部點');saveDataDeferred();base=filtered;
   }
   const baseIds={};base.forEach(n=>baseIds[n.id]=true);
   if(base.length){
@@ -354,55 +354,55 @@ function visibleNotes(){
   while(q2.length){const id=q2.shift(),depth=seen[id];if(depth>=maxDepth)continue;(adj[id]||[]).forEach(nid=>{if(seen[nid]===undefined){seen[nid]=depth+1;q2.push(nid);}});}
   return base.filter(n=>seen[n.id]!==undefined);
 }
-function createMapRelay(){
-  formMode='relay';
+function createMapAuxnode(){
+  formMode='auxnode';
   const subpageRootId=currentSubpageRootId();
   const subpageRoot=subpageRootId?mapNodeById(subpageRootId):null;
-  const defaultSubjects=subpageRoot?noteSubjects(subpageRoot):(mapFilter.sub==='all'?[]:[mapFilter.sub]);
-  const defaultChapters=subpageRoot?noteChapters(subpageRoot):((mapFilter.chapter==='all'||mapFilter.chapter==='none')?[]:[mapFilter.chapter]);
-  const defaultSections=subpageRoot?noteSections(subpageRoot):((mapFilter.section==='all'||mapFilter.section==='none')?[]:[mapFilter.section]);
+  const defaultDomains=subpageRoot?noteDomains(subpageRoot):(mapFilter.sub==='all'?[]:[mapFilter.sub]);
+  const defaultGroups=subpageRoot?noteGroups(subpageRoot):((mapFilter.group==='all'||mapFilter.group==='none')?[]:[mapFilter.group]);
+  const defaultParts=subpageRoot?noteParts(subpageRoot):((mapFilter.part==='all'||mapFilter.part==='none')?[]:[mapFilter.part]);
   openForm(false);
-  const defaultSub=defaultSubjects[0]||'';
+  const defaultSub=defaultDomains[0]||'';
   if(defaultSub){
     setSelectedValues('fs2',[defaultSub]);
-    syncChapterSelect([defaultSub],defaultChapters.slice(0,1));
-    syncSectionSelect(defaultChapters.slice(0,1),defaultSections.slice(0,1),[defaultSub]);
+    syncGroupSelect([defaultSub],defaultGroups.slice(0,1));
+    syncPartSelect(defaultGroups.slice(0,1),defaultParts.slice(0,1),[defaultSub]);
   }
-  g('fti').value='新中繼站';
+  g('fti').value='新';
   g('fti')?.focus();
   g('fti')?.select();
 }
-function notifyHiddenRelaysByFilter(beforeRelayVisibleIds){
-  if(!isMapOpen||!(beforeRelayVisibleIds instanceof Set)||!beforeRelayVisibleIds.size) return;
-  const afterRelayVisibleIds=new Set(visibleNotes().filter(isRelayNode).map(n=>n.id));
-  const hiddenCount=[...beforeRelayVisibleIds].filter(id=>!afterRelayVisibleIds.has(id)).length;
-  if(hiddenCount>0) showToast(`有 ${hiddenCount} 個中繼站因篩選被隱藏`);
+function notifyHiddenAuxnodesByFilter(beforeAuxnodeVisibleIds){
+  if(!isMapOpen||!(beforeAuxnodeVisibleIds instanceof Set)||!beforeAuxnodeVisibleIds.size) return;
+  const afterAuxnodeVisibleIds=new Set(visibleNotes().filter(isAuxnodeNode).map(n=>n.id));
+  const hiddenCount=[...beforeAuxnodeVisibleIds].filter(id=>!afterAuxnodeVisibleIds.has(id)).length;
+  if(hiddenCount>0) showToast(`有 ${hiddenCount} 個因篩選被隱藏`);
 }
-function editMapRelay(id){
-  const relay=relayById(id);
-  if(!relay) return;
+function editMapAuxnode(id){
+  const auxnode=auxnodeById(id);
+  if(!auxnode) return;
   openId=id;
-  formMode='relay';
+  formMode='auxnode';
   openForm(true);
 }
-function deleteMapRelay(id){
-  const relay=relayById(id);
-  if(!relay) return;
-  if(!confirm(`確定刪除中繼站「${relay.title||'未命名'}」？`)) return;
+function deleteMapAuxnode(id){
+  const auxnode=auxnodeById(id);
+  if(!auxnode) return;
+  if(!confirm(`確定刪除「${auxnode.title||'未命名'}」？`)) return;
   if(mapLinkSourceId===id) mapLinkSourceId=null;
-  mapRelays=mapRelays.filter(r=>r.id!==id);
+  mapAuxNodes=mapAuxNodes.filter(r=>r.id!==id);
   links=links.filter(l=>l.from!==id&&l.to!==id);
   delete nodePos[id];
   delete nodeSizes[id];
   closeMapPopup();
   saveData();
   if(isMapOpen) scheduleMapRedraw(0);
-  showToast('已刪除中繼站');
+  showToast('已刪除');
 }
 function scheduleMapRedraw(ms=60){ if(mapRedrawTimer)clearTimeout(mapRedrawTimer);if(mapTimer)clearTimeout(mapTimer);mapRedrawTimer=setTimeout(()=>drawMap(),ms);mapTimer=mapRedrawTimer; }
 function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
-  if(!Array.isArray(visNotes)||!visNotes.length){body.innerHTML='<div class="map-tree-empty">目前沒有可顯示節點。</div>';return;}
+  if(!Array.isArray(visNotes)||!visNotes.length){body.innerHTML='<div class="map-tree-empty">目前沒有可顯示點。</div>';return;}
   const tree={label:'',items:{},notes:[]};
   visNotes.forEach(n=>{
     const pathSegs=notePathSegments(n);
@@ -420,7 +420,7 @@ function buildMapTreeIndex(visNotes){
     const icon=depth===0?'🗂️':'📁';
     const noteItems=node.notes.map(note=>{
       const type=typeByKey(note.type);
-      return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`節點#${note.id}`)}</span></button></li>`;
+      return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;
     }).join('');
     const groupItems=keys.map(key=>{
       const child=node.items[key];
@@ -430,7 +430,7 @@ function buildMapTreeIndex(visNotes){
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
   };
-  const uncategorized=tree.notes.length?`<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 （未設定路徑）</span><span class="map-tree-count">${tree.notes.length}</span></div><ul>${tree.notes.map(note=>{const type=typeByKey(note.type);return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`節點#${note.id}`)}</span></button></li>`;}).join('')}</ul></li>`:'';
+  const uncategorized=tree.notes.length?`<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 （未設定路徑）</span><span class="map-tree-count">${tree.notes.length}</span></div><ul>${tree.notes.map(note=>{const type=typeByKey(note.type);return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;}).join('')}</ul></li>`:'';
   body.innerHTML=`<ul class="map-tree-list">${renderNode(tree)}${uncategorized}</ul>`;
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const id=parseInt(btn.dataset.treeNoteId,10);
@@ -499,7 +499,7 @@ function drawMap(){
   });
   visNotes.forEach(n=>{
     const pos=nodePos[n.id];if(!pos)return;
-    const type=isRelayNode(n)?{label:'中繼站',color:'#A855F7'}:typeByKey(n.type),box=getMapCardBox(n.id),halfW=box.width/2,halfH=box.height/2;
+    const type=isAuxnodeNode(n)?{label:'',color:'#A855F7'}:typeByKey(n.type),box=getMapCardBox(n.id),halfW=box.width/2,halfH=box.height/2;
     const grp=document.createElementNS('http://www.w3.org/2000/svg','g');grp.classList.add('map-node');grp.dataset.id=String(n.id);
     if(mapLinkSourceId===n.id) grp.classList.add('map-link-source');
     const card=document.createElementNS('http://www.w3.org/2000/svg','rect');
@@ -574,7 +574,7 @@ function drawMap(){
     });
     grp.addEventListener('dblclick',e=>{
       e.stopPropagation();
-      if(isRelayNode(n)) return;
+      if(isAuxnodeNode(n)) return;
       openId=n.id;
       openForm(true);
       closeMapPopup();
@@ -600,7 +600,7 @@ function openMapPopup(id){
   const goBtn=g('mpGoto');
   const node=mapNodeById(id);
   if(goBtn){
-    if(isRelayNode(node)){
+    if(isAuxnodeNode(node)){
       goBtn.style.display='none';
     }else{
       goBtn.style.display='block';
@@ -610,24 +610,24 @@ function openMapPopup(id){
 }
 function showMapInfo(id){
   const n=mapNodeById(id);if(!n)return;
-  const relay=isRelayNode(n);
-  const tp=relay?{label:'中繼站',color:'#A855F7'}:typeByKey(n.type),sb=subByKey(n.subject),related=links.filter(l=>l.from===id||l.to===id);
+  const auxnode=isAuxnodeNode(n);
+  const tp=auxnode?{label:'',color:'#A855F7'}:typeByKey(n.type),sb=subByKey(n.domain),related=links.filter(l=>l.from===id||l.to===id);
   const quickWrap=g('mp-link-quick-wrap');
   const quickInput=g('mp-link-search');
   g('mpBadge').textContent=tp.label;g('mpBadge').style.background=tp.color;g('mpTitle').textContent=n.title;
-  g('mpSubject').textContent=sb.label;g('mpSubject').style.background=sb.color+'22';g('mpSubject').style.color=sb.color;
+  g('mpDomain').textContent=sb.label;g('mpDomain').style.background=sb.color+'22';g('mpDomain').style.color=sb.color;
   if(quickWrap){
-    quickWrap.style.display=relay?'flex':'none';
+    quickWrap.style.display=auxnode?'flex':'none';
     if(quickInput){
       quickInput.value='';
-      quickInput.dataset.sourceId=relay?String(id):'';
+      quickInput.dataset.sourceId=auxnode?String(id):'';
     }
-    renderMapPopupQuickLinkSearch(relay?id:null);
+    renderMapPopupQuickLinkSearch(auxnode?id:null);
   }
   const currentCenterId=getMapCenterFromScopes();
   const setCenterBtn=document.createElement('button');setCenterBtn.className='mp-action-btn mp-action-secondary mp-set-center';
   setCenterBtn.textContent=currentCenterId===id?'✓ 已核心':'⭐ 設核心';
-  setCenterBtn.onclick=()=>{setMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(`已將「${n.title}」設為核心節點（僅此科目/章/節）`);};
+  setCenterBtn.onclick=()=>{setMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(`已將「${n.title}」設為核心點（僅此//）`);};
   const goBtn=g('mpGoto');
   const hasSubpage=hasSubpageForNode(id);
   const subpageBtn=document.createElement('button');
@@ -636,7 +636,7 @@ function showMapInfo(id){
   subpageBtn.onclick=()=>{
     if(!hasSubpage){
       if(!ensureMapSubpageRoot(id)){
-        showToast('設定失敗：節點不存在');
+        showToast('設定失敗：點不存在');
         return;
       }
       setMapCenterForSubpageScope(id,id);
@@ -674,7 +674,7 @@ function showMapInfo(id){
   hideFromPageBtn.textContent='🙈 取消顯示';
   hideFromPageBtn.onclick=()=>{
     if(!unassignNoteFromMapPage(id)){
-      showToast('無法隱藏此節點');
+      showToast('無法隱藏此點');
       return;
     }
     if(mapLinkSourceId===id) clearMapLinkSource({silent:true});
@@ -691,22 +691,22 @@ function showMapInfo(id){
     if(isNodeInCurrentMapPage(id)) goBtn.parentNode.insertBefore(hideFromPageBtn,goBtn);
     if(isNodeInCurrentSubpage(id)) goBtn.parentNode.insertBefore(subpageBtn,goBtn);
     if(hasSubpage&&isNodeInCurrentSubpage(id)) goBtn.parentNode.insertBefore(cancelSubpageBtn,goBtn);
-    let relayEditBtn=goBtn.parentNode.querySelector('.mp-relay-edit-btn');
-    let relayDeleteBtn=goBtn.parentNode.querySelector('.mp-relay-delete-btn');
-    relayEditBtn?.remove();relayDeleteBtn?.remove();
-    if(relay){
-      relayEditBtn=document.createElement('button');
-      relayEditBtn.className='mp-relay-edit-btn';
-      relayEditBtn.textContent='✏️ 編輯中繼站';
-      relayEditBtn.style.cssText='width:100%;padding:8px;margin:4px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #ddd;background:#f5f5f5;color:#555;';
-      relayEditBtn.onclick=()=>editMapRelay(id);
-      relayDeleteBtn=document.createElement('button');
-      relayDeleteBtn.className='mp-relay-delete-btn';
-      relayDeleteBtn.textContent='🗑️ 刪除中繼站';
-      relayDeleteBtn.style.cssText='width:100%;padding:8px;margin:4px 0 8px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #f3c7c7;background:#fff2f2;color:#c43d3d;';
-      relayDeleteBtn.onclick=()=>deleteMapRelay(id);
-      goBtn.parentNode.insertBefore(relayEditBtn,goBtn);
-      goBtn.parentNode.insertBefore(relayDeleteBtn,goBtn);
+    let auxnodeEditBtn=goBtn.parentNode.querySelector('.mp-auxnode-edit-btn');
+    let auxnodeDeleteBtn=goBtn.parentNode.querySelector('.mp-auxnode-delete-btn');
+    auxnodeEditBtn?.remove();auxnodeDeleteBtn?.remove();
+    if(auxnode){
+      auxnodeEditBtn=document.createElement('button');
+      auxnodeEditBtn.className='mp-auxnode-edit-btn';
+      auxnodeEditBtn.textContent='✏️ 編輯';
+      auxnodeEditBtn.style.cssText='width:100%;padding:8px;margin:4px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #ddd;background:#f5f5f5;color:#555;';
+      auxnodeEditBtn.onclick=()=>editMapAuxnode(id);
+      auxnodeDeleteBtn=document.createElement('button');
+      auxnodeDeleteBtn.className='mp-auxnode-delete-btn';
+      auxnodeDeleteBtn.textContent='🗑️ 刪除';
+      auxnodeDeleteBtn.style.cssText='width:100%;padding:8px;margin:4px 0 8px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #f3c7c7;background:#fff2f2;color:#c43d3d;';
+      auxnodeDeleteBtn.onclick=()=>deleteMapAuxnode(id);
+      goBtn.parentNode.insertBefore(auxnodeEditBtn,goBtn);
+      goBtn.parentNode.insertBefore(auxnodeDeleteBtn,goBtn);
     }
   }
   const linksEl=g('mpLinks');
@@ -771,23 +771,23 @@ function startDragTouch(e,id){
   dragOffY=touch.clientY-rect.top+scrollTop-(pos.y*mapScale+mapOffY);
 }
 function buildMapFilters(){
-  const ss=g('mapFilterSub'),sch=g('mapFilterChapter'),ssc=g('mapFilterSection'),sd=g('mapDepthSel');if(!ss)return;
-  ss.innerHTML='<option value="all">全部科目</option>'+subjects.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
-  if(!subjects.some(s=>s.key===mapFilter.sub))mapFilter.sub='all';
-  mapFilter.chapter='all';
-  mapFilter.section='all';
-  if(sch){sch.innerHTML='<option value="all">全部章</option>';sch.value='all';}
-  if(ssc){ssc.innerHTML='<option value="all">全部節</option>';ssc.value='all';}
+  const ss=g('mapFilterSub'),sch=g('mapFilterGroup'),ssc=g('mapFilterPart'),sd=g('mapDepthSel');if(!ss)return;
+  ss.innerHTML='<option value="all">全部</option>'+domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  if(!domains.some(s=>s.key===mapFilter.sub))mapFilter.sub='all';
+  mapFilter.group='all';
+  mapFilter.part='all';
+  if(sch){sch.innerHTML='<option value="all">全部</option>';sch.value='all';}
+  if(ssc){ssc.innerHTML='<option value="all">全部</option>';ssc.value='all';}
   ss.value=mapFilter.sub;
   if(sd)sd.value=['all','1','2','3'].includes(mapDepth)?mapDepth:'all';
-  updateMapPinnedChapter();
+  updateMapPinnedGroup();
 }
-function laneContextLabelText(){ const s=mapFilter.sub==='all'?'全部科目':subByKey(mapFilter.sub).label;return `目前篩選：${s}`; }
+function laneContextLabelText(){ const s=mapFilter.sub==='all'?'全部':subByKey(mapFilter.sub).label;return `目前篩選：${s}`; }
 function ensureLanePanel(){
   const existing=g('lanePanel');if(existing)return existing;
   const canvas=g('mapCanvas');if(!canvas)return null;
   const panel=document.createElement('div');panel.id='lanePanel';
-  panel.innerHTML=`<div class="lane-panel-head"><span class="lane-panel-title">泳道設定</span><button class="pcls" id="lanePanelClose">×</button></div><div class="lane-panel-desc">可依「目前科目篩選」分開設定泳道名稱。</div><div id="laneContextLabel"></div><div class="lane-count-row"><label for="laneCountInput">泳道數量</label><input id="laneCountInput" type="number" min="${MIN_LANE_COUNT}" max="${MAX_LANE_COUNT}" value="${DEFAULT_LANE_NAMES.length}"></div><div id="laneInputs"></div><div class="lane-panel-actions"><button class="fbtn bcl" id="laneResetBtn">恢復預設</button><button class="fbtn bsv" id="laneSaveBtn">儲存</button></div>`;
+  panel.innerHTML=`<div class="lane-panel-head"><span class="lane-panel-title">泳道設定</span><button class="pcls" id="lanePanelClose">×</button></div><div class="lane-panel-desc">可依「目前篩選」分開設定泳道名稱。</div><div id="laneContextLabel"></div><div class="lane-count-row"><label for="laneCountInput">泳道數量</label><input id="laneCountInput" type="number" min="${MIN_LANE_COUNT}" max="${MAX_LANE_COUNT}" value="${DEFAULT_LANE_NAMES.length}"></div><div id="laneInputs"></div><div class="lane-panel-actions"><button class="fbtn bcl" id="laneResetBtn">恢復預設</button><button class="fbtn bsv" id="laneSaveBtn">儲存</button></div>`;
   canvas.appendChild(panel);on('lanePanelClose','click',closeLanePanel);on('laneSaveBtn','click',saveLanePanel);on('laneResetBtn','click',resetLanePanel);return panel;
 }
 function renderLanePanel(){
@@ -824,8 +824,8 @@ function executeQuickCommand(cmd,{closeSheet=true}={}){
   else if(cmd==='mapAssign'){
     openMapAssignPanel();
   }
-  else if(cmd==='relay'){
-    showToast('「中繼站」功能已移除');
+  else if(cmd==='auxnode'){
+    showToast('「」功能已移除');
   }
   else if(cmd==='map') toggleMapView(!isMapOpen);
   else if(cmd==='calendar') toggleCalendarView(currentView!=='calendar');

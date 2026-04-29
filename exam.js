@@ -1,16 +1,16 @@
 // ==================== 申論測驗 ====================
-function loadExams() { try{const r=localStorage.getItem('klaws_exams_v1');if(r){examList=JSON.parse(r);examList.forEach(e=>{if(/^tag_s_|^tag_t_/.test(e.subject))e.subject=subByKey(e.subject).label;});saveExams();}}catch(e){examList=[];} }
+function loadExams() { try{const r=localStorage.getItem('klaws_exams_v1');if(r){examList=JSON.parse(r);examList.forEach(e=>{if(/^tag_s_|^tag_t_/.test(e.domain))e.domain=subByKey(e.domain).label;});saveExams();}}catch(e){examList=[];} }
 function saveExams() { try{localStorage.setItem('klaws_exams_v1',JSON.stringify(examList));}catch(e){} }
 function openExamPanel() {
   loadExams();renderExamList();
-  const esel=g('examSubSel');if(esel)esel.innerHTML=subjects.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  const esel=g('examSubSel');if(esel)esel.innerHTML=domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
   g('examListPanel').classList.add('open');g('examAddForm').classList.remove('open');g('dp').classList.remove('open');
   setTimeout(()=>g('examListPanel').scrollIntoView({behavior:'smooth',block:'nearest'}),60);
 }
 function renderExamList() {
   const el=g('examListItems');
   if(!examList.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:12px 0;">尚無題目，請點新增題目</div>';return;}
-  el.innerHTML=examList.map((ex,i)=>`<div class="exam-item" data-idx="${i}"><div><div class="exam-item-title">${subByKey(ex.subject).label} | ${ex.question.slice(0,35)}${ex.question.length>35?'...':''}</div><div class="exam-item-meta">${ex.timeLimit}分鐘</div></div><button class="exam-item-del" data-del="${i}">🗑️</button></div>`).join('');
+  el.innerHTML=examList.map((ex,i)=>`<div class="exam-item" data-idx="${i}"><div><div class="exam-item-title">${subByKey(ex.domain).label} | ${ex.question.slice(0,35)}${ex.question.length>35?'...':''}</div><div class="exam-item-meta">${ex.timeLimit}分鐘</div></div><button class="exam-item-del" data-del="${i}">🗑️</button></div>`).join('');
   el.querySelectorAll('.exam-item').forEach(el2=>{el2.addEventListener('click',ev=>{if(ev.target.getAttribute('data-del')!==null)return;startExam(examList[parseInt(el2.dataset.idx)]);});});
   el.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();examList.splice(parseInt(btn.dataset.del),1);saveExams();renderExamList();}));
 }
@@ -18,7 +18,7 @@ function startExam(exam) {
   currentExam=exam;g('examListPanel').classList.remove('open');g('notesView').style.display='none';g('examView').classList.add('open');
   g('examBody').style.display='flex';g('examResult').style.display='none';
   g('examQuestionDisplay').textContent=exam.question;g('examIssueChips').innerHTML=(exam.issues||[]).map(iss=>`<span class="exam-issue-chip">${iss}</span>`).join('');
-  g('examAnswerBox').value='';g('examWordCount').textContent='0 字';g('examHeaderTitle').textContent=`✒️ ${subByKey(exam.subject).label}`;
+  g('examAnswerBox').value='';g('examWordCount').textContent='0 字';g('examHeaderTitle').textContent=`✒️ ${subByKey(exam.domain).label}`;
   examTotal=exam.timeLimit*60;examSec=examTotal;
   const updateTimer=()=>{const m=Math.floor(examSec/60),s=examSec%60;g('examTimer').textContent=`${m<10?'0':''}${m}:${s<10?'0':''}${s}`;if(examSec<=300)g('examTimer').classList.add('warning');};
   updateTimer();clearInterval(examTimer);examTimer=setInterval(()=>{examSec--;updateTimer();if(examSec<=0)doSubmit(true);},1000);
@@ -31,7 +31,7 @@ function doSubmit(timeUp) {
 }
 function gradeEssay(exam,ans,used,timeUp) {
   const issueList=(exam.issues||[]).join('、');
-  const prompt=`你是台灣大學法律系教授，正在批改學生的申論題作答。請給予詳細、具體、有教育價值的評語。\n\n【科目】${subByKey(exam.subject).label}\n【題目】\n${exam.question.slice(0,300)}\n【預設爭點】${issueList}\n【學生作答】\n${(ans||'(未作答)').slice(0,3000)}\n【作答時間】${used}分鐘${timeUp?' (時間到，作答可能不完整)':''}\n\n請依下列 JSON 格式輸出評分（只輸出 JSON，不加任何其他文字或 markdown）：\n{"score":<0-100整數>,"comment":"<100-150字整體總評>","issue_analysis":[{"issue":"<爭點名稱>","hit":<true/false>,"analysis":"<針對此爭點的詳細評析>"}],"strengths":["<具體優點1>"],"weaknesses":["<具體缺點1>"],"suggestions":["<具體改進建議1>"],"reference":"<參考答題要點>"}`;
+  const prompt=`你是台灣大學法律系教授，正在批改學生的申論題作答。請給予詳細、具體、有教育價值的評語。\n\n【】${subByKey(exam.domain).label}\n【題目】\n${exam.question.slice(0,300)}\n【預設爭點】${issueList}\n【學生作答】\n${(ans||'(未作答)').slice(0,3000)}\n【作答時間】${used}分鐘${timeUp?' (時間到，作答可能不完整)':''}\n\n請依下列 JSON 格式輸出評分（只輸出 JSON，不加任何其他文字或 markdown）：\n{"score":<0-100整數>,"comment":"<100-150字整體總評>","issue_analysis":[{"issue":"<爭點名稱>","hit":<true/false>,"analysis":"<針對此爭點的詳細評析>"}],"strengths":["<具體優點1>"],"weaknesses":["<具體缺點1>"],"suggestions":["<具體改進建議1>"],"reference":"<參考答題要點>"}`;
   const provider=getAiProvider();
   const endpoint=provider==='groq'?'https://api.groq.com/openai/v1/chat/completions':'https://openrouter.ai/api/v1/chat/completions';
   const headers={'Content-Type':'application/json','Authorization':'Bearer '+getAiKey()};
