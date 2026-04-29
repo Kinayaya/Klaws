@@ -29,7 +29,6 @@
   on('headerDatetimeBtn','click',()=>toggleCalendarView(true));
   on('logoArchiveBtn','click',manageArchives);
   startHeaderDatetimeTicker();
-  applyThemeMode(localStorage.getItem(THEME_MODE_KEY)||'light');
   on('ft','change',()=>renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null));
   if(g('fc')) on('fc','change',()=>syncSectionSelect(selectedValues('fc'),selectedValues('fsec'),[]));
   const si=g('searchInput'),sc=g('searchClear');
@@ -59,7 +58,6 @@
   g('fp')?.addEventListener('focusout',()=>{ if(editMode) saveNoteDraftFromForm(); });
   applyBrandTitle();
   bindTagManagerNav();
-  on('undoBtn','click',undoLastAction);
   on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
   on('archiveSaveBtn','click',createArchiveSnapshot);
   on('archiveExportBtn','click',exportData);
@@ -78,7 +76,6 @@
   on('addTypeFieldBtn','click',addTypeFieldForCurrentType);
   on('removeTypeFieldBtn','click',removeTypeFieldForCurrentType);
   loadExams();on('examBtn','click',openExamPanel);on('examListClose','click',()=>g('examListPanel').classList.remove('open'));
-  on('themeToggleBtn','click',toggleThemeMode);
   on('assistToolsBtn','click',()=>g('assistToolsModal')?.classList.add('open'));
   on('assistToolsCloseBtn','click',()=>g('assistToolsModal')?.classList.remove('open'));
   on('assistAiBtn','click',()=>{g('assistToolsModal')?.classList.remove('open');openAiSettings();});
