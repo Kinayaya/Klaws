@@ -17,13 +17,8 @@ function buildSubRow() {
     if(key==='all') selectedSubjects=[];
     else selectedSubjects=selectedSubjects[0]===key?[]:[key];
     cs=selectedSubjects.length===1?selectedSubjects[0]:'all';
-    const availKeys=new Set(chaptersBySubjects(selectedSubjects).map(ch=>ch.key));
-    selectedChapters=selectedChapters.filter(k=>availKeys.has(k));
-    const sectionKeys=new Set(sectionsByChapters(selectedChapters).map(sec=>sec.key));
-    selectedSections=selectedSections.filter(k=>sectionKeys.has(k));
-    cch=selectedChapters.length===1?selectedChapters[0]:'all';
-    csec=selectedSections.length===1?selectedSections[0]:'all';
-    gridPage=1;buildSubRow();buildChapterRow();buildSectionRow();render();
+    selectedChapters=[];selectedSections=[];cch='all';csec='all';
+    gridPage=1;buildSubRow();render();
   }));
 }
 function buildChapterRow() {
@@ -124,17 +119,16 @@ function buildFormSelects() {
   syncChapterSelect(selectedValues('fs2'));
   syncSectionSelect(selectedValues('fc'),[],selectedValues('fs2'));
 }
-function rebuildUI() { buildTypeRow();buildSubRow();buildChapterRow();buildSectionRow();buildFormSelects(); }
+function rebuildUI() { buildTypeRow();buildSubRow();buildFormSelects(); }
 
 function hasTaxonomyFilter() {
-  return !!(selectedSubjects.length||selectedChapters.length||selectedSections.length);
+  return !!selectedSubjects.length;
 }
 function baseScopeMatch(note) {
   const subs=noteSubjects(note), chs=noteChapters(note), secs=noteSections(note);
   return (cv==='all'||note.type===cv)
     &&(!selectedSubjects.length||intersects(selectedSubjects,subs))
-    &&(!selectedChapters.length||intersects(selectedChapters,chs))
-    &&(!selectedSections.length||intersects(selectedSections,secs));
+;
 }
 function noteMatchesSearch(note, q, normalizedDate='') {
   if(!q) return true;
@@ -204,13 +198,11 @@ function render() {
     const isReminder=!!n.__isReminder;
     const tp=isReminder?{label:'提醒',color:'#b91c1c'}:typeByKey(n.type),subs=isReminder?[]:noteSubjects(n),chs=isReminder?[]:noteChapters(n),secs=isReminder?[]:noteSections(n);
     const subChips=subs.map(sk=>{const sb2=subByKey(sk);return `<span class="chip" style="background:${lightC(sb2.color)};color:${darkC(sb2.color)}">${sb2.label}</span>`;}).join('');
-    const chapterChips=chs.map(chk=>`<span class="chip">${chapterByKey(chk).label}</span>`).join('');
-    const sectionChips=secs.map(sk=>`<span class="chip">${sectionByKey(sk).label}</span>`).join('');
     const noteActionChips=isReminder?'':`<span class="chip card-action-chip" data-action="duplicate">建立副本</span><span class="chip card-action-chip" data-action="copy">複製內容</span><span class="chip card-action-chip" data-action="delete">刪除</span>`;
     const linkedChip=(shouldExpand&&!seedIds.has(n.id))?'<span class="chip" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459">跨科關聯</span>':'';
     const hasContent=isReminder?!!safeStr(n.body):noteHasVisibleContent(n);
     const previewText=reviewMode?(n.prompt||n.question||'（尚未填寫問題）'):(n.question||n.body);
-    return `<div class="card ${hasContent?'':'card-empty-content'} ${isReminder?'calendar-reminder-card':''}" data-id="${n.id}" data-reminder-id="${isReminder?n.eventId:''}" style="--type-color:${tp.color}"><button class="sel-check" type="button" aria-label="勾選筆記"></button><div class="ctop"><span class="ctag">${tp.label}</span><div class="ctitle-inline">${hl(n.title,q)}</div></div>${hasContent?`<div class="cbody">${escapeHtml(previewText)}</div>`:''}<div class="cfoot">${subChips}${chapterChips}${sectionChips}${linkedChip}${noteActionChips}</div></div>`;
+    return `<div class="card ${hasContent?'':'card-empty-content'} ${isReminder?'calendar-reminder-card':''}" data-id="${n.id}" data-reminder-id="${isReminder?n.eventId:''}" style="--type-color:${tp.color}"><button class="sel-check" type="button" aria-label="勾選筆記"></button><div class="ctop"><span class="ctag">${tp.label}</span><div class="ctitle-inline">${hl(n.title,q)}</div></div>${hasContent?`<div class="cbody">${escapeHtml(previewText)}</div>`:''}<div class="cfoot">${subChips}${linkedChip}${noteActionChips}</div></div>`;
   }).join('');
   grid.querySelectorAll('.card').forEach(c=>{
     const rid=c.dataset.reminderId?parseInt(c.dataset.reminderId,10):0;
@@ -505,14 +497,12 @@ function openNote(id) {
   }else if(fields.includes('todos')){todoLabel.style.display='block';todoWrap.style.display='block';todoWrap.innerHTML=renderTodoHtml(n.todos);}
   else{todoLabel.style.display='none';todoWrap.style.display='none';todoWrap.innerHTML='';}
   const subChips=subs.map(sk=>{const sb=subByKey(sk);return `<span class="chip" style="background:${lightC(sb.color)};color:${darkC(sb.color)}">${sb.label}</span>`;}).join('');
-  const chapterChips=chs.map(ch=>`<span class="chip" style="background:#E6F1FB;color:#0C447C">${chapterByKey(ch).label}</span>`).join('');
-  const sectionChips=secs.map(sec=>`<span class="chip" style="background:#EEF7FF;color:#1E5AA5">${sectionByKey(sec).label}</span>`).join('');
   const pathChip=n.path?`<span class="chip" style="background:#EEF2FF;color:#334155">${escapeHtml(n.path)}</span>`:'';
   const customHtml=fields.filter(k=>!BUILTIN_FIELD_DEFS[k]).map(k=>{
     const v=renderFieldValue(n,k);
     return `<span class="chip" title="${getFieldDef(k).label}">${getFieldDef(k).label}：${String(v).slice(0,20)||'（空）'}</span>`;
   }).join('');
-  g('dp-chips').innerHTML=subChips+chapterChips+sectionChips+pathChip+customHtml;
+  g('dp-chips').innerHTML=subChips+pathChip+customHtml;
   g('dp-inline-actions').innerHTML=`<button class="inline-note-action" data-action="edit">✏️ 編輯</button><button class="inline-note-action" data-action="duplicate">📄 建立副本</button><button class="inline-note-action" data-action="copy">📋 複製內容</button><button class="inline-note-action" data-action="delete">🗑️ 刪除</button>`;
   g('dp-inline-actions').querySelectorAll('.inline-note-action').forEach(btn=>{
     btn.addEventListener('click',()=>{

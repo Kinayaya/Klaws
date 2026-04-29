@@ -18,6 +18,30 @@ function migratePathOverridesIntoNotes(){
 }
 
 // ==================== 資料儲存 ====================
+function migrateLegacyChapterSectionData(){
+  let changed=false;
+  const all=[...notes,...mapRelays];
+  all.forEach(n=>{
+    const legacyCh=Array.isArray(n.chapters)?n.chapters.filter(Boolean):((n.chapter)?[n.chapter]:[]);
+    const legacySec=Array.isArray(n.sections)?n.sections.filter(Boolean):((n.section)?[n.section]:[]);
+    if((legacyCh.length||legacySec.length)){
+      const marker=`【舊章節資料】章: ${legacyCh.join(', ')||'無'}；節: ${legacySec.join(', ')||'無'}`;
+      const body=safeStr(n.detail||n.body||'');
+      if(!body.includes('【舊章節資料】')){
+        n.detail=(safeStr(n.detail).trim()?`${safeStr(n.detail).trim()}\n\n${marker}`:marker);
+        changed=true;
+      }
+    }
+    if(n.chapter||n.section||(Array.isArray(n.chapters)&&n.chapters.length)||(Array.isArray(n.sections)&&n.sections.length)){
+      n.chapter=''; n.section=''; n.chapters=[]; n.sections=[]; changed=true;
+    }
+  });
+  if(Array.isArray(chapters)&&chapters.length){ chapters=[]; changed=true; }
+  if(Array.isArray(sections)&&sections.length){ sections=[]; changed=true; }
+  if(mapFilter&&typeof mapFilter==='object'&&(mapFilter.chapter!=='all'||mapFilter.section!=='all')){ mapFilter.chapter='all'; mapFilter.section='all'; changed=true; }
+  return changed;
+}
+
 function loadData() {
   try {
     const d=readJSON(SKEY,null);
@@ -76,7 +100,7 @@ function loadData() {
       });
       typeFieldConfigs=(d.typeFieldConfigs&&typeof d.typeFieldConfigs==='object'&&!Array.isArray(d.typeFieldConfigs))?d.typeFieldConfigs:{};
       types.forEach(t=>{ typeFieldConfigs[t.key]=getTypeFieldKeys(t.key); });
-      let repaired=false,chapterMigrated=false;
+      let repaired=false,chapterMigrated=false,chapterSectionMigrated=false;
       if(JSON.stringify(rawMapCollapsed)!==JSON.stringify(mapCollapsed)) repaired=true;
       if(JSON.stringify(rawMapSubpages)!==JSON.stringify(mapSubpages)) repaired=true;
       if(rawMapPageNotes&&JSON.stringify(rawMapPageNotes)!==JSON.stringify(mapPageNotes)) repaired=true;
@@ -91,9 +115,10 @@ function loadData() {
         }
       });
       normalizeNotesTaxonomy();
+      chapterSectionMigrated=migrateLegacyChapterSectionData();
       if(migratePathOverridesIntoNotes()) repaired=true;
       if(normalizeNoteIds(true)) repaired=true;
-      if(repaired||chapterMigrated) saveData();
+      if(repaired||chapterMigrated||chapterSectionMigrated) saveData();
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
