@@ -575,7 +575,7 @@ const parseUpdatedAt = raw => {
   const n=Date.parse(raw||'');
   return Number.isFinite(n)?n:0;
 };
-const laneContextKey = () => `${mapFilter.sub||'all'}::${mapFilter.section||'all'}`;
+const laneContextKey = () => `${mapFilter.sub||'all'}`;
 const getLaneConfig = () => {
   const key=laneContextKey();
 const raw=mapLaneConfigs[key]||{};

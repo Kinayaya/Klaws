@@ -68,11 +68,9 @@
 <div id="subbar"></div>
 <details id="filterAdvanced">
   <summary>進階篩選</summary>
-  <div id="chapterbar"></div>
-  <div id="sectionbar"></div>
-  <div id="sortBar">
+    <div id="sortBar">
     <label>排序：</label>
-    <select id="sortSelect"><option value="date_desc">最新優先</option><option value="date_asc">最舊優先</option><option value="title_asc">標題 A-Z</option><option value="title_desc">標題 Z-A</option><option value="subject">依科目</option><option value="chapter">依章</option><option value="type">依類型</option></select>
+    <select id="sortSelect"><option value="date_desc">最新優先</option><option value="date_asc">最舊優先</option><option value="title_asc">標題 A-Z</option><option value="title_desc">標題 Z-A</option><option value="subject">依科目</option><option value="type">依類型</option></select>
     <label class="scope-link-toggle"><input type="checkbox" id="scopeLinkedToggle"> 同步顯示關聯筆記</label>
   </div>
   <div id="search-results-bar"></div>
@@ -104,9 +102,7 @@
     <div class="f2col">
       <div><label class="flbl" style="margin-top:0">類型</label><select class="fs" id="ft"></select></div>
       <div><label class="flbl" style="margin-top:0">科目</label><select class="fs" id="fs2"></select></div>
-      <div><label class="flbl" style="margin-top:0">章</label><select class="fs" id="fc"></select></div>
-      <div><label class="flbl" style="margin-top:0">節</label><select class="fs" id="fsec"></select></div>
-    </div>
+          </div>
     <label class="flbl">標題</label>
     <input class="fi" id="fti" placeholder="標題">
     <div id="fpath-row" style="display:none;">
@@ -171,9 +167,7 @@
     <div class="tag-category-nav" id="tagCategoryNav">
       <button class="tag-nav-btn active" data-category="type">類型</button>
       <button class="tag-nav-btn" data-category="subject">科目</button>
-      <button class="tag-nav-btn" data-category="chapter">章</button>
-      <button class="tag-nav-btn" data-category="section">節</button>
-    </div>
+          </div>
     <div class="tag-manager-content">
       <div class="tag-category-panel" data-category-panel="type">
         <div class="tag-section-title">類型</div>

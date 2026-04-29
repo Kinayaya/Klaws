@@ -38,7 +38,7 @@ function openForm(isEdit) {
     const relay=isRelayNode(n);
     formMode=relay?'relay':'note';
     g('form-title').textContent=relay?'編輯中繼站':'編輯筆記';
-    g('ft').value=n.type;setSelectedValues('fs2',noteSubjects(n));syncChapterSelect(noteSubjects(n),noteChapters(n));syncSectionSelect(noteChapters(n),noteSections(n),noteSubjects(n));g('fti').value=n.title;g('fpath').value=n.path||'';
+    g('ft').value=n.type;setSelectedValues('fs2',noteSubjects(n));g('fti').value=n.title;g('fpath').value=n.path||'';
     renderDynamicFields(n.type,n);
   } else {
     g('form-title').textContent=formMode==='relay'?'新增中繼站':'新增筆記';
@@ -50,12 +50,9 @@ function openForm(isEdit) {
       :(filterSub||(subjects[0]?subjects[0].key:null));
     if(defaultSub){
       setSelectedValues('fs2',[defaultSub]);
-      const defaultChapter=(pref.chapter&&chaptersBySubjects([defaultSub]).some(ch=>ch.key===pref.chapter))?pref.chapter:'';
-      syncChapterSelect([defaultSub],defaultChapter?[defaultChapter]:[]);
-      const defaultSection=(pref.section&&sectionsByChapters(defaultChapter?[defaultChapter]:[]).some(sec=>sec.key===pref.section))?pref.section:'';
-      syncSectionSelect(defaultChapter?[defaultChapter]:[],defaultSection?[defaultSection]:[],[defaultSub]);
+
     }
-    else{setSelectedValues('fs2',[]);syncChapterSelect([],[]);syncSectionSelect([],[],[]);}
+    else{setSelectedValues('fs2',[]);}
     renderDynamicFields(g('ft').value,null);
   }
   buildInlineLinksPanel();
@@ -308,12 +305,8 @@ function saveNote() {
   }
   const selectedSubs=selectedValues('fs2').slice(0,1);
   if(!selectedSubs.length){showToast('請至少選擇一個科目');return;}
-  const selectedChs=selectedValues('fc').slice(0,1);
-  const selectedSecs=selectedValues('fsec').slice(0,1);
   const primarySubject=selectedSubs[0]||'';
-  const primaryChapter=selectedChs[0]||'';
-  const primarySection=selectedSecs[0]||'';
-  saveFormTaxonomyPref(primarySubject,primaryChapter,primarySection);
+  saveFormTaxonomyPref(primarySubject,'','');
   if(editMode&&openId) {
     const isRelay=formMode==='relay';
     const source=isRelay?mapRelays:notes;
@@ -336,7 +329,7 @@ function saveNote() {
         if(id===openId) return;
         const target=noteById(id);
         if(!target) return;
-        Object.assign(target,{type:typeKey,subject:primarySubject,subjects:[...selectedSubs],chapter:primaryChapter,chapters:[...selectedChs],section:primarySection,sections:[...selectedSecs]});
+        Object.assign(target,{type:typeKey,subject:primarySubject,subjects:[...selectedSubs],chapter:'',chapters:[],section:'',sections:[]});
       });
     }
     saveData();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isRelay?'中繼站':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
@@ -373,7 +366,7 @@ function saveNoteDraftFromForm(){
   const typeKey=g('ft').value;
   const path=resolveInheritedPath(g('fpath').value||'');
   const fieldData=collectFormValuesByType(typeKey);
-  const selectedSubs=selectedValues('fs2').slice(0,1),selectedChs=selectedValues('fc').slice(0,1),selectedSecs=selectedValues('fsec').slice(0,1);
+  const selectedSubs=selectedValues('fs2').slice(0,1);
   Object.assign(target,normalizeNoteSchema({...target,type:typeKey,subject:selectedSubs[0]||'',subjects:selectedSubs,chapter:'',chapters:[],section:'',sections:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields}));
   saveDataDeferred();
 }
