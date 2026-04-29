@@ -546,20 +546,20 @@ let debugCaptureInstalled=false;
 let debugLines=[];
 let debugPanelEl=null, debugPanelBodyEl=null;
 const debugConsoleRaw={};
-function serializeDebugArg(v){
-  if(v instanceof Error) return `${v.name}: ${v.message}${v.stack?`\n${v.stack}`:''}`;
-  if(typeof v==='string') return v;
-  try{return JSON.stringify(v);}catch(_){ return String(v); }
-}
-function appendDebugLine(level,args=[]){
-  const time=new Date().toLocaleTimeString('zh-TW',{hour12:false});
-  const text=`[${time}] ${level.toUpperCase()} ${args.map(serializeDebugArg).join(' ')}`;
+const debugRuntime=window.__KLawsDebugRuntime||null;
+window.__KLawsDebugPushLine=(text)=>{
   debugLines.push(text);
-  if(debugLines.length>300) debugLines=debugLines.slice(-300);
+  if(debugLines.length>600) debugLines=debugLines.slice(-600);
   if(debugPanelBodyEl){
     debugPanelBodyEl.textContent=debugLines.join('\n');
     debugPanelBodyEl.scrollTop=debugPanelBodyEl.scrollHeight;
   }
+};
+function appendDebugLine(level,args=[]){
+  if(debugRuntime&&typeof debugRuntime.append==='function') return debugRuntime.append(level,args);
+  const text=`[${new Date().toISOString()}] ${level.toUpperCase()} ${args.join(' ')}`;
+  window.__KLawsDebugPushLine(text);
+  return text;
 }
 function installDebugConsoleCapture(){
   if(debugCaptureInstalled) return;

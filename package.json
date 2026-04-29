@@ -2,6 +2,6 @@
   "name": "klaws",
   "private": true,
   "scripts": {
-    "test": "node --test klaws-core.test.js"
+    "test": "node --test klaws-core.test.js debug-tool.test.js"
   }
 }

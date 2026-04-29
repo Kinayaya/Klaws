@@ -1,6 +1,22 @@
 // ==================== 工具函數 ====================
 const g = id => document.getElementById(id);
-const on = (id, evt, fn) => { const el=g(id); if(el) el.addEventListener(evt,fn); return el; };
+const debugRuntime = (window.KLawsDebug&&window.KLawsDebug.createDebugRuntime)
+  ? window.KLawsDebug.createDebugRuntime({maxLines:600, sink:(line)=>{ if(window.__KLawsDebugPushLine) window.__KLawsDebugPushLine(line); }})
+  : null;
+window.__KLawsDebugRuntime=debugRuntime;
+const safeEventHandler=(fn,label='event-handler')=>{
+  if(typeof fn!=='function') return fn;
+  return function wrappedEventHandler(...args){
+    try{
+      return fn.apply(this,args);
+    }catch(err){
+      if(debugRuntime) debugRuntime.reportError(label,err);
+      throw err;
+    }
+  };
+};
+
+const on = (id, evt, fn) => { const el=g(id); if(el) el.addEventListener(evt,safeEventHandler(fn,`${id}:${evt}`)); return el; };
 const val = id => { const el=g(id); return el?el.value:''; };
 const debounce = (fn,ms) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
 const showToast = m => { let t=g('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); };
@@ -18,6 +34,14 @@ function showActionToast(msg, undoFn=null){
   clearTimeout(actionUndoTimer);
   actionUndoTimer=setTimeout(()=>wrap.classList.remove('open'),3200);
 }
+
+window.addEventListener('error',evt=>{
+  if(debugRuntime) debugRuntime.reportError('window.error',evt.error||new Error(evt.message||'Unknown window error'));
+});
+window.addEventListener('unhandledrejection',evt=>{
+  if(debugRuntime) debugRuntime.reportError('window.unhandledrejection',evt.reason||new Error('Unhandled rejection'));
+});
+
 function loadFormTaxonomyPref(){
   try{
     const raw=JSON.parse(localStorage.getItem(FORM_TAXONOMY_PREF_KEY)||'{}');
