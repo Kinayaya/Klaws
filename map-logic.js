@@ -47,24 +47,25 @@ function forceLayout() {
   clearMapCardBoxCache();
   const layoutNotes=visibleNotes(),visIds={};layoutNotes.forEach(n=>visIds[n.id]=true);
   const visLinks=visibleLinks(visIds),n2=layoutNotes.length;if(!n2)return;
-  const scopedCenterId=getMapCenterFromScopes();
-  const hasStoredCenter=!!scopedCenterId&&!!mapNodeById(scopedCenterId);
+  const scopedCenterIds=getMapCentersFromScopes().filter(id=>!!mapNodeById(id));
+  const hasStoredCenter=!!scopedCenterIds.length;
   if(!hasStoredCenter&&!mapCenterNodeId){
     const linkCount={};layoutNotes.forEach(n=>linkCount[n.id]=0);visLinks.forEach(lk=>{linkCount[lk.from]=(linkCount[lk.from]||0)+1;linkCount[lk.to]=(linkCount[lk.to]||0)+1;});
     setMapCenterForCurrentScope(layoutNotes.reduce((max,n)=>linkCount[n.id]>linkCount[max.id]?n:max,layoutNotes[0]).id,{updateGlobal:true});
   }
-  const activeCenterId=getMapCenterFromScopes();
-  const layoutCenterNodeId=visIds[activeCenterId]?activeCenterId:(()=>{
+  const activeCenterIds=getMapCentersFromScopes().filter(id=>visIds[id]);
+  const layoutCenterNodeIds=activeCenterIds.length?activeCenterIds:[(()=>{
     const linkCount={};layoutNotes.forEach(n=>linkCount[n.id]=0);visLinks.forEach(lk=>{linkCount[lk.from]=(linkCount[lk.from]||0)+1;linkCount[lk.to]=(linkCount[lk.to]||0)+1;});
     return layoutNotes.reduce((max,n)=>linkCount[n.id]>linkCount[max.id]?n:max,layoutNotes[0]).id;
-  })();
+  })()];
   const laneCfg=getLaneConfig(),laneCount=laneCfg.names.length;
   const LANE_CARD_GAP_Y=20,TOP_PAD=72,BOT_PAD=40;
   const laneLeft=Math.max(80,mapW*.1),laneRight=Math.min(mapW-80,mapW*.9);
   const laneGapX=laneCount>1?(laneRight-laneLeft)/(laneCount-1):0;
   const chIdxMap=chapterIndexMap(),secIdxMap=sectionIndexMap();
   const adj={};layoutNotes.forEach(n=>adj[n.id]=[]);visLinks.forEach(lk=>{if(adj[lk.from])adj[lk.from].push(lk.to);if(adj[lk.to])adj[lk.to].push(lk.from);});
-  const layers={},visited=new Set(),queue=[layoutCenterNodeId];layers[layoutCenterNodeId]=0;visited.add(layoutCenterNodeId);
+  const layers={},visited=new Set(),queue=[...layoutCenterNodeIds];
+  layoutCenterNodeIds.forEach(id=>{layers[id]=0;visited.add(id);});
   while(queue.length){const current=queue.shift(),cl=layers[current];(adj[current]||[]).forEach(neighbor=>{if(!visited.has(neighbor)){visited.add(neighbor);layers[neighbor]=cl+1;queue.push(neighbor);}});}
   const connectedMaxLayer=Object.values(layers).reduce((m,v)=>Math.max(m,v),0);
   layoutNotes.forEach(n=>{if(!visited.has(n.id))layers[n.id]=connectedMaxLayer+1;});
@@ -626,10 +627,11 @@ function showMapInfo(id){
     }
     renderMapPopupQuickLinkSearch(relay?id:null);
   }
-  const currentCenterId=getMapCenterFromScopes();
+  const currentCenterIds=getMapCentersFromScopes();
   const setCenterBtn=document.createElement('button');setCenterBtn.className='mp-action-btn mp-action-secondary mp-set-center';
-  setCenterBtn.textContent=currentCenterId===id?'✓ 已核心':'⭐ 設核心';
-  setCenterBtn.onclick=()=>{setMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(`已將「${n.title}」設為核心節點（僅此科目/章/節）`);};
+  const isCore=currentCenterIds.includes(id);
+  setCenterBtn.textContent=isCore?'☆ 取消核心':'⭐ 加入核心';
+  setCenterBtn.onclick=()=>{setMapCenterForCurrentScope(id,{updateGlobal:true,multi:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(isCore?`已將「${n.title}」移出核心節點`:`已將「${n.title}」加入核心節點`);};
   const goBtn=g('mpGoto');
   const hasSubpage=hasSubpageForNode(id);
   const subpageBtn=document.createElement('button');
