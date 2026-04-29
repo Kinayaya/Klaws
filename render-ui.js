@@ -639,8 +639,21 @@ async function toggleDebugTool(){
 installDebugConsoleCapture();
 
 // 雙保險：即使 init 綁定失敗，按鈕仍可直接切換偵錯工具
-const debugToggleBtn=g('debugToggle');
-if(debugToggleBtn&&!debugToggleBtn.dataset.boundDebugToggle){
-  debugToggleBtn.dataset.boundDebugToggle='1';
-  debugToggleBtn.addEventListener('click',toggleDebugTool);
+function bindDebugToggleButton(){
+  if(window.KLawsDebug&&typeof window.KLawsDebug.bindDebugToggle==='function'){
+    window.KLawsDebug.bindDebugToggle(()=>g('debugToggle'),toggleDebugTool);
+    return;
+  }
+  const btn=g('debugToggle');
+  if(!btn||btn.dataset.boundDebugToggle) return;
+  btn.dataset.boundDebugToggle='1';
+  btn.addEventListener('click',toggleDebugTool);
 }
+bindDebugToggleButton();
+
+// 若 UI 被重建導致按鈕節點替換，透過事件代理補綁，避免「點擊無反應」
+document.addEventListener('click',ev=>{
+  const btn=ev.target&&ev.target.closest?ev.target.closest('#debugToggle'):null;
+  if(!btn) return;
+  bindDebugToggleButton();
+});
