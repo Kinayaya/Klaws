@@ -608,8 +608,13 @@ function ensureEruda(){
 function safeErudaCall(eruda,method){
   if(!eruda||typeof eruda[method]!=='function') return false;
   if(eruda._isInit!==true) return false;
-  eruda[method]();
-  return true;
+  try{
+    eruda[method]();
+    return true;
+  }catch(err){
+    appendDebugLine('warn',[`Eruda ${method} failed:`,err]);
+    return false;
+  }
 }
 async function toggleDebugTool(){
   const btn=g('debugToggle');
@@ -635,9 +640,11 @@ async function toggleDebugTool(){
     if(!er||typeof er.init!=='function') throw new Error('eruda unavailable');
     if(typeof er.destroy==='function'&&er._isInit===false) er.init();
     if(!er._isInit) er.init();
-    safeErudaCall(er,'show');
-    hideLocalDebugConsole();
-    debugMode='eruda';
+    const erudaShown=safeErudaCall(er,'show');
+    if(erudaShown){
+      hideLocalDebugConsole();
+      debugMode='eruda';
+    }
   }catch(e){
     appendDebugLine('warn',['Eruda fallback:',e]);
   }
