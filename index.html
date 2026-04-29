@@ -101,7 +101,7 @@
     <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><button class="pcls" id="fpClose">&#215;</button></div>
     <div class="f2col">
       <div><label class="flbl" style="margin-top:0">類型</label><select class="fs" id="ft"></select></div>
-      <div><label class="flbl" style="margin-top:0">路徑主分類</label><select class="fs" id="fs2"></select></div>
+      <div style="display:none;"><label class="flbl" style="margin-top:0">路徑主分類</label><select class="fs" id="fs2"></select></div>
           </div>
     <label class="flbl">標題</label>
     <input class="fi" id="fti" placeholder="標題">
@@ -172,8 +172,7 @@
   <div class="tag-manager-layout">
     <div class="tag-category-nav" id="tagCategoryNav">
       <button class="tag-nav-btn active" data-category="type">類型</button>
-      <button class="tag-nav-btn" data-category="subject">路徑主分類</button>
-          </div>
+    </div>
     <div class="tag-manager-content">
       <div class="tag-category-panel" data-category-panel="type">
         <div class="tag-section-title">類型</div>
@@ -182,36 +181,6 @@
           <input id="newTypeLabel" placeholder="新類型名稱">
           <input type="color" class="color-pick" id="newTypeColor" value="#378ADD">
           <button class="tag-add-icon-btn" id="addTypeBtn">+</button>
-        </div>
-      </div>
-
-      <div class="tag-category-panel" data-category-panel="subject">
-        <div class="tag-section-title">路徑主分類</div>
-        <div class="tag-list" id="subTagList"></div>
-        <div class="tag-add-row">
-          <input id="newSubLabel" placeholder="新主分類名稱">
-          <input type="color" class="color-pick" id="newSubColor" value="#1D9E75">
-          <button class="tag-add-icon-btn" id="addSubBtn">+</button>
-        </div>
-      </div>
-
-      <div class="tag-category-panel" data-category-panel="chapter">
-        <div class="tag-section-title">章</div>
-        <div class="tag-list" id="chapterTagList"></div>
-        <div class="tag-add-row">
-          <input id="newChapterLabel" placeholder="新章名稱">
-          <select id="newChapterSubject" class="fs" style="max-width:110px;min-width:80px;"></select>
-          <button class="tag-add-icon-btn" id="addChapterBtn">+</button>
-        </div>
-      </div>
-
-      <div class="tag-category-panel" data-category-panel="section">
-        <div class="tag-section-title">節</div>
-        <div class="tag-list" id="sectionTagList"></div>
-        <div class="tag-add-row">
-          <input id="newSectionLabel" placeholder="新節名稱">
-          <select id="newSectionChapter" class="fs" style="max-width:110px;min-width:80px;"></select>
-          <button class="tag-add-icon-btn" id="addSectionBtn">+</button>
         </div>
       </div>
     </div>
