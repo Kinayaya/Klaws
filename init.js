@@ -8,7 +8,11 @@
   if(pathSample.some(x=>typeof x.path!=='string')) console.warn('[loadData][path-warning] invalid path type detected');
   rebuildUI();
   initMoreMenu();
-  g('sortSelect').value=sortMode;g('sortSelect').addEventListener('change',()=>{sortMode=g('sortSelect').value;gridPage=1;render();saveData();});
+  const sortSelect=g('sortSelect');
+  if(sortSelect){
+    sortSelect.value=sortMode;
+    sortSelect.addEventListener('change',()=>{sortMode=sortSelect.value;gridPage=1;render();saveData();});
+  }
   const scopeLinkedToggle=g('scopeLinkedToggle');
   if(scopeLinkedToggle){
     scopeLinkedToggle.checked=scopeLinkedEnabled;
@@ -21,7 +25,9 @@
     });
   }
   if(g('selAllBtn')) g('selAllBtn').textContent='複製';
-  g('selAllBtn').addEventListener('click',copySelectedNotes);g('selDeleteBtn').addEventListener('click',deleteSelected);g('selCancelBtn').addEventListener('click',exitMultiSel);
+  on('selAllBtn','click',copySelectedNotes);
+  on('selDeleteBtn','click',deleteSelected);
+  on('selCancelBtn','click',exitMultiSel);
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
   on('headerTitleWrap','click',()=>toggleLevelSystemView(true));
@@ -32,12 +38,12 @@
   on('ft','change',()=>renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null));
   on('fc','change',()=>syncSectionSelect(selectedValues('fc'),selectedValues('fsec'),[]));
   const si=g('searchInput'),sc=g('searchClear');
-  si.addEventListener('input',debounce(()=>{
+  if(si&&sc) si.addEventListener('input',debounce(()=>{
     searchQ=si.value;gridPage=1;sc.style.display=searchQ?'block':'none';
     if(searchQ.trim()&&isMapOpen) toggleMapView(false);
     updateNotesHomeVisibility();render();
   },250));
-  sc.addEventListener('click',()=>{si.value='';searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
+  if(si&&sc) sc.addEventListener('click',()=>{si.value='';searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
   const compactDefault=localStorage.getItem(COMPACT_FILTER_KEY);
   applyCompactFilterMode(compactDefault===null?true:compactDefault==='1');
   on('compactToggleBtn','click',()=>applyCompactFilterMode(!document.body.classList.contains('compact-filters')));
@@ -68,7 +74,7 @@
   on('cloudPullBtn','click',()=>cloudSyncPullLatest());
   on('cloudSyncBtn','click',()=>cloudSyncPushNow());
   on('cloudLogoutBtn','click',logoutGoogleDriveSync);
-  g('tpClose').addEventListener('click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
+  on('tpClose','click',()=>{g('tp')?.classList.remove('open');syncSidePanelState();});
   on('tagSearchInput','input',debounce(()=>{tagSearchQ=(val('tagSearchInput')||'').toLowerCase().trim();renderTagLists();},150));
   on('tagUnusedOnly','change',()=>{tagUnusedOnly=!!g('tagUnusedOnly').checked;renderTagLists();});
   on('clearUnusedTagsBtn','click',clearUnusedTags);
@@ -96,26 +102,27 @@
   on('examRetryBtn','click',()=>{closeExamView();setTimeout(openExamPanel,100);});on('examBackBtn2','click',closeExamView);
   on('examAnswerBox','input',()=>{g('examWordCount').textContent=g('examAnswerBox').value.replace(/\s/g,'').length+' 字';});
   g('aiProviderSel')?.addEventListener('change',()=>{saveAiProvider(g('aiProviderSel').value||'openrouter');renderAiModelOptions();});
-  g('aiKeySave').addEventListener('click',()=>{const k=(g('aiKeyInput').value||'').trim();if(!k){showToast('請輸入 API Key');return;}saveAiKey(k);const psel=g('aiProviderSel');if(psel&&psel.value)saveAiProvider(psel.value);const sel=g('aiModelSel');if(sel&&sel.value)saveAiModel(sel.value);g('aiKeyModal').classList.remove('open');if(_aiPendingAction){_aiPendingAction(k);_aiPendingAction=null;}else showToast('AI 設定已儲存！');});
-  g('aiKeyCancel').addEventListener('click',()=>{g('aiKeyModal').classList.remove('open');_aiPendingAction=null;});
-  g('importFile').addEventListener('change',e=>{if(e.target.files&&e.target.files[0])importData(e.target.files[0]);e.target.value='';});
+  on('aiKeySave','click',()=>{const k=(g('aiKeyInput')?.value||'').trim();if(!k){showToast('請輸入 API Key');return;}saveAiKey(k);const psel=g('aiProviderSel');if(psel&&psel.value)saveAiProvider(psel.value);const sel=g('aiModelSel');if(sel&&sel.value)saveAiModel(sel.value);g('aiKeyModal')?.classList.remove('open');if(_aiPendingAction){_aiPendingAction(k);_aiPendingAction=null;}else showToast('AI 設定已儲存！');});
+  on('aiKeyCancel','click',()=>{g('aiKeyModal')?.classList.remove('open');_aiPendingAction=null;});
+  on('importFile','change',e=>{if(e.target.files&&e.target.files[0])importData(e.target.files[0]);e.target.value='';});
   on('debugToggle','click',toggleDebugTool);
-  g('scpClose').addEventListener('click',closeShortcutMgr);g('scpDone').addEventListener('click',closeShortcutMgr);
-  g('scpReset').addEventListener('click',()=>{shortcuts=DEFAULT_SHORTCUTS.map(s=>({...s}));saveShortcuts();renderShortcutList();showToast('已恢復預設快捷鍵');});
+  on('scpClose','click',closeShortcutMgr);on('scpDone','click',closeShortcutMgr);
+  on('scpReset','click',()=>{shortcuts=DEFAULT_SHORTCUTS.map(s=>({...s}));saveShortcuts();renderShortcutList();showToast('已恢復預設快捷鍵');});
   loadShortcuts();document.addEventListener('keydown',handleGlobalKey);
   loadRecycleBin();
   purgeRecycleBin();
   try{unusedTagTracker=JSON.parse(localStorage.getItem(UNUSED_TAG_TRACK_KEY)||'{}')||{};}catch(e){unusedTagTracker={};}
   setInterval(()=>{purgeRecycleBin();autoCleanupUnusedTags();},60000);
   const isInsideMapCanvas = target => !!(target&&target.closest&&target.closest('#mapCanvas'));
+  const isInteractiveTarget = target => !!(target&&target.closest&&target.closest('button, input, select, textarea, a, label, summary, [role="button"], [contenteditable="true"]'));
   let lastTouchEndTs=0, lastTouchTs=0, lastTouchX=0, lastTouchY=0;
-  document.addEventListener('dblclick',e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{capture:true,passive:false});
+  document.addEventListener('dblclick',e=>{ if(!isInsideMapCanvas(e.target)&&!isInteractiveTarget(e.target)) e.preventDefault(); },{capture:true,passive:false});
   document.addEventListener('wheel',e=>{ if(e.ctrlKey&&!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
   ['gesturestart','gesturechange','gestureend'].forEach(evt=>{
-    document.addEventListener(evt,e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
+    document.addEventListener(evt,e=>{ if(!isInsideMapCanvas(e.target)&&!isInteractiveTarget(e.target)) e.preventDefault(); },{passive:false});
   });
   document.addEventListener('touchstart',e=>{
-    if(isInsideMapCanvas(e.target)) return;
+    if(isInsideMapCanvas(e.target)||isInteractiveTarget(e.target)) return;
     if(e.touches.length>1){ e.preventDefault(); return; }
     const t=e.touches[0];
     if(!t) return;
@@ -124,16 +131,16 @@
     lastTouchTs=now; lastTouchX=t.clientX; lastTouchY=t.clientY;
   },{passive:false});
   document.addEventListener('touchmove',e=>{
-    if(!isInsideMapCanvas(e.target)&&e.touches.length>1) e.preventDefault();
+    if(!isInsideMapCanvas(e.target)&&!isInteractiveTarget(e.target)&&e.touches.length>1) e.preventDefault();
   },{passive:false});
   document.addEventListener('touchend',e=>{
-    if(isInsideMapCanvas(e.target)) return;
+    if(isInsideMapCanvas(e.target)||isInteractiveTarget(e.target)) return;
     const now=Date.now();
     if(now-lastTouchEndTs<320) e.preventDefault();
     lastTouchEndTs=now;
   },{passive:false});
-  g('mapToggleBtn').addEventListener('click',()=>toggleMapView(true));
-  g('mapBackBtn').addEventListener('click',()=>{if(isMapOpen&&leaveMapSubpage())return;toggleMapView(false);});
+  on('mapToggleBtn','click',()=>toggleMapView(true));
+  on('mapBackBtn','click',()=>{if(isMapOpen&&leaveMapSubpage())return;toggleMapView(false);});
   on('mapAddNoteBtn','click',()=>{formMode='note';openForm(false);});
   on('mapAssignNoteBtn','click',openMapAssignPanel);
   on('mapSearchInput','input',debounce(()=>{mapFilter.q=g('mapSearchInput').value;saveDataDeferred();if(isMapOpen)drawMap();},250));
