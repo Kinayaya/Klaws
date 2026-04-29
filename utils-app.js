@@ -570,7 +570,7 @@ const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
   setMapCenterForCurrentScope(target,opt);
   mapPageStack=prevStack;
 };
-const getPayload = () => ({notes,mapRelays:[],links,nid,lid,types,subjects,chapters,sections,nodePos,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,achievements,levelSystem,panelDir:getPanelDir(),updatedAt:new Date().toISOString()});
+const getPayload = () => ({notes,mapRelays,links,nid,lid,types,subjects,chapters,sections,nodePos,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,achievements,levelSystem,panelDir:getPanelDir(),updatedAt:new Date().toISOString()});
 const parseUpdatedAt = raw => {
   const n=Date.parse(raw||'');
   return Number.isFinite(n)?n:0;
