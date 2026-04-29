@@ -643,16 +643,14 @@ function showMapInfo(id){
     renderMapPopupQuickLinkSearch(relay?id:null);
   }
   const currentCenterId=getMapCenterFromScopes();
-  const setCenterBtn=document.createElement('button');setCenterBtn.className='mp-set-center';
-  setCenterBtn.textContent=currentCenterId===id?'✓ 已是核心':'⭐ 設為核心';
-  setCenterBtn.style.cssText='width:100%;padding:8px;margin:8px 0 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #ddd;'+(currentCenterId===id?'background:#EAF3DE;color:#3B6D11;border-color:#97C459;':'background:#f5f5f5;color:#555;');
+  const setCenterBtn=document.createElement('button');setCenterBtn.className='mp-action-btn mp-action-secondary mp-set-center';
+  setCenterBtn.textContent=currentCenterId===id?'✓ 已核心':'⭐ 設核心';
   setCenterBtn.onclick=()=>{setMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(`已將「${n.title}」設為核心節點（僅此科目/章/節）`);};
   const goBtn=g('mpGoto');
   const hasSubpage=hasSubpageForNode(id);
   const subpageBtn=document.createElement('button');
-  subpageBtn.className='mp-subpage-btn';
-  subpageBtn.textContent=hasSubpage?'📄 進入子頁面':'📄 設定子頁面';
-  subpageBtn.style.cssText='width:100%;padding:8px;margin:4px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #ddd;background:#f5f5f5;color:#555;';
+  subpageBtn.className='mp-action-btn mp-action-secondary mp-subpage-btn';
+  subpageBtn.textContent=hasSubpage?'📄 進子頁':'📄 設子頁';
   subpageBtn.onclick=()=>{
     if(!hasSubpage){
       if(!ensureMapSubpageRoot(id)){
@@ -670,9 +668,8 @@ function showMapInfo(id){
     enterMapSubpage(id);
   };
   const cancelSubpageBtn=document.createElement('button');
-  cancelSubpageBtn.className='mp-subpage-btn mp-subpage-cancel-btn';
-  cancelSubpageBtn.textContent='🗑️ 取消子頁面';
-  cancelSubpageBtn.style.cssText='width:100%;padding:8px;margin:4px 0 8px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #f3c7c7;background:#fff2f2;color:#c43d3d;';
+  cancelSubpageBtn.className='mp-action-btn mp-action-danger mp-subpage-btn mp-subpage-cancel-btn';
+  cancelSubpageBtn.textContent='🗑️ 取消子頁';
   cancelSubpageBtn.onclick=()=>{
     if(!removeSubpageForNode(id)) return;
     removeRootFromPageStack(id);
@@ -683,18 +680,16 @@ function showMapInfo(id){
     showToast('已取消子頁面設定');
   };
   const linkStartBtn=document.createElement('button');
-  linkStartBtn.className='mp-link-start-btn';
-  linkStartBtn.textContent=mapLinkSourceId===id?'✖ 取消連線起點':'🔗 以此為連線起點';
-  linkStartBtn.style.cssText='width:100%;padding:8px;margin:4px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #ddd;'+(mapLinkSourceId===id?'background:#fff2f2;color:#c43d3d;border-color:#f3c7c7;':'background:#eef6ff;color:#0C447C;border-color:#b5d4f4;');
+  linkStartBtn.className='mp-action-btn mp-action-secondary mp-link-start-btn';
+  linkStartBtn.textContent=mapLinkSourceId===id?'✖ 取消起點':'🔗 設起點';
   linkStartBtn.onclick=()=>{
     if(mapLinkSourceId===id) clearMapLinkSource({silent:true});
     else setMapLinkSource(id);
     closeMapPopup();
   };
   const hideFromPageBtn=document.createElement('button');
-  hideFromPageBtn.className='mp-hide-page-btn';
+  hideFromPageBtn.className='mp-action-btn mp-action-danger mp-hide-page-btn';
   hideFromPageBtn.textContent='🙈 取消顯示';
-  hideFromPageBtn.style.cssText='width:100%;padding:8px;margin:4px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #e8d59b;background:#fff9e9;color:#8a6400;';
   hideFromPageBtn.onclick=()=>{
     if(!unassignNoteFromMapPage(id)){
       showToast('無法隱藏此節點');
@@ -736,9 +731,16 @@ function showMapInfo(id){
   const slashLinks=extractSlashLinks(n.detail,id);
   if(!related.length&&!slashLinks.length){linksEl.innerHTML='<span class="mp-no-links">尚無關聯</span>';}
   else{
-    const relationHtml=related.map(l=>{const otherId=l.from===id?l.to:l.from,other=mapNodeById(otherId),dir=l.from===id?'→':'←',name=other?other.title:'（已刪除）',relNote=normalizeRelationNote(l.note);return `<div class="mp-link-row"><span class="mp-link-badge" style="background:${relationColor(l.rel)}">${dir} ${relationLabel(l.rel)}</span><span class="mp-link-name" data-nid="${otherId}">${name}</span>${relNote?`<span class="chip">${escapeHtml(relNote)}</span>`:''}</div>`;}).join('');
+    const causeRows=[],relationRows=[];
+    related.forEach(l=>{
+      const otherId=l.from===id?l.to:l.from,other=mapNodeById(otherId),dir=l.from===id?'→':'←',name=other?other.title:'（已刪除）',relNote=normalizeRelationNote(l.note);
+      if(l.rel==='cause'){causeRows.push(`<button type="button" class="mp-reason-item mp-link-name" data-nid="${otherId}">${escapeHtml(name)}</button>`);return;}
+      relationRows.push(`<div class="mp-link-row"><span class="mp-link-badge" style="background:${relationColor(l.rel)}">${dir} ${relationLabel(l.rel)}</span><span class="mp-link-name" data-nid="${otherId}">${name}</span>${relNote?`<span class="chip">${escapeHtml(relNote)}</span>`:''}</div>`);
+    });
+    const causeHtml=causeRows.length?`<div class="mp-link-group"><div class="mp-link-group-title">相關原因</div><div class="mp-reason-list">${causeRows.join('')}</div></div>`:'';
+    const relationHtml=relationRows.join('');
     const slashHtml=slashLinks.map(item=>`<div class="mp-link-row"><span class="mp-link-badge" style="background:#64748B">/ 連結</span><span class="mp-link-name" data-nid="${item.id}">${escapeHtml(item.title)}</span></div>`).join('');
-    linksEl.innerHTML=relationHtml+slashHtml;
+    linksEl.innerHTML=causeHtml+relationHtml+slashHtml;
     linksEl.querySelectorAll('.mp-link-name').forEach(el=>{el.addEventListener('click',()=>{
       const targetId=parseInt(el.dataset.nid,10);
       highlightNode(targetId);
