@@ -546,7 +546,7 @@ let debugCaptureInstalled=false;
 let debugLines=[];
 let debugPanelEl=null, debugPanelBodyEl=null;
 const debugConsoleRaw={};
-const debugRuntime=window.__KLawsDebugRuntime||null;
+const runtimeDebugBridge=window.__KLawsDebugRuntime||null;
 window.__KLawsDebugPushLine=(text)=>{
   debugLines.push(text);
   if(debugLines.length>600) debugLines=debugLines.slice(-600);
@@ -556,7 +556,7 @@ window.__KLawsDebugPushLine=(text)=>{
   }
 };
 function appendDebugLine(level,args=[]){
-  if(debugRuntime&&typeof debugRuntime.append==='function') return debugRuntime.append(level,args);
+  if(runtimeDebugBridge&&typeof runtimeDebugBridge.append==='function') return runtimeDebugBridge.append(level,args);
   const text=`[${new Date().toISOString()}] ${level.toUpperCase()} ${args.join(' ')}`;
   window.__KLawsDebugPushLine(text);
   return text;
