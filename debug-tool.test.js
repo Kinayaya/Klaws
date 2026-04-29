@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { formatErrorDetail, createDebugRuntime } = require('./debug-tool.js');
+const { formatErrorDetail, createDebugRuntime, bindDebugToggle } = require('./debug-tool.js');
 
 test('formatErrorDetail includes error name/message and stack summary', ()=>{
   const err=new Error('btn failed');
@@ -19,4 +19,29 @@ test('createDebugRuntime keeps max lines and reports detailed error', ()=>{
   assert.equal(lines.length,2);
   assert.match(lines[1],/saveBtn:click/);
   assert.match(lines[1],/save failed/);
+});
+
+test('bindDebugToggle only binds once per button element', ()=>{
+  let calls=0;
+  const btn={
+    dataset:{},
+    addEventListener:(evt,fn)=>{ if(evt==='click'){ calls++; btn._fn=fn; } }
+  };
+  const onToggle=()=>{};
+  assert.equal(bindDebugToggle(()=>btn,onToggle),true);
+  assert.equal(bindDebugToggle(()=>btn,onToggle),false);
+  assert.equal(calls,1);
+});
+
+test('bindDebugToggle rebinds after button node replacement', ()=>{
+  let calls=0;
+  const mkBtn=()=>({
+    dataset:{},
+    addEventListener:(evt)=>{ if(evt==='click') calls++; }
+  });
+  const btnA=mkBtn();
+  const btnB=mkBtn();
+  assert.equal(bindDebugToggle(()=>btnA,()=>{}),true);
+  assert.equal(bindDebugToggle(()=>btnB,()=>{}),true);
+  assert.equal(calls,2);
 });

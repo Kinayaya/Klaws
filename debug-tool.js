@@ -36,7 +36,15 @@
     };
   }
 
-  const api={ normalizeStack, formatErrorDetail, createDebugRuntime };
+  function bindDebugToggle(getBtn,onToggle){
+    const btn=typeof getBtn==='function'?getBtn():null;
+    if(!btn||btn.dataset?.boundDebugToggle) return false;
+    if(btn.dataset) btn.dataset.boundDebugToggle='1';
+    btn.addEventListener('click',onToggle);
+    return true;
+  }
+
+  const api={ normalizeStack, formatErrorDetail, createDebugRuntime, bindDebugToggle };
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   if(global) global.KLawsDebug=api;
 })(typeof window!=='undefined'?window:globalThis);
