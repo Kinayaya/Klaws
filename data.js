@@ -1,8 +1,10 @@
 
 function migratePathOverridesIntoNotes(){
+  if(localStorage.getItem('klaws_path_override_migrated_v1')==='1') return false;
   const overrides=readJSON('klaws_note_paths_v1',{});
   if(!overrides||typeof overrides!=='object'||Array.isArray(overrides)) return false;
   let changed=false;
+  let migratedCount=0;
   [...notes,...mapRelays].forEach(n=>{
     const key=String(n&&n.id);
     if(!key) return;
@@ -11,9 +13,17 @@ function migratePathOverridesIntoNotes(){
     if((n.path||'')!==ov){
       n.path=ov;
       changed=true;
+      migratedCount++;
     }
   });
-  if(changed) localStorage.removeItem('klaws_note_paths_v1');
+  if(changed){
+    localStorage.removeItem('klaws_note_paths_v1');
+    localStorage.setItem('klaws_path_override_migrated_v1','1');
+    showToast(`已完成舊路徑遷移：${migratedCount} 筆`);
+    console.info('[path-migration] applied overrides',{migratedCount});
+  }else{
+    localStorage.setItem('klaws_path_override_migrated_v1','1');
+  }
   return changed;
 }
 
@@ -118,7 +128,14 @@ function loadData() {
       chapterSectionMigrated=migrateLegacyChapterSectionData();
       if(migratePathOverridesIntoNotes()) repaired=true;
       if(normalizeNoteIds(true)) repaired=true;
-      if(repaired||chapterMigrated||chapterSectionMigrated) saveData();
+      if(repaired||chapterMigrated||chapterSectionMigrated){
+        if(chapterSectionMigrated){
+          const migratedNotes=[...notes,...mapRelays].filter(n=>safeStr(n.detail).includes('【舊章節資料】')).length;
+          showToast(`章節已棄用，請使用路徑（已轉換 ${migratedNotes} 筆）`);
+          console.info('[chapter-section-migration]',{migratedNotes});
+        }
+        saveData();
+      }
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());

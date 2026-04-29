@@ -10,7 +10,7 @@ function resolveInheritedPath(inputPath=''){
 }
 function syncFormModeVisibility(){
   const isAssign=formMode==='mapAssign';
-  const isPathEditable=editMode&&!isAssign;
+  const isPathEditable=!isAssign;
   const setDisplay=(id,v)=>{const el=g(id);if(el)el.style.display=v;};
   setDisplay('mapAssignFormWrap',isAssign?'block':'none');
   setDisplay('dynamicFieldWrap',isAssign?'none':'block');
@@ -21,6 +21,25 @@ function syncFormModeVisibility(){
   if(titleLbl) titleLbl.style.display=isAssign?'none':'block';
   const saveBtn=g('fpSave');
   if(saveBtn) saveBtn.textContent=isAssign?'加入頁面':'儲存';
+}
+function inheritedParentPath(){
+  const rootId=currentSubpageRootId();
+  if(!rootId) return '';
+  const parent=mapNodeById(rootId);
+  return resolvePathInput(parent?.path||'');
+}
+function updatePathInheritanceUI(){
+  const toggle=g('fpathInheritToggle');
+  const hint=g('fpath-inherit-hint');
+  const preview=g('fpath-final-preview');
+  const input=g('fpath');
+  if(!toggle||!hint||!preview||!input) return;
+  const inherited=inheritedParentPath();
+  hint.textContent=inherited?`將繼承父路徑：${inherited}`:'目前無可繼承的父路徑';
+  if(toggle.checked&&inherited) input.value=inherited;
+  input.disabled=!!(toggle.checked&&inherited);
+  const finalPath=resolvePathInput((toggle.checked&&inherited)?inherited:(input.value||''));
+  preview.textContent=finalPath?`儲存後路徑：${finalPath}`:'儲存後路徑：（空）';
 }
 function openForm(isEdit) {
   editMode=isEdit; buildFormSelects();
@@ -39,10 +58,17 @@ function openForm(isEdit) {
     formMode=relay?'relay':'note';
     g('form-title').textContent=relay?'編輯中繼站':'編輯筆記';
     g('ft').value=n.type;setSelectedValues('fs2',noteSubjects(n));g('fti').value=n.title;g('fpath').value=n.path||'';
+    if(g('fpathInheritToggle')) g('fpathInheritToggle').checked=false;
     renderDynamicFields(n.type,n);
   } else {
     g('form-title').textContent=formMode==='relay'?'新增中繼站':'新增筆記';
   ['fti','fpath'].forEach(id=>{const el=g(id);if(el)el.value='';});
+    const inherited=inheritedParentPath();
+    const inheritToggle=g('fpathInheritToggle');
+    if(inheritToggle){
+      inheritToggle.checked=!!inherited;
+      if(inherited) g('fpath').value=inherited;
+    }
     const pref=loadFormTaxonomyPref();
     const filterSub=(mapFilter.sub!=='all'&&subjects.some(s=>s.key===mapFilter.sub))?mapFilter.sub:'';
     const defaultSub=(pref.subject&&subjects.some(s=>s.key===pref.subject))
@@ -56,6 +82,10 @@ function openForm(isEdit) {
     renderDynamicFields(g('ft').value,null);
   }
   buildInlineLinksPanel();
+  const inheritToggle=g('fpathInheritToggle'),pathInput=g('fpath');
+  if(inheritToggle) inheritToggle.onchange=updatePathInheritanceUI;
+  if(pathInput) pathInput.oninput=updatePathInheritanceUI;
+  updatePathInheritanceUI();
   g('fp').classList.add('open');['dp','tp'].forEach(p=>g(p).classList.remove('open'));
   syncSidePanelState();
 }
@@ -286,7 +316,9 @@ function saveNote() {
   if(!title){g('fti').style.borderColor='#FF3B30';showToast('請輸入標題');return;}
   g('fti').style.borderColor='';
   const typeKey=g('ft').value;
-  const path=resolveInheritedPath(g('fpath').value||'');
+  const useInherited=!!g('fpathInheritToggle')?.checked;
+  const inherited=inheritedParentPath();
+  const path=resolvePathInput((useInherited&&inherited)?inherited:(g('fpath').value||''));
   const fieldData=collectFormValuesByType(typeKey);
   const typeFieldKeys=getTypeFieldKeys(typeKey);
   const requiresApplication=typeFieldKeys.includes('application');
@@ -315,7 +347,9 @@ function saveNote() {
     const shouldSyncMeta=multiSelMode&&selectedIds[openId]&&selectedIdNums.length>1;
     const prevDone=idx!==-1?doneTodoCount(source[idx].todos):0;
     if(idx!==-1){
+      const oldPath=source[idx]?.path||'';
       const updated=normalizeNoteSchema({...source[idx],type:typeKey,subject:primarySubject,subjects:selectedSubs,chapter:'',chapters:[],section:'',sections:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
+      console.log('[saveNote][update]',{noteId:source[idx]?.id,oldPath,newPath:updated.path});
       source[idx]=isRelay?{...updated,isRelay:true,pageRootId:relayPageRootId(source[idx]),noteTypeBackup:typeKey}:updated;
     }
     const mentionAdded=idx!==-1?autoLinkMentionsForNote(source[idx]):0;
@@ -338,6 +372,7 @@ function saveNote() {
     const d=new Date(),dt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const nowIso=new Date().toISOString();
     const newNote=normalizeNoteSchema({id:nid++,type:typeKey,subject:primarySubject,subjects:selectedSubs,chapter:'',chapters:[],section:'',sections:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,date:dt,created_at:nowIso,last_reviewed:'',next_review:nowIso,todos:fieldData.todos,extraFields:fieldData.extraFields});
+    console.log('[saveNote][create]',{noteId:newNote.id,oldPath:'',newPath:newNote.path});
     if(doneTodoCount(newNote.todos)>0&&levelSystem.tasks.length&&levelSystem.skills.length){
       completeLevelTask(levelSystem.tasks[0].id,levelSystem.skills[0].id);
     }

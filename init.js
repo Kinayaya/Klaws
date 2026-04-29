@@ -2,7 +2,11 @@
   window.addEventListener('load',()=>{
   detachSidePanelsFromNotesView();
   ensureUsageStart();
-  loadData();rebuildUI();
+  loadData();
+  const pathSample=[...notes].slice(0,5).map(n=>({id:n.id,path:n.path||''}));
+  console.log('[loadData][path-sample]',pathSample);
+  if(pathSample.some(x=>typeof x.path!=='string')) console.warn('[loadData][path-warning] invalid path type detected');
+  rebuildUI();
   initMoreMenu();
   g('sortSelect').value=sortMode;g('sortSelect').addEventListener('change',()=>{sortMode=g('sortSelect').value;gridPage=1;render();saveData();});
   const scopeLinkedToggle=g('scopeLinkedToggle');
