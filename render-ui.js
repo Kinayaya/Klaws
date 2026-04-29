@@ -114,8 +114,10 @@ function syncSectionSelect(chapterKeys, selected=[], subjectKeys=[]){
   else sec.value='';
 }
 function buildFormSelects() {
-  g('ft').innerHTML=types.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');
-  g('fs2').innerHTML=`<option value="">無</option>`+subjects.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  const typeSelect=g('ft');
+  if(typeSelect) typeSelect.innerHTML=types.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');
+  const subjectSelect=g('fs2');
+  if(subjectSelect) subjectSelect.innerHTML=`<option value="">無</option>`+subjects.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
   syncChapterSelect(selectedValues('fs2'));
   syncSectionSelect(selectedValues('fc'),[],selectedValues('fs2'));
 }
