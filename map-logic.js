@@ -84,7 +84,7 @@ function forceLayout() {
   const coreSet=new Set(layoutCoreNodeIds.map(id=>parseInt(id,10)));
   const laneGroups={};Object.keys(layers).forEach(nodeId=>{
     const nid=parseInt(nodeId,10);
-    const lane=coreSet.has(nid)?0:Math.max(1,Math.min(laneCount-1,(layers[nodeId]||0)+1));
+    const lane=coreSet.has(nid)?0:Math.max(1,Math.min(laneCount-1,layers[nodeId]||0));
     if(!laneGroups[lane])laneGroups[lane]=[];
     laneGroups[lane].push(nid);
   });
