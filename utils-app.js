@@ -311,6 +311,13 @@ const noteScopeKeys = (n,arrKey,singleKey) => {
   return uniq(arr.length?arr:((n&&n[singleKey])?[n[singleKey]]:[]));
 };
 const notePathSegments = n => safeStr(n&&n.path).split(/[/>＞，、。]/).map(x=>x.trim()).filter(Boolean);
+const notePathKey = n => notePathSegments(n).join('>');
+const isPathPrefixMatch = (parentPath, childPath) => {
+  const parentSegs=notePathSegments({path:parentPath});
+  const childSegs=notePathSegments({path:childPath});
+  if(!parentSegs.length||childSegs.length<=parentSegs.length) return false;
+  return parentSegs.every((seg,idx)=>seg===childSegs[idx]);
+};
 const noteDomains = n => {
   const legacy=noteScopeKeys(n,'domains','domain');
   if(legacy.length) return legacy;
@@ -475,7 +482,12 @@ const findSubpageKeyByNoteId = noteId => {
   const suffix=`::${noteId}`;
   return Object.keys(mapSubpages||{}).find(key=>key.endsWith(suffix))||null;
 };
-const hasSubpageForNode = noteId => !!findSubpageKeyByNoteId(noteId);
+const hasSubpageForNode = noteId => {
+  const node=mapNodeById(noteId);
+  const path=notePathKey(node);
+  if(!path) return false;
+  return notes.some(n=>n.id!==noteId&&isPathPrefixMatch(path,n.path||''));
+};
 const removeSubpageForNode = noteId => {
   const key=findSubpageKeyByNoteId(noteId);
   if(!key) return false;
@@ -507,6 +519,14 @@ const normalizeMapPageNotes = raw => {
 };
 const getMapPageAssignedIds = rootId => {
   const resolvedRootId=rootId===undefined?currentSubpageRootId():rootId;
+  const rootNode=mapNodeById(resolvedRootId);
+  const rootPath=notePathKey(rootNode);
+  if(rootPath){
+    const pathIds=notes
+      .filter(n=>n.id===resolvedRootId||notePathKey(n)===rootPath||isPathPrefixMatch(rootPath,n.path||''))
+      .map(n=>n.id);
+    return new Set(pathIds);
+  }
   const key=mapPageNoteKey(resolvedRootId);
   const arr=Array.isArray(mapPageNotes[key])?mapPageNotes[key]:[];
   const ids=new Set(arr.map(v=>parseInt(v,10)).filter(Number.isFinite));
