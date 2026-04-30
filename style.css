@@ -526,6 +526,8 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 #fp .fl-result-item{padding:10px 12px;min-height:48px}
 #fp .fl-result-title{font-size:16px}
 #fp .fl-result-type{font-size:14px;padding:4px 10px}
+#fp #form-links-wrap{max-height:42vh;overflow-y:auto;padding-right:2px;}
+#fp #form-links-list{max-height:22vh;overflow-y:auto;padding-right:2px;}
 #tp{
   width:100vw;
   left:0;

@@ -154,16 +154,7 @@ function syncSidePanelState(){
 function buildInlineLinksPanel() {
   formLinkSelections={};
   renderFormLinks();
-  const relTypeEl=g('fl-relation-type'),relNoteEl=g('fl-relation-note');
-  const refreshRelNoteState=()=>{
-    const relType=relTypeEl?.value||'cause';
-    if(!relNoteEl) return;
-    relNoteEl.placeholder=relationNotePlaceholder(relType);
-    relNoteEl.style.display=relationNeedsNote(relType)?'block':'none';
-  };
-  if(relTypeEl) relTypeEl.onchange=refreshRelNoteState;
-  if(relNoteEl) relNoteEl.value='';
-  refreshRelNoteState();
+
   const searchEl=g('fl-search');
   if(searchEl){searchEl.value='';searchEl.oninput=debounce(renderFormLinkSearch,200);}
   const selAllBtn=g('flSelectAllBtn'),addSelBtn=g('flAddSelectedBtn');
@@ -214,11 +205,9 @@ function addSelectedFormLinks(){
   const targetIds=Object.keys(formLinkSelections).filter(id=>formLinkSelections[id]).map(Number);
   if(!targetIds.length){showToast('請先選擇要關聯的筆記');return;}
   let added=0;
-  const relType=g('fl-relation-type')?.value||'cause';
-  const relNote=normalizeRelationNote(g('fl-relation-note')?.value||'');
-  if(relationNeedsNote(relType)&&!relNote){showToast('此關聯類型需要輸入關聯說明');return;}
+  const relType='cause';
+  const relNote='';
   targetIds.forEach(toId=>{ if(createRelationLink(openId,toId,relType,relNote)) added++; });
-  const relNoteEl=g('fl-relation-note'); if(relNoteEl) relNoteEl.value='';
   formLinkSelections={};saveData();renderFormLinks();renderFormLinkSearch();showToast(`已建立 ${added} 筆關聯`);if(isMapOpen)scheduleMapRedraw(100);
 }
 
