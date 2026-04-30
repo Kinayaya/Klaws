@@ -310,7 +310,7 @@ const noteScopeKeys = (n,arrKey,singleKey) => {
   const arr=Array.isArray(n&&n[arrKey])?n[arrKey].filter(Boolean):[];
   return uniq(arr.length?arr:((n&&n[singleKey])?[n[singleKey]]:[]));
 };
-const notePathSegments = n => safeStr(n&&n.path).split('/').map(x=>x.trim()).filter(Boolean);
+const notePathSegments = n => safeStr(n&&n.path).split(/[/>＞，、。]/).map(x=>x.trim()).filter(Boolean);
 const noteDomains = n => {
   const legacy=noteScopeKeys(n,'domains','domain');
   if(legacy.length) return legacy;
