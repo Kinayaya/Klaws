@@ -144,6 +144,12 @@ function loadData() {
     }
   } catch(e) {
     notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};achievements={points:0,taskCompletions:0,unlocked:{},lastUsageMinuteReward:0};levelSystem={skills:[],tasks:[],achievements:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
+    const detail={
+      name:e&&e.name?e.name:typeof e,
+      message:e&&e.message?e.message:String(e),
+      stack:e&&e.stack?String(e.stack):''
+    };
+    console.error('[loadData-failed]',detail,e);
   }
 }
 function saveData() {
