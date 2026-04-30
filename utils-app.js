@@ -990,9 +990,9 @@ function normalizeNoteIds(forceReindexAll=false) {
   if(mapCenterNodeIds&&typeof mapCenterNodeIds==='object'){
     const remappedCenters={};
     Object.keys(mapCenterNodeIds).forEach(key=>{
-      const oldId=Number(mapCenterNodeIds[key]);
-      const newId=firstMap[oldId];
-      if(newId!==undefined) remappedCenters[key]=newId;
+      const oldIds=normalizeCenterIds(mapCenterNodeIds[key]);
+      const mapped=uniq(oldIds.map(oldId=>firstMap[oldId]).filter(id=>id!==undefined));
+      if(mapped.length) remappedCenters[key]=mapped;
     });
     mapCenterNodeIds=remappedCenters;
   }
