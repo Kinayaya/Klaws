@@ -584,21 +584,40 @@ const isNodeInCurrentSubpage = noteId => {
 };
 const mapTitleMarkers = noteId => {
   const marks=[];
-  if(getMapCenterFromScopes()===noteId) marks.push('⭐️');
+  if(getMapCentersFromScopes().includes(noteId)) marks.push('⭐️');
   if(hasSubpageForNode(noteId)) marks.push('△');
   return marks.join('');
 };
-const getMapCenterFromScopes = () => {
-  const key=getMapCenterContextKey();
-  const scopedId=mapCenterNodeIds[key];
-  if(scopedId&&mapNodeById(scopedId)) return scopedId;
-  return (mapCenterNodeId&&mapNodeById(mapCenterNodeId))?mapCenterNodeId:null;
+const normalizeCenterIds = raw => {
+  if(Array.isArray(raw)) return uniq(raw.map(v=>parseInt(v,10)).filter(id=>Number.isFinite(id)&&!!mapNodeById(id)));
+  const single=parseInt(raw,10);
+  return Number.isFinite(single)&&!!mapNodeById(single)?[single]:[];
 };
+const getMapCentersFromScopes = () => {
+  const key=getMapCenterContextKey();
+  const scopedIds=normalizeCenterIds(mapCenterNodeIds[key]);
+  if(scopedIds.length) return scopedIds;
+  return normalizeCenterIds(mapCenterNodeId);
+};
+const getMapCenterFromScopes = () => getMapCentersFromScopes()[0]||null;
 const setMapCenterForCurrentScope = (id,opt={}) => {
   if(!Number.isFinite(id)) return;
-  const {updateGlobal=false}=opt||{};
-  mapCenterNodeIds[getMapCenterContextKey()]=id;
+  const {updateGlobal=false,append=false}=opt||{};
+  const key=getMapCenterContextKey();
+  const next=append?uniq([...normalizeCenterIds(mapCenterNodeIds[key]),id]):[id];
+  mapCenterNodeIds[key]=next;
   if(updateGlobal) mapCenterNodeId=id;
+};
+const toggleMapCenterForCurrentScope = (id,opt={}) => {
+  if(!Number.isFinite(id)) return false;
+  const {updateGlobal=false}=opt||{};
+  const key=getMapCenterContextKey();
+  const prev=normalizeCenterIds(mapCenterNodeIds[key]);
+  const exists=prev.includes(id);
+  const next=exists?prev.filter(v=>v!==id):uniq([...prev,id]);
+  mapCenterNodeIds[key]=next.length?next:[id];
+  if(updateGlobal) mapCenterNodeId=id;
+  return !exists;
 };
 const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
   const root=parseInt(subpageRootId,10),target=parseInt(id,10);
