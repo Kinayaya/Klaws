@@ -81,7 +81,13 @@ function forceLayout() {
   while(queue.length){const current=queue.shift(),cl=layers[current];(adj[current]||[]).forEach(neighbor=>{if(!visited.has(neighbor)){visited.add(neighbor);layers[neighbor]=cl+1;queue.push(neighbor);}});}
   const connectedMaxLayer=Object.values(layers).reduce((m,v)=>Math.max(m,v),0);
   layoutNotes.forEach(n=>{if(!visited.has(n.id))layers[n.id]=connectedMaxLayer+1;});
-  const laneGroups={};Object.keys(layers).forEach(nodeId=>{const lane=Math.max(0,Math.min(laneCount-1,layers[nodeId]||0));if(!laneGroups[lane])laneGroups[lane]=[];laneGroups[lane].push(parseInt(nodeId,10));});
+  const coreSet=new Set(layoutCoreNodeIds.map(id=>parseInt(id,10)));
+  const laneGroups={};Object.keys(layers).forEach(nodeId=>{
+    const nid=parseInt(nodeId,10);
+    const lane=coreSet.has(nid)?0:Math.max(1,Math.min(laneCount-1,(layers[nodeId]||0)+1));
+    if(!laneGroups[lane])laneGroups[lane]=[];
+    laneGroups[lane].push(nid);
+  });
   const incomingParents={};
   visLinks.forEach(lk=>{
     const childLane=layers[lk.to],parentLane=layers[lk.from];
@@ -427,7 +433,7 @@ function buildMapTreeIndex(visNotes){
     cursor.notes.push(n);
   });
   const countNode=node=>node.notes.length+Object.values(node.items).reduce((sum,ch)=>sum+countNode(ch),0);
-  const renderNode=(node,depth=0)=>{
+  const renderNode=(node,depth=0,parentPath='')=>{
     const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
     const icon=depth===0?'🗂️':'📁';
     const noteItems=node.notes.map(note=>{
@@ -437,13 +443,23 @@ function buildMapTreeIndex(visNotes){
     const groupItems=keys.map(key=>{
       const child=node.items[key];
       const total=countNode(child);
-      return `<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">${icon} ${escapeHtml(child.label)}</span><span class="map-tree-count">${total}</span></div>${renderNode(child,depth+1)}</li>`;
+      const treePath=buildTreePathLabel(parentPath,child.label);
+      const collapsed=!!mapTreeCollapsedPaths[treePath];
+      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-path-btn">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsed?'none':'block'}">${renderNode(child,depth+1,treePath)}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
   };
   const uncategorized=tree.notes.length?`<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 （未設定路徑）</span><span class="map-tree-count">${tree.notes.length}</span></div><ul>${tree.notes.map(note=>{const type=typeByKey(note.type);return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;}).join('')}</ul></li>`:'';
-  body.innerHTML=`<ul class="map-tree-list">${renderNode(tree)}${uncategorized}</ul>`;
+  body.innerHTML=`<ul class="map-tree-list">${renderNode(tree,0,'')}${uncategorized}</ul>`;
+  body.querySelectorAll('[data-tree-path]').forEach(row=>row.addEventListener('click',ev=>{
+    const path=row.dataset.treePath||'';
+    if(!path) return;
+    mapTreeCollapsedPaths[path]=!mapTreeCollapsedPaths[path];
+    buildMapTreeIndex(visNotes);
+    saveDataDeferred();
+    ev.stopPropagation();
+  }));
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const id=parseInt(btn.dataset.treeNoteId,10);
     if(!Number.isFinite(id)||!mapNodeById(id)) return;
@@ -642,37 +658,6 @@ function showMapInfo(id){
   setCenterBtn.onclick=()=>{const added=toggleMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(added?`已新增「${n.title}」為核心點（僅此頁）`:`已移除「${n.title}」核心點（僅此頁）`);};
   const goBtn=g('mpGoto');
   const hasSubpage=hasSubpageForNode(id);
-  const subpageBtn=document.createElement('button');
-  subpageBtn.className='mp-action-btn mp-action-secondary mp-subpage-btn';
-  subpageBtn.textContent=hasSubpage?'📄 進子頁':'📄 設子頁';
-  subpageBtn.onclick=()=>{
-    if(!hasSubpage){
-      if(!ensureMapSubpageRoot(id)){
-        showToast('設定失敗：點不存在');
-        return;
-      }
-      setMapCenterForSubpageScope(id,id);
-      saveData();
-      drawMap();
-      showToast('已設定子頁面，且此頁面核心已設為該筆記');
-      showMapInfo(id);
-      return;
-    }
-    closeMapPopup();
-    enterMapSubpage(id);
-  };
-  const cancelSubpageBtn=document.createElement('button');
-  cancelSubpageBtn.className='mp-action-btn mp-action-danger mp-subpage-btn mp-subpage-cancel-btn';
-  cancelSubpageBtn.textContent='🗑️ 取消子頁';
-  cancelSubpageBtn.onclick=()=>{
-    if(!removeSubpageForNode(id)) return;
-    removeRootFromPageStack(id);
-    saveData();
-    closeMapPopup();
-    drawMap();
-    updateMapPagePath();
-    showToast('已取消子頁面設定');
-  };
   const linkStartBtn=document.createElement('button');
   linkStartBtn.className='mp-action-btn mp-action-secondary mp-link-start-btn';
   linkStartBtn.textContent=mapLinkSourceId===id?'✖ 取消起點':'🔗 設起點';
@@ -701,8 +686,13 @@ function showMapInfo(id){
     goBtn.parentNode.insertBefore(setCenterBtn,goBtn);
     goBtn.parentNode.insertBefore(linkStartBtn,goBtn);
     if(isNodeInCurrentMapPage(id)) goBtn.parentNode.insertBefore(hideFromPageBtn,goBtn);
-    if(isNodeInCurrentSubpage(id)) goBtn.parentNode.insertBefore(subpageBtn,goBtn);
-    if(hasSubpage&&isNodeInCurrentSubpage(id)) goBtn.parentNode.insertBefore(cancelSubpageBtn,goBtn);
+    if(hasSubpage&&isNodeInCurrentSubpage(id)){
+      const subpageBtn=document.createElement('button');
+      subpageBtn.className='mp-action-btn mp-action-secondary mp-subpage-btn';
+      subpageBtn.textContent='📄 進子頁';
+      subpageBtn.onclick=()=>{ closeMapPopup(); enterMapSubpage(id); };
+      goBtn.parentNode.insertBefore(subpageBtn,goBtn);
+    }
     let auxnodeEditBtn=goBtn.parentNode.querySelector('.mp-auxnode-edit-btn');
     let auxnodeDeleteBtn=goBtn.parentNode.querySelector('.mp-auxnode-delete-btn');
     auxnodeEditBtn?.remove();auxnodeDeleteBtn?.remove();
