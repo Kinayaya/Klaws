@@ -47,8 +47,8 @@ function forceLayout() {
   clearMapCardBoxCache();
   const layoutNotes=visibleNotes(),visIds={};layoutNotes.forEach(n=>visIds[n.id]=true);
   const visLinks=visibleLinks(visIds),n2=layoutNotes.length;if(!n2)return;
-  const scopedCenterId=getMapCenterFromScopes();
-  const hasStoredCenter=!!scopedCenterId&&!!mapNodeById(scopedCenterId);
+  const scopedCenterIds=getMapCentersFromScopes();
+  const hasStoredCenter=scopedCenterIds.length>0;
   const linkCount={},incomingCount={};
   layoutNotes.forEach(n=>{linkCount[n.id]=0;incomingCount[n.id]=0;});
   visLinks.forEach(lk=>{
@@ -59,14 +59,16 @@ function forceLayout() {
   if(!hasStoredCenter&&!mapCenterNodeId){
     setMapCenterForCurrentScope(layoutNotes.reduce((max,n)=>linkCount[n.id]>linkCount[max.id]?n:max,layoutNotes[0]).id,{updateGlobal:true});
   }
-  const activeCenterId=getMapCenterFromScopes();
+  const activeCenterIds=getMapCentersFromScopes();
   const fallbackCenterId=layoutNotes.reduce((max,n)=>linkCount[n.id]>linkCount[max.id]?n:max,layoutNotes[0]).id;
-  const layoutCenterNodeId=visIds[activeCenterId]?activeCenterId:fallbackCenterId;
+  const layoutCenterNodeIds=activeCenterIds.filter(id=>visIds[id]);
+  if(!layoutCenterNodeIds.length) layoutCenterNodeIds.push(fallbackCenterId);
+  const layoutCenterNodeId=layoutCenterNodeIds[0];
   const layoutCoreNodeIds=layoutNotes
     .map(n=>n.id)
     .filter(id=>(incomingCount[id]||0)===0)
     .sort((a,b)=>(linkCount[b]||0)-(linkCount[a]||0)||a-b);
-  if(visIds[layoutCenterNodeId]&&!layoutCoreNodeIds.includes(layoutCenterNodeId)) layoutCoreNodeIds.unshift(layoutCenterNodeId);
+  layoutCenterNodeIds.slice().reverse().forEach(cid=>{ if(visIds[cid]&&!layoutCoreNodeIds.includes(cid)) layoutCoreNodeIds.unshift(cid); });
   if(!layoutCoreNodeIds.length) layoutCoreNodeIds.push(layoutCenterNodeId);
   const laneCfg=getLaneConfig(),laneCount=laneCfg.names.length;
   const LANE_CARD_GAP_Y=20,TOP_PAD=72,BOT_PAD=40;
@@ -356,11 +358,11 @@ function visibleNotes(){
   }
   if(mapDepth==='all'||!base.length)return base;
   const depthBaseIds={};base.forEach(n=>depthBaseIds[n.id]=true);
-  const centerId=getMapCenterFromScopes();
-  if(!centerId||!depthBaseIds[centerId])return base;
+  const centerIds=getMapCentersFromScopes().filter(id=>depthBaseIds[id]);
+  if(!centerIds.length)return base;
   const maxDepth=parseInt(mapDepth,10);if(!maxDepth)return base;
   const adj={};links.forEach(l=>{if(!depthBaseIds[l.from]||!depthBaseIds[l.to])return;if(!adj[l.from])adj[l.from]=[];if(!adj[l.to])adj[l.to]=[];adj[l.from].push(l.to);adj[l.to].push(l.from);});
-  const seen={[centerId]:0},q2=[centerId];
+  const seen={},q2=[];centerIds.forEach(id=>{seen[id]=0;q2.push(id);});
   while(q2.length){const id=q2.shift(),depth=seen[id];if(depth>=maxDepth)continue;(adj[id]||[]).forEach(nid=>{if(seen[nid]===undefined){seen[nid]=depth+1;q2.push(nid);}});}
   return base.filter(n=>seen[n.id]!==undefined);
 }
@@ -635,10 +637,10 @@ function showMapInfo(id){
     }
     renderMapPopupQuickLinkSearch(auxnode?id:null);
   }
-  const currentCenterId=getMapCenterFromScopes();
+  const currentCenterIds=getMapCentersFromScopes();
   const setCenterBtn=document.createElement('button');setCenterBtn.className='mp-action-btn mp-action-secondary mp-set-center';
-  setCenterBtn.textContent=currentCenterId===id?'✓ 已核心':'⭐ 設核心';
-  setCenterBtn.onclick=()=>{setMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(`已將「${n.title}」設為核心點（僅此//）`);};
+  setCenterBtn.textContent=currentCenterIds.includes(id)?'✓ 已核心':'⭐ 設核心';
+  setCenterBtn.onclick=()=>{const added=toggleMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(added?`已新增「${n.title}」為核心點（僅此頁）`:`已移除「${n.title}」核心點（僅此頁）`);};
   const goBtn=g('mpGoto');
   const hasSubpage=hasSubpageForNode(id);
   const subpageBtn=document.createElement('button');
