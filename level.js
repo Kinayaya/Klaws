@@ -97,7 +97,9 @@ function renderPathLists() {
 }
 function renderPathList(cid,arr,kind) {
   const el=g(cid);
-let list=arr.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount(kind,item.key)}));
+  if(!el) return;
+  const source=Array.isArray(arr)?arr:[];
+  let list=source.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount(kind,item.key)}));
   if(pathSearchQ) list=list.filter(item=>item.label.toLowerCase().includes(pathSearchQ));
   if(pathUnusedOnly) list=list.filter(item=>item._usage===0);
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的路徑）</div>';return;}
