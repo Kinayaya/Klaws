@@ -271,7 +271,11 @@
   render();
   restoreLastViewState();
   }catch(err){
-    const detail={name:err&&err.name,message:err&&err.message,stack:err&&err.stack};
+    const detail={
+      name:err&&err.name?err.name:typeof err,
+      message:err&&err.message?err.message:String(err),
+      stack:err&&err.stack?String(err.stack):''
+    };
     console.error('[init-load-error]',detail,err);
   }
 });
