@@ -219,7 +219,7 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .map-tree-sidebar.open{display:flex}
 .map-tree-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #e8edf3;font-size:13px;font-weight:700;color:#24507e}
 .map-tree-body{flex:1;overflow:auto;padding:10px 8px 12px}
-.map-tree-list,.map-tree-list ul{list-style:none;margin:0;padding-left:14px}
+.map-tree-list,.map-tree-list ul{list-style:none;margin:0;padding-left:18px}
 .map-tree-list{padding-left:0}
 .map-tree-group{margin-bottom:4px}
 .map-tree-group-row{display:flex;align-items:center;gap:6px;margin:1px 0}
