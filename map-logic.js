@@ -506,6 +506,19 @@ function buildMapTreeIndex(visNotes){
     if(!path) return;
     const target=ensurePathPage(path);
     if(!target){showToast('找不到對應的路徑頁面');return;}
+    if(mapPageStack.length){
+      const existingIdx=mapPageStack.indexOf(target.id);
+      if(existingIdx!==-1) mapPageStack=mapPageStack.slice(0,existingIdx+1);
+      else mapPageStack[mapPageStack.length-1]=target.id;
+      setMapCenterForCurrentScope(target.id);
+      nodePos={};
+      updateMapPagePath();
+      forceLayout();
+      drawMap();
+      saveData();
+      saveLastViewState();
+      return;
+    }
     enterMapSubpage(target.id);
   }));
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
