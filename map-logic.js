@@ -618,29 +618,6 @@ function drawMap(){
       foldSign.addEventListener('click',toggleFold);
       grp.appendChild(foldBtn);grp.appendChild(foldSign);
     }
-    const hasSubpage=hasSubpageForNode(n.id);
-    if(hasSubpage&&isNodeInCurrentSubpage(n.id)){
-      const subEnterBtnR=9;
-      const subEnterX=pos.x-halfW+subEnterBtnR+6;
-      const subEnterY=pos.y+halfH-subEnterBtnR-6;
-      const subEnterBtn=document.createElementNS('http://www.w3.org/2000/svg','circle');
-      subEnterBtn.classList.add('node-sub-enter-btn');
-      subEnterBtn.setAttribute('cx',String(subEnterX));subEnterBtn.setAttribute('cy',String(subEnterY));subEnterBtn.setAttribute('r',String(subEnterBtnR));
-      subEnterBtn.setAttribute('fill','#ffffff');subEnterBtn.setAttribute('stroke',type.color);subEnterBtn.setAttribute('stroke-width','1.5');
-      subEnterBtn.style.cursor='pointer';
-      const subEnterSign=document.createElementNS('http://www.w3.org/2000/svg','text');
-      subEnterSign.classList.add('node-sub-enter-sign');
-      subEnterSign.setAttribute('x',String(subEnterX));subEnterSign.setAttribute('y',String(subEnterY+1));
-      subEnterSign.setAttribute('text-anchor','middle');subEnterSign.setAttribute('dominant-baseline','middle');
-      subEnterSign.setAttribute('font-size','13');
-      subEnterSign.setAttribute('font-weight','700');subEnterSign.setAttribute('fill',type.color);
-      subEnterSign.style.cursor='pointer';
-      subEnterSign.textContent='↙';
-      const enterSubpage=e=>{e.stopPropagation();closeMapPopup();enterMapSubpage(n.id);};
-      subEnterBtn.addEventListener('click',enterSubpage);
-      subEnterSign.addEventListener('click',enterSubpage);
-      grp.appendChild(subEnterBtn);grp.appendChild(subEnterSign);
-    }
     grp.addEventListener('click',e=>{
       e.stopPropagation();
       if(handleMapNodeLinkTap(n.id)) return;
@@ -881,8 +858,26 @@ function executeQuickCommand(cmd,{closeSheet=true}={}){
   else if(cmd==='delete') deleteMapNode();
 }
 function bindTouchQuickActions(){
-  on('mapTreeToggleBtn','click',()=>g('mapTreeSidebar')?.classList.add('open'));
-  on('mapTreeCloseBtn','click',()=>g('mapTreeSidebar')?.classList.remove('open'));
+  on('mapTreeToggleBtn','click',()=>{
+    const sidebar=g('mapTreeSidebar');
+    const toggleBtn=g('mapTreeToggleBtn');
+    if(!sidebar||!toggleBtn) return;
+    const willOpen=!sidebar.classList.contains('open');
+    sidebar.classList.toggle('open',willOpen);
+    toggleBtn.classList.toggle('open',willOpen);
+    toggleBtn.textContent=willOpen?'❮':'❯';
+    toggleBtn.setAttribute('aria-label',willOpen?'收合路徑索引':'開啟路徑索引');
+  });
+  on('mapTreeCloseBtn','click',()=>{
+    const sidebar=g('mapTreeSidebar');
+    const toggleBtn=g('mapTreeToggleBtn');
+    sidebar?.classList.remove('open');
+    toggleBtn?.classList.remove('open');
+    if(toggleBtn){
+      toggleBtn.textContent='❯';
+      toggleBtn.setAttribute('aria-label','開啟路徑索引');
+    }
+  });
 }
 
 function bindCoreButtons(){
