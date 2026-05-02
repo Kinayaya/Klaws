@@ -510,7 +510,7 @@ function buildMapTreeIndex(visNotes){
       const existingIdx=mapPageStack.indexOf(target.id);
       if(existingIdx!==-1) mapPageStack=mapPageStack.slice(0,existingIdx+1);
       else mapPageStack[mapPageStack.length-1]=target.id;
-      setMapCenterForCurrentScope(target.id);
+      if(!getMapCentersFromScopes().length) setMapCenterForCurrentScope(target.id);
       nodePos={};
       updateMapPagePath();
       forceLayout();
