@@ -136,6 +136,15 @@ async function sendReminderEmail(ev){
   const from=safeStr(calendarSettings.emailFrom||'').trim();
   const title=`KLaws 提醒：${ev.title}`;
   const content=`提醒事項：${ev.title}\n到期日：${ev.date} ${dueTimeText(ev)}\n內容：${ev.body||''}`;
+  if(token&&from){
+    if(!window.Email||!window.Email.send){
+      try{
+        await ensureSmtpClient();
+      }catch(e){
+        console.warn('[smtp-client-load-failed]',e);
+      }
+    }
+  }
   if(token&&from&&window.Email&&window.Email.send){
     try{
       await window.Email.send({SecureToken:token,To:to,From:from,Domain:title,Body:content.replace(/\n/g,'<br>')});
@@ -148,6 +157,29 @@ async function sendReminderEmail(ev){
   }catch(e){
     return false;
   }
+}
+let smtpClientLoadPromise=null;
+function ensureSmtpClient(){
+  if(window.Email&&window.Email.send) return Promise.resolve(true);
+  if(smtpClientLoadPromise) return smtpClientLoadPromise;
+  smtpClientLoadPromise=new Promise((resolve,reject)=>{
+    const existing=document.querySelector('script[data-smtpjs="1"]');
+    if(existing){
+      existing.addEventListener('load',()=>resolve(true),{once:true});
+      existing.addEventListener('error',()=>reject(new Error('smtpjs load failed')),{once:true});
+      return;
+    }
+    const sc=document.createElement('script');
+    sc.src='https://smtpjs.com/v3/smtp.js';
+    sc.async=true;
+    sc.dataset.smtpjs='1';
+    sc.onload=()=>resolve(true);
+    sc.onerror=()=>reject(new Error('smtpjs load failed'));
+    document.head.appendChild(sc);
+  }).finally(()=>{
+    if(!(window.Email&&window.Email.send)) smtpClientLoadPromise=null;
+  });
+  return smtpClientLoadPromise;
 }
 function checkReminders(){
   const now=Date.now();
