@@ -224,6 +224,8 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .map-tree-list{padding-left:0}
 .map-tree-group{margin-bottom:4px}
 .map-tree-group-row{display:flex;align-items:center;gap:6px;margin:1px 0}
+.map-tree-expand-btn{border:none;background:transparent;padding:1px 3px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;color:#4b5563;min-width:24px}
+.map-tree-expand-btn:hover{background:#eef6ff}
 .map-tree-label{font-size:20px;color:#526074}
 .map-tree-count{font-size:11px;color:#8a97a9}
 .map-tree-path-btn{border:none;background:transparent;padding:2px 4px;border-radius:6px;text-align:left;cursor:pointer;font-size:20px;line-height:1.25;color:#334155}

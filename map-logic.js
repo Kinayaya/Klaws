@@ -445,20 +445,28 @@ function buildMapTreeIndex(visNotes){
       const total=countNode(child);
       const treePath=buildTreePathLabel(parentPath,child.label);
       const collapsed=!!mapTreeCollapsedPaths[treePath];
-      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-path-btn">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsed?'none':'block'}">${renderNode(child,depth+1,treePath)}</div></li>`;
+      const toggleSymbol=collapsed?'➕':'➖';
+      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsed?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn" data-tree-nav-path="${escapeHtml(treePath)}">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsed?'none':'block'}">${renderNode(child,depth+1,treePath)}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
   };
   const uncategorized=tree.notes.length?`<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 （未設定路徑）</span><span class="map-tree-count">${tree.notes.length}</span></div><ul>${tree.notes.map(note=>{const type=typeByKey(note.type);return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;}).join('')}</ul></li>`:'';
   body.innerHTML=`<ul class="map-tree-list">${renderNode(tree,0,'')}${uncategorized}</ul>`;
-  body.querySelectorAll('[data-tree-path]').forEach(row=>row.addEventListener('click',ev=>{
-    const path=row.dataset.treePath||'';
+  body.querySelectorAll('[data-tree-toggle-path]').forEach(btn=>btn.addEventListener('click',ev=>{
+    const path=btn.dataset.treeTogglePath||'';
     if(!path) return;
     mapTreeCollapsedPaths[path]=!mapTreeCollapsedPaths[path];
     buildMapTreeIndex(visNotes);
     saveDataDeferred();
     ev.stopPropagation();
+  }));
+  body.querySelectorAll('[data-tree-nav-path]').forEach(btn=>btn.addEventListener('click',()=>{
+    const path=btn.dataset.treeNavPath||'';
+    if(!path) return;
+    const target=notes.find(n=>safeStr(n.path).trim()===path);
+    if(!target){showToast('找不到對應的路徑頁面');return;}
+    enterMapSubpage(target.id);
   }));
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const id=parseInt(btn.dataset.treeNoteId,10);
