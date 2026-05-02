@@ -124,13 +124,19 @@
     const el=eventTargetElement(target);
     return !!(el&&el.closest('#mapCanvas'));
   };
+  const shouldBlockDoubleClickZoom = target => {
+    const el=eventTargetElement(target);
+    if(!el) return true;
+    if(!isInsideMapCanvas(el)) return true;
+    return !!el.closest('#mapPopup, #mapTreeSidebar, #mapTreeToggleBtn');
+  };
   const isInteractiveTouchTarget = touchGuard.isInteractiveTouchTarget||(target=>{
     const el=eventTargetElement(target);
     if(!el) return false;
     return !!el.closest('button, a, input, select, textarea, label, summary, [role="button"], [data-allow-touch-default], [onclick]');
   });
   let lastTouchEndTs=0, lastTouchTs=0, lastTouchX=0, lastTouchY=0;
-  document.addEventListener('dblclick',e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{capture:true,passive:false});
+  document.addEventListener('dblclick',e=>{ if(shouldBlockDoubleClickZoom(e.target)) e.preventDefault(); },{capture:true,passive:false});
   document.addEventListener('wheel',e=>{ if(e.ctrlKey&&!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
   ['gesturestart','gesturechange','gestureend'].forEach(evt=>{
     document.addEventListener(evt,e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
