@@ -222,6 +222,7 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .map-tree-sidebar.open{display:flex}
 .map-tree-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #e8edf3;font-size:13px;font-weight:700;color:#24507e}
 .map-tree-body{flex:1;min-height:0;overflow-y:hidden;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:none;padding:10px 8px 12px}
+.map-tree-body,.map-tree-group-row,.map-tree-expand-btn,.map-tree-path-btn,.map-tree-node{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .map-tree-list,.map-tree-list ul{list-style:none;margin:0;padding-left:18px}
 .map-tree-list{padding-left:0}
 .map-tree-group{margin-bottom:4px}
