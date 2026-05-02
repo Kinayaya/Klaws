@@ -245,7 +245,6 @@
   window.addEventListener('pageshow',()=>bindCoreButtons());
   if(window.ResizeObserver){mapResizeObserver=new ResizeObserver(()=>scheduleMapRedraw(60));mapResizeObserver.observe(canvas);}
   try{reminderDismissed=JSON.parse(localStorage.getItem('klaws_reminder_dismissed_v1')||'{}')||{};}catch(e){reminderDismissed={};}
-  if(!window.Email){const sc=document.createElement('script');sc.src='https://smtpjs.com/v3/smtp.js';document.head.appendChild(sc);}
   clearInterval(reminderTimer); reminderTimer=setInterval(checkReminders,30000); checkReminders();
   updateNotesHomeVisibility();
   render();
