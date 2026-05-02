@@ -460,7 +460,10 @@ const getMapScopeContextKey = () => {
   const pageRoot=mapPageStack.length?mapPageStack[mapPageStack.length-1]:'root';
   return `${mapFilter.sub||'all'}::${mapFilter.group||'all'}::${mapFilter.part||'all'}::${pageRoot}`;
 };
-const getMapCenterContextKey = getMapScopeContextKey;
+const getMapCenterContextKey = () => {
+  const pageRoot=mapPageStack.length?mapPageStack[mapPageStack.length-1]:'root';
+  return String(pageRoot);
+};
 const getMapCollapseContextKey = getMapScopeContextKey;
 const mapCollapseKey = noteId => `${getMapCollapseContextKey()}::${noteId}`;
 const getCollapsedNodesForCurrentContext = () => {
