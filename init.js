@@ -169,31 +169,12 @@
   on('mapAdvancedToggleBtn','click',()=>setMapAdvanced(!mapAdvancedOpen));
   mapDepth='all';
   mapFocusMode=false;
-  const updateMapScrollModeBtn=()=>{
-    const btn=g('mapScrollModeBtn'),canvas=g('mapCanvas');
-    if(canvas) canvas.classList.toggle('vertical-scroll-mode',!!mapVerticalScrollMode);
-    if(!btn) return;
-    btn.textContent=mapVerticalScrollMode?'↕ 垂直捲動：開':'↕ 垂直捲動';
-    btn.style.background=mapVerticalScrollMode?'#0C447C':'#f5f5f5';
-    btn.style.color=mapVerticalScrollMode?'#fff':'#555';
-    btn.style.borderColor=mapVerticalScrollMode?'#0C447C':'#ddd';
-  };
   const setZoom=z=>{mapScale=Math.max(.15,Math.min(3.5,z));g('zoomLabel').textContent=Math.round(mapScale*100)+'%';drawMap();};
   on('zoomIn','click',()=>setZoom(mapScale+.15));on('zoomOut','click',()=>setZoom(mapScale-.15));
-  on('mapScrollModeBtn','click',()=>{
-    mapVerticalScrollMode=!mapVerticalScrollMode;
-    const canvas=g('mapCanvas');
-    if(mapVerticalScrollMode) mapOffY=0;
-    else if(canvas) canvas.scrollTop=0;
-    updateMapScrollModeBtn();
-    drawMap();
-    showToast(mapVerticalScrollMode?'已啟用垂直捲動模式':'已關閉垂直捲動模式');
-  });
   on('mpClose','click',closeMapPopup);
   on('mapLinkedOnlyBtn','click',()=>{mapLinkedOnly=!mapLinkedOnly;setMapLinkedOnlyBtnStyle();drawMap();saveDataDeferred();showToast(mapLinkedOnly?`顯示 ${visibleNotes().length} 個有關聯點`:'顯示全部點');});
   on('mapAutoBtn','click',()=>{const btn=g('mapAutoBtn'),orig=btn.textContent;btn.textContent='排列中...';btn.disabled=true;setTimeout(()=>{nodePos={};mapScale=1;mapOffX=mapOffY=0;forceLayout();drawMap();saveDataDeferred();g('zoomLabel').textContent='100%';btn.textContent=orig;btn.disabled=false;showToast('已自動排列（保留核心點）');},30);});
   on('mapLaneBtn','click',()=>{const panel=ensureLanePanel();if(!panel){showToast('泳道面板載入失敗');return;}if(panel.classList.contains('open'))closeLanePanel();else openLanePanel();});
-  updateMapScrollModeBtn();
   on('calendarBackBtn','click',()=>toggleCalendarView(false));
   on('levelSystemBackBtn','click',()=>toggleLevelSystemView(false));
   on('levelEditorClose','click',closeLevelEditor);
