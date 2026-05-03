@@ -181,14 +181,24 @@ function getDescendantIds(rootId,limitIds=null){
   }
   return seen;
 }
+function isPathPageKey(rootId){
+  return typeof rootId==='string'&&rootId.startsWith('path::');
+}
+function pathFromPageKey(rootId){
+  return isPathPageKey(rootId)?rootId.slice(6):'';
+}
+function mapPageLabel(rootId){
+  if(isPathPageKey(rootId)) return pathFromPageKey(rootId)||'（未命名路徑）';
+  return mapNodeById(rootId)?.title||`點#${rootId}`;
+}
 function updateMapPagePath(){
   const el=g('mapPagePath'); if(!el) return;
   if(!mapPageStack.length){el.textContent='主頁';return;}
-  const labels=mapPageStack.map(id=>mapNodeById(id)?.title||`點#${id}`);
+  const labels=mapPageStack.map(id=>mapPageLabel(id));
   el.textContent=`主頁 / ${labels.join(' / ')}`;
 }
 function enterMapSubpage(rootId){
-  if(!mapNodeById(rootId)) return;
+  if(!isPathPageKey(rootId)&&!mapNodeById(rootId)) return;
   if(mapPageStack[mapPageStack.length-1]===rootId) return;
   mapPageStack.push(rootId);
   setMapCenterForCurrentScope(rootId);
@@ -461,56 +471,25 @@ function buildMapTreeIndex(visNotes){
     saveDataDeferred();
     ev.stopPropagation();
   }));
-  const ensurePathPage=(path)=>{
-    const normalizedPath=safeStr(path).trim();
-    if(!normalizedPath) return null;
-    const existing=notes.find(n=>safeStr(n.path).trim()===normalizedPath);
-    if(existing) return existing;
-    const related=notes.find(n=>isPathPrefixMatch(normalizedPath,n.path||''));
-    const defaultType=types[0]?.key||'';
-    const defaultDomain=(related&&noteDomains(related)[0])||(domains[0]?.key||'');
-    const titleSegs=notePathSegments({path:normalizedPath});
-    const title=titleSegs[titleSegs.length-1]||normalizedPath;
-    const nowIso=new Date().toISOString();
-    const pageNote=normalizeNoteSchema({
-      id:nid++,
-      type:defaultType,
-      domain:defaultDomain,
-      domains:defaultDomain?[defaultDomain]:[],
-      group:'',
-      groups:[],
-      part:'',
-      parts:[],
-      title,
-      path:normalizedPath,
-      question:'',
-      answer:'',
-      prompt:'',
-      application:'',
-      body:'',
-      detail:'',
-      date:nowIso.slice(0,10),
-      created_at:nowIso,
-      last_reviewed:'',
-      next_review:nowIso,
-      todos:[],
-      extraFields:{}
-    });
-    notes.push(pageNote);
-    saveDataDeferred();
-    showToast('已自動建立路徑頁面');
-    return pageNote;
-  };
   body.querySelectorAll('[data-tree-nav-path]').forEach(btn=>btn.addEventListener('click',()=>{
-    const path=btn.dataset.treeNavPath||'';
+    const path=safeStr(btn.dataset.treeNavPath||'').trim();
     if(!path) return;
-    const target=ensurePathPage(path);
-    if(!target){showToast('找不到對應的路徑頁面');return;}
+    const segs=notePathSegments({path});
+    if(!segs.length){showToast('找不到對應的路徑頁面');return;}
+    const rootDepth=segs.length;
+    const noteIds=notes.filter(n=>{
+      const nSegs=notePathSegments(n);
+      if(!nSegs.length) return false;
+      const isPrefix=segs.every((seg,idx)=>nSegs[idx]===seg);
+      const withinOneLevel=nSegs.length<=rootDepth+1;
+      return isPrefix&&withinOneLevel;
+    }).map(n=>n.id);
+    const pathPageKey=`path::${path}`;
+    setMapPageAssignedIds(pathPageKey,noteIds);
     if(mapPageStack.length){
-      const existingIdx=mapPageStack.indexOf(target.id);
+      const existingIdx=mapPageStack.indexOf(pathPageKey);
       if(existingIdx!==-1) mapPageStack=mapPageStack.slice(0,existingIdx+1);
-      else mapPageStack[mapPageStack.length-1]=target.id;
-      if(!getMapCentersFromScopes().length) setMapCenterForCurrentScope(target.id);
+      else mapPageStack[mapPageStack.length-1]=pathPageKey;
       nodePos={};
       updateMapPagePath();
       forceLayout();
@@ -519,7 +498,7 @@ function buildMapTreeIndex(visNotes){
       saveLastViewState();
       return;
     }
-    enterMapSubpage(target.id);
+    enterMapSubpage(pathPageKey);
   }));
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const id=parseInt(btn.dataset.treeNoteId,10);
