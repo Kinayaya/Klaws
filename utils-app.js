@@ -526,7 +526,7 @@ const getMapPageAssignedIds = rootId => {
   const rootPath=notePathKey(rootNode);
   if(rootPath){
     const pathIds=notes
-      .filter(n=>n.id===resolvedRootId||notePathKey(n)===rootPath||isPathPrefixMatch(rootPath,n.path||''))
+      .filter(n=>n.id===resolvedRootId||notePathKey(n)===rootPath)
       .map(n=>n.id);
     return new Set(pathIds);
   }
