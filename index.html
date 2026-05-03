@@ -11,7 +11,7 @@
 <div id="topbar">
   <div class="title-row">
     <div class="brand-wrap">
-      <button class="klaws-logo-btn" id="logoArchiveBtn" aria-label="開啟存檔與回收區" title="開啟存檔與回收區">
+      <button class="klaws-logo-btn" id="logoSettingsBtn" aria-label="開啟設定" title="開啟設定">
         <div class="klaws-logo">
           <svg width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <defs>
@@ -33,7 +33,7 @@
       <div class="brand-text"><span class="brand-name">KLaws</span><span class="brand-by">by Kina（張晧翔）</span></div>
     </div>
     <div class="header-status-wrap">
-      <button id="headerTitleWrap" class="header-achievement-wrap" title="查看等級系統" aria-label="查看等級系統"><span class="brand-title" id="brandTitleBadge">LV1・點觀測員</span></button>
+      <span id="headerTitleWrap" class="header-achievement-wrap"><span class="brand-title" id="brandTitleBadge">LV1・點觀測員</span></span>
       <button id="headerDatetimeBtn" class="header-time-wrap" title="開啟日曆系統" aria-label="開啟日曆系統">----/--/-- --:--</button>
       <button class="map-btn" id="mapToggleBtn">&#128279; 體系圖</button>
       <button class="tool-btn exam-btn-style" id="examBtn">&#9997; 申論</button>
@@ -47,15 +47,7 @@
       <div class="primary-tools">
         <button class="tool-btn" id="compactToggleBtn" title="切換分類列顯示">&#9776; 分類</button>
         <button class="tool-btn" id="reviewNowBtn">🧠 Review Now</button>
-        <button class="tool-btn" id="pathMgrBtn">管理</button>
         <button class="add-btn" id="addBtn">+ 新增</button>
-      </div>
-      <div class="more-wrap">
-        <button class="tool-btn more-btn" id="moreToolsBtn">&#8942; 更多</button>
-        <div class="more-menu" id="moreToolsMenu">
-          <button class="tool-btn more-menu-item" id="panelDirBtn" title="切換筆記展開方向">&#8646; 面板方向</button>
-          <button class="tool-btn more-menu-item" id="assistToolsBtn">&#9881; 輔助功能</button>
-        </div>
       </div>
       <input type="file" id="importFile" accept=".json" style="display:none">
     </div>
@@ -201,6 +193,20 @@
         <div class="archive-col-title">回收區（5 天自動清空，30 分鐘內刪除會合併）</div>
         <div id="recycleList"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="settingsModal">
+  <div id="settingsBox">
+    <div class="ph"><span class="ph-title">設定</span><button class="pcls" id="settingsCloseBtn">&#215;</button></div>
+    <div class="settings-grid">
+      <button class="tool-btn settings-item-btn" id="settingsTasksBtn">任務</button>
+      <button class="tool-btn settings-item-btn" id="settingsLevelBtn">等級</button>
+      <button class="tool-btn settings-item-btn" id="settingsAchievementsBtn">成就</button>
+      <button class="tool-btn settings-item-btn" id="settingsManageBtn">管理</button>
+      <button class="tool-btn settings-item-btn" id="settingsArchiveBtn">儲存回收區</button>
+      <button class="tool-btn settings-item-btn" id="settingsMoreBtn">更多</button>
     </div>
   </div>
 </div>

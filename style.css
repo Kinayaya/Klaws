@@ -134,6 +134,11 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .archive-item-sub{font-size:11px;color:#7a8798;margin-top:2px}
 .archive-item-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
 .archive-empty{font-size:12px;color:#9aa3b2;padding:8px 0}
+#settingsModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:520;align-items:center;justify-content:center}
+#settingsModal.open{display:flex}
+#settingsBox{background:#fff;width:min(420px,94vw);border-radius:14px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.settings-item-btn{font-size:14px;padding:10px 12px;min-height:46px}
 
 /* Tag Manager — simplified */
 .tag-part-title{font-size:11px;font-weight:700;color:#98a2b3;margin-top:2px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
