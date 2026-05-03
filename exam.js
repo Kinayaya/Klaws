@@ -1,7 +1,13 @@
 // ==================== 申論測驗 ====================
 function loadExams() { try{const r=localStorage.getItem('klaws_exams_v1');if(r){examList=JSON.parse(r);examList.forEach(e=>{if(/^tag_s_|^tag_t_/.test(e.domain))e.domain=subByKey(e.domain).label;});saveExams();}}catch(e){examList=[];} }
 function saveExams() { try{localStorage.setItem('klaws_exams_v1',JSON.stringify(examList));}catch(e){} }
+function openExamModePanel() {
+  g('examModePanel')?.classList.add('open');
+  g('examListPanel')?.classList.remove('open');
+  g('examAddForm')?.classList.remove('open');
+}
 function openExamPanel() {
+  g('examModePanel')?.classList.remove('open');
   loadExams();renderExamList();
   const esel=g('examSubSel');if(esel)esel.innerHTML=domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
   g('examListPanel').classList.add('open');g('examAddForm').classList.remove('open');g('dp').classList.remove('open');
