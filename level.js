@@ -56,9 +56,9 @@ function renderLevelSystemPage(){
   const allTaskCount=(levelSystem.tasks||[]).reduce((sum,t)=>sum+(Number(t.completions)||0),0);
   let html=`<div style="margin-top:2px;padding:10px;border:1px solid #e8edf6;border-radius:10px;background:#f8fbff;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span class="brand-title">LV${titleInfo.level}・${titleInfo.name}</span><span style="font-size:12px;color:#445;">成就點數：<b>${getLevelAchievementPoints()}</b></span><span style="font-size:12px;color:#445;">任務完成：<b>${allTaskCount}</b> 次</span><span style="font-size:12px;color:#445;">已解鎖：<b>${unlockedCount}</b> 項</span></div></div>`;
   html+=`<div class="level-toolbar"><button class="tool-btn" id="addSkillBtn">+ 技能</button><button class="tool-btn" id="addTaskBtn">+ 任務</button><button class="tool-btn" id="addAchievementBtn">+ 成就</button><button class="tool-btn" id="resetSkillLevelBtn">重置技能等級</button></div>`;
-  html+=`<div class="level-part-title">技能</div>${renderLevelRows('skills')}`;
-  html+=`<div class="level-part-title">任務（E/N/H）</div>${renderLevelRows('tasks')}`;
-  html+=`<div class="level-part-title">成就進度</div>${renderLevelRows('achievements')}`;
+  html+=`<div class="level-part-title" id="levelSectionLevel">等級</div>${renderLevelRows('skills')}`;
+  html+=`<div class="level-part-title" id="levelSectionTasks">任務（E/N/H）</div>${renderLevelRows('tasks')}`;
+  html+=`<div class="level-part-title" id="levelSectionAchievements">成就進度</div>${renderLevelRows('achievements')}`;
   box.innerHTML=html;
   g('addSkillBtn')?.addEventListener('click',addSkillItem);
   g('addTaskBtn')?.addEventListener('click',addTaskItem);
@@ -78,6 +78,14 @@ function renderLevelSystemPage(){
   box.querySelectorAll('[data-task-subtask-edit]').forEach(btn=>btn.addEventListener('click',()=>editTaskSubtask(Number(btn.dataset.taskSubtaskEdit),Number(btn.dataset.subIdx))));
   box.querySelectorAll('[data-task-subtask-del]').forEach(btn=>btn.addEventListener('click',()=>deleteTaskSubtask(Number(btn.dataset.taskSubtaskDel),Number(btn.dataset.subIdx))));
   box.querySelectorAll('[data-task-subtask-check]').forEach(checkbox=>checkbox.addEventListener('change',()=>toggleSubtaskCompletion(Number(checkbox.dataset.taskSubtaskCheck),Number(checkbox.dataset.subIdx),checkbox.checked)));
+}
+function openLevelSection(section='level'){
+  toggleLevelSystemView(true);
+  setTimeout(()=>{
+    const id=section==='tasks'?'levelSectionTasks':section==='achievements'?'levelSectionAchievements':'levelSectionLevel';
+    const el=g(id);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+  },30);
 }
 function renderPathLists() {
   renderPathList('typeTagList',types,'type');
@@ -541,4 +549,3 @@ function toggleSubtaskCompletion(taskIdx,subIdx,checked){
   saveData();renderLevelSystemPage();
   showToast(`小任務完成：+${gain} EXP → ${skill.name}`);
 }
-

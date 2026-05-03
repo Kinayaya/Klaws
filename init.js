@@ -8,7 +8,6 @@
   console.log('[loadData][path-sample]',pathSample);
   if(pathSample.some(x=>typeof x.path!=='string')) console.warn('[loadData][path-warning] invalid path type detected');
   rebuildUI();
-  initMoreMenu();
   const sortSelect=g('sortSelect');
   if(sortSelect){
     sortSelect.value=sortMode;
@@ -31,9 +30,8 @@
   on('selAllBtn','click',copySelectedNotes);on('selDeleteBtn','click',deleteSelected);on('selCancelBtn','click',exitMultiSel);
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
-  on('headerTitleWrap','click',()=>toggleLevelSystemView(true));
   on('headerDatetimeBtn','click',()=>toggleCalendarView(true));
-  on('logoArchiveBtn','click',manageArchives);
+  on('logoSettingsBtn','click',()=>g('settingsModal')?.classList.add('open'));
   startHeaderDatetimeTicker();
   on('ft','change',()=>renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null));
   if(g('fc')) on('fc','change',()=>syncPartSelect(selectedValues('fc'),selectedValues('fsec'),[]));
@@ -51,7 +49,13 @@
   const compactDefault=localStorage.getItem(COMPACT_FILTER_KEY);
   applyCompactFilterMode(compactDefault===null?true:compactDefault==='1');
   on('compactToggleBtn','click',()=>applyCompactFilterMode(!document.body.classList.contains('compact-filters')));
-  on('pathMgrBtn','click',openPathMgr);
+  on('settingsCloseBtn','click',()=>g('settingsModal')?.classList.remove('open'));
+  on('settingsManageBtn','click',()=>{g('settingsModal')?.classList.remove('open');openPathMgr();});
+  on('settingsArchiveBtn','click',()=>{g('settingsModal')?.classList.remove('open');manageArchives();});
+  on('settingsMoreBtn','click',()=>{g('settingsModal')?.classList.remove('open');g('assistToolsModal')?.classList.add('open');});
+  on('settingsTasksBtn','click',()=>{g('settingsModal')?.classList.remove('open');openLevelSection('tasks');});
+  on('settingsLevelBtn','click',()=>{g('settingsModal')?.classList.remove('open');openLevelSection('level');});
+  on('settingsAchievementsBtn','click',()=>{g('settingsModal')?.classList.remove('open');openLevelSection('achievements');});
   on('reviewNowBtn','click',()=>{
     reviewMode=!reviewMode;
     reviewReveal=false;
