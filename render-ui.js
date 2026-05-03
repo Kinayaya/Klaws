@@ -607,9 +607,22 @@ function ensureEruda(){
     document.head.appendChild(s);
   });
 }
+const erudaInitState=new WeakSet();
+function ensureErudaInitialized(eruda){
+  if(!eruda||typeof eruda.init!=='function') return false;
+  if(erudaInitState.has(eruda)||eruda._isInit===true) return true;
+  try{
+    eruda.init();
+    erudaInitState.add(eruda);
+    return true;
+  }catch(err){
+    appendDebugLine('warn',['Eruda init failed:',err]);
+    return false;
+  }
+}
 function safeErudaCall(eruda,method){
   if(!eruda||typeof eruda[method]!=='function') return false;
-  if(eruda._isInit!==true) return false;
+  if(method!=='init'&&!ensureErudaInitialized(eruda)) return false;
   try{
     eruda[method]();
     return true;
@@ -640,8 +653,6 @@ async function toggleDebugTool(){
   try{
     const er=await ensureEruda();
     if(!er||typeof er.init!=='function') throw new Error('eruda unavailable');
-    if(typeof er.destroy==='function'&&er._isInit===false) er.init();
-    if(!er._isInit) er.init();
     const erudaShown=safeErudaCall(er,'show');
     if(erudaShown){
       hideLocalDebugConsole();
