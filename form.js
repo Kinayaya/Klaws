@@ -9,18 +9,15 @@ function resolveInheritedPath(inputPath=''){
   return resolvePathInput(parent?.path||'');
 }
 function syncFormModeVisibility(){
-  const isAssign=formMode==='mapAssign';
-  const isPathEditable=!isAssign;
   const setDisplay=(id,v)=>{const el=g(id);if(el)el.style.display=v;};
-  setDisplay('mapAssignFormWrap',isAssign?'block':'none');
-  setDisplay('dynamicFieldWrap',isAssign?'none':'block');
-  setDisplay('form-links-wrap',isAssign?'none':'block');
-  setDisplay('fpath-row',isPathEditable?'block':'none');
-  setDisplay('fti',isAssign?'none':'block');
-  setDisplay('titleTriggerBtn',isAssign?'none':'inline');
-  setDisplay('typeTriggerBtn',isAssign?'none':'inline');
+  setDisplay('dynamicFieldWrap','block');
+  setDisplay('form-links-wrap','block');
+  setDisplay('fpath-row','block');
+  setDisplay('fti','block');
+  setDisplay('titleTriggerBtn','inline');
+  setDisplay('typeTriggerBtn','inline');
   const saveBtn=g('fpSave');
-  if(saveBtn) saveBtn.textContent=isAssign?'加入頁面':'儲存';
+  if(saveBtn) saveBtn.textContent='儲存';
 }
 function syncFormHeaderLabels(){
   const typeSelect=g('ft'),titleInput=g('fti');
@@ -55,13 +52,6 @@ function updatePathInheritanceUI(){
 }
 function openForm(isEdit) {
   editMode=isEdit; buildFormSelects();
-  if(formMode==='mapAssign'){
-    g('form-title').textContent='加入筆記到頁面';
-    syncFormModeVisibility();
-    g('fp').classList.add('open');['dp','tp'].forEach(p=>g(p).classList.remove('open'));
-    syncSidePanelState();
-    return;
-  }
   if(!isEdit&&formMode!=='auxnode') formMode='note';
   syncFormModeVisibility();
   if(editMode) {
@@ -109,47 +99,6 @@ function closeForm() {
   formMode='note';
   syncFormModeVisibility();
   syncSidePanelState();
-}
-
-function renderMapAssignSearch(){
-  const result=g('mapAssignSearchResult'),sel=g('mapAssignPageSel'),input=g('mapAssignSearchInput');
-  if(!result||!sel||!input) return;
-  const pageId=(sel.value||'root');
-  mapAssignTargetPageId=pageId;
-  const q=(input.value||'').trim().toLowerCase();
-  const assigned=getMapPageAssignedIds(pageId);
-  const pool=[...notes,...mapAuxNodes].filter(n=>{
-    if(assigned.has(n.id)) return false;
-    if(pageId!=='root'&&String(n.id)===pageId) return false;
-    if(!q) return true;
-    const hay=`${n.title||''} ${noteDomainText(n)} ${noteTags(n).join(' ')}`.toLowerCase();
-    return hay.includes(q);
-  }).slice(0,24);
-  if(!pool.length){ result.innerHTML='<div class="dp-link-empty">找不到可加入的筆記</div>'; return; }
-  result.innerHTML=pool.map(n=>`<button class="fl-result-item ${mapAssignSelectedNoteIds[n.id]?'selected':''}" data-map-assign-note-id="${n.id}" type="button"><input type="checkbox" ${mapAssignSelectedNoteIds[n.id]?'checked':''}><span class="fl-result-title">${escapeHtml(n.title||'（未命名）')}</span></button>`).join('');
-  result.querySelectorAll('[data-map-assign-note-id]').forEach(row=>row.addEventListener('click',()=>{
-    const noteId=parseInt(row.dataset.mapAssignNoteId,10);
-    mapAssignSelectedNoteIds[noteId]=!mapAssignSelectedNoteIds[noteId];
-    if(!mapAssignSelectedNoteIds[noteId]) delete mapAssignSelectedNoteIds[noteId];
-    renderMapAssignSearch();
-  }));
-}
-function openMapPageAssignForm(){
-  formMode='mapAssign';
-  mapAssignTargetPageId=currentSubpageRootId()?String(currentSubpageRootId()):'root';
-  mapAssignSelectedNoteIds={};
-  openForm(false);
-  const sel=g('mapAssignPageSel');
-  const pages=mapPageRootOptions();
-  if(sel){
-    sel.innerHTML=pages.map(p=>`<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('');
-    sel.value=mapAssignTargetPageId;
-    sel.onchange=()=>{mapAssignSelectedNoteIds={};renderMapAssignSearch();};
-  }
-  const input=g('mapAssignSearchInput');
-  if(input){input.value='';input.oninput=debounce(renderMapAssignSearch,160);}
-  renderMapAssignSearch();
-  setTimeout(()=>input?.focus(),0);
 }
 
 function detachSidePanelsFromNotesView(){
@@ -339,20 +288,6 @@ function removeTypeFieldForCurrentType(){
   showToast('欄位已刪除');
 }
 function saveNote() {
-  if(formMode==='mapAssign'){
-    const selectedNoteIds=Object.keys(mapAssignSelectedNoteIds).filter(id=>mapAssignSelectedNoteIds[id]).map(Number);
-    if(!selectedNoteIds.length){showToast('請先選擇要加入的筆記');return;}
-    let addedCount=0;
-    selectedNoteIds.forEach(noteId=>{ if(addNoteToMapPage(mapAssignTargetPageId,noteId)) addedCount++; });
-    if(addedCount>0){
-      mapAssignSelectedNoteIds={};
-      saveData();
-      if(isMapOpen) scheduleMapRedraw(80);
-      renderMapAssignSearch();
-      showToast(`已加入 ${addedCount} 筆筆記`);
-    }
-    return;
-  }
   const title=(g('fti').value||'').trim();
   if(!title){g('fti').style.borderColor='#FF3B30';showToast('請輸入標題');return;}
   g('fti').style.borderColor='';

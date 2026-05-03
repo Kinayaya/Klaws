@@ -302,23 +302,6 @@ function getMapSubpageAssignedIds(rootId){
   const arr=Array.isArray(item.noteIds)?item.noteIds:[];
   return new Set(arr.map(v=>parseInt(v,10)).filter(Number.isFinite).filter(v=>v!==rootId));
 }
-function addNoteToMapPage(pageRootId,noteId){
-  const note=noteById(noteId)||auxnodeById(noteId);
-  const pageKey=String(pageRootId);
-  if(!note){showToast('加入失敗：筆記不存在');return false;}
-  if(pageKey!=='root'){
-    const rootId=parseInt(pageKey,10);
-    if(!Number.isFinite(rootId)||!mapNodeById(rootId)){showToast('加入失敗：頁面不存在');return false;}
-  }
-  if(!assignNoteToMapPage(note.id,pageKey)){showToast('這筆筆記已在該頁面');return false;}
-  saveData();
-  const pageLabel=pageKey==='root'?'主頁':(mapNodeById(parseInt(pageKey,10))?.title||'（未命名）');
-  showToast(`已加入「${note.title||'（未命名）'}」到「${pageLabel}」頁面`);
-  return true;
-}
-function openMapAssignPanel(){
-  openMapPageAssignForm();
-}
 function openMapNodeFromLink(id){
   if(!mapNodeById(id)){ showToast('點已被刪除'); return; }
   openNote(id);
