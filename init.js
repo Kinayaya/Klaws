@@ -92,7 +92,21 @@
   on('clearUnusedPathsBtn','click',clearUnusedPaths);
   g('addTypeBtn')?.addEventListener('click',()=>addPath('type'));
   on('panelDirBtn','click',togglePanelDir);
-  loadExams();on('examBtn','click',openExamPanel);on('examListClose','click',()=>g('examListPanel').classList.remove('open'));
+  loadExams();on('examBtn','click',openExamModePanel);on('examModeClose','click',()=>g('examModePanel').classList.remove('open'));
+  on('examModeEssayBtn','click',openExamPanel);
+  on('examModeReviewBtn','click',()=>{
+    g('examModePanel')?.classList.remove('open');
+    if(!reviewMode){
+      reviewMode=true;
+      reviewReveal=false;
+      const dueCount=dueReviewNotes().length;
+      g('reviewNowBtn').textContent=`🧠 Reviewing (${dueCount})`;
+      showToast(`已進入 Review：今日待複習 ${dueCount} 筆`);
+      if(dueCount>0) openNote(dueReviewNotes()[0].id);
+      render();
+    }
+  });
+  on('examListClose','click',()=>g('examListPanel').classList.remove('open'));
   on('assistToolsBtn','click',()=>g('assistToolsModal')?.classList.add('open'));
   on('assistToolsCloseBtn','click',()=>g('assistToolsModal')?.classList.remove('open'));
   on('assistAiBtn','click',()=>{g('assistToolsModal')?.classList.remove('open');openAiSettings();});
