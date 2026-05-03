@@ -151,6 +151,25 @@ function syncSidePanelState(){
   document.body.classList.toggle('side-panel-open',hasOpen);
 }
 
+function clearFormFieldValue(targetId){
+  const el=g(targetId);
+  if(!el) return;
+  if(el.tagName==='SELECT'){
+    if(el.multiple) Array.from(el.options).forEach(opt=>opt.selected=false);
+    else el.selectedIndex=0;
+  }else el.value='';
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+  el.dispatchEvent(new Event('change',{bubbles:true}));
+}
+
+function bindFormClearButtons(){
+  document.querySelectorAll('#fp [data-clear-target]').forEach(btn=>btn.onclick=()=>{
+    clearFormFieldValue(btn.dataset.clearTarget);
+    if(btn.dataset.clearTarget==='fl-search') renderFormLinkSearch();
+    if(btn.dataset.clearTarget==='fpath') updatePathInheritanceUI();
+  });
+}
+
 function buildInlineLinksPanel() {
   formLinkSelections={};
   renderFormLinks();
@@ -164,13 +183,20 @@ function buildInlineLinksPanel() {
   };
   if(addSelBtn) addSelBtn.onclick=addSelectedFormLinks;
   renderFormLinkSearch();
+  bindFormClearButtons();
 }
 function renderFormLinks() {
   const el=g('form-links-list');
   if(!el||!openId){if(el)el.innerHTML='';return;}
   const related=links.filter(l=>l.from===openId||l.to===openId);
   if(!related.length){el.innerHTML='<span style="font-size:12px;color:#bbb">尚無關聯</span>';return;}
-  el.innerHTML=related.map(l=>{const otherId=l.from===openId?l.to:l.from,other=mapNodeById(otherId),tag=isAuxnodeNode(other)?'<span class="chip" style="margin-right:6px;background:#F2E8FF;color:#7A34B0;border-color:#D4B5EF"></span>':'',relNote=normalizeRelationNote(l.note);return `<div class="fl-item">${tag}<span class="chip" style="margin-right:6px;background:${relationColor(l.rel)};color:#fff;border-color:${relationColor(l.rel)}">${relationLabel(l.rel)}</span><span class="fl-item-title">${other?other.title:'（已刪除）'}</span>${relNote?`<span class="chip" title="${escapeHtml(relNote)}">${escapeHtml(relNote)}</span>`:''}<button class="fl-del" data-lid="${l.id}">✕</button></div>`;}).join('');
+  el.innerHTML=related.map(l=>{const otherId=l.from===openId?l.to:l.from,other=mapNodeById(otherId),tag=isAuxnodeNode(other)?'<span class="chip" style="margin-right:6px;background:#F2E8FF;color:#7A34B0;border-color:#D4B5EF"></span>':'',relNote=normalizeRelationNote(l.note);return `<div class="fl-item">${tag}<span class="chip" style="margin-right:6px;background:${relationColor(l.rel)};color:#fff;border-color:${relationColor(l.rel)}">${relationLabel(l.rel)}</span><button class="fl-item-title fl-item-open" type="button" data-open-note-id="${otherId}">${other?other.title:'（已刪除）'}</button>${relNote?`<span class="chip" title="${escapeHtml(relNote)}">${escapeHtml(relNote)}</span>`:''}<button class="fl-del" data-lid="${l.id}">✕</button></div>`;}).join('');
+  el.querySelectorAll('[data-open-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
+    const targetId=parseInt(btn.dataset.openNoteId,10);
+    if(!mapNodeById(targetId)) return;
+    openId=targetId;
+    openForm(true);
+  }));
   el.querySelectorAll('.fl-del').forEach(btn=>btn.addEventListener('click',()=>{links=links.filter(l=>l.id!==parseInt(btn.dataset.lid));saveData();renderFormLinks();if(isMapOpen)scheduleMapRedraw(100);showToast('關聯已刪除');}));
 }
 function renderFormLinkSearch() {
@@ -235,8 +261,9 @@ function renderDynamicFields(typeKey,note=null){
     const def=getFieldDef(key);
     const isText=def.kind==='text';
     const value=note?noteFieldValueForEdit(note,key):'';
-    return `<div class="type-field-item"><div class="type-field-title"><label class="type-field-label" for="f-field-${key}">${def.label}</label>${!BUILTIN_FIELD_DEFS[key]?`<button class="type-field-remove" data-remove-custom="${key}" type="button">刪除此自訂欄位</button>`:''}</div>${isText?`<input class="fi" id="f-field-${key}" placeholder="${def.placeholder||''}" value="${value.replace(/"/g,'&quot;')}">`:`<textarea class="ft" id="f-field-${key}" placeholder="${def.placeholder||''}" ${key==='todos'?'style="min-height:96px;"':''}>${value}</textarea>`}</div>`;
+    return `<div class="type-field-item"><div class="type-field-title"><label class="type-field-label" for="f-field-${key}">${def.label}</label><div style="display:flex;align-items:center;gap:8px;"><button class="tool-btn mini-btn clear-field-btn" data-clear-target="f-field-${key}" type="button">清空</button>${!BUILTIN_FIELD_DEFS[key]?`<button class="type-field-remove" data-remove-custom="${key}" type="button">刪除此自訂欄位</button>`:''}</div></div>${isText?`<input class="fi" id="f-field-${key}" placeholder="${def.placeholder||''}" value="${value.replace(/"/g,'&quot;')}">`:`<textarea class="ft" id="f-field-${key}" placeholder="${def.placeholder||''}" ${key==='todos'?'style="min-height:96px;"':''}>${value}</textarea>`}</div>`;
   }).join('');
+  bindFormClearButtons();
   wrap.querySelectorAll('[data-remove-custom]').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.removeCustom;
     const typeCfg=getTypeFieldKeys(typeKey).filter(k=>k!==key);
