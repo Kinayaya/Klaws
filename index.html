@@ -364,7 +364,7 @@
 <div id="examView">
   <div id="examHeader"><span id="examHeaderTitle">&#9997; 申論測驗</span><span id="examTimer">00:00</span></div>
   <div id="examBody">
-    <div class="exam-part"><div class="exam-part-title">題目</div><div class="exam-question-text" id="examQuestionDisplay"></div><div class="exam-issues" id="examIssueChips"></div></div>
+    <div class="exam-part"><div class="exam-part-title">題目</div><div class="exam-question-text" id="examQuestionDisplay"></div><div class="exam-issues" id="examIssueChips"></div><div style="margin-top:8px;"><button class="tool-btn" id="examToggleAnswerBtn">顯示答案</button><div id="examModelAnswerWrap" style="display:none;margin-top:8px;padding:8px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;"><div style="font-size:12px;color:#475569;margin-bottom:4px;">參考答案</div><div id="examModelAnswerText" style="white-space:pre-wrap;"></div></div></div></div>
     <div class="exam-part" style="flex:1;"><div class="exam-part-title">&#9997; 作答欄</div><textarea id="examAnswerBox" placeholder="請在此作答..."></textarea><div class="exam-word-count" id="examWordCount">0 字</div></div>
     <div class="exam-action-row"><button class="exam-btn exam-btn-end" id="examSubmitBtn">&#10003; 提交作答</button><button class="exam-btn exam-btn-cancel" id="examCancelBtn">&#8592; 放棄離開</button></div>
   </div>
@@ -396,9 +396,10 @@
 
 <!-- Exam Form -->
 <div class="panel" id="examAddForm">
-  <div class="ph"><span class="ph-title">+ 新增申論題</span><button class="pcls" id="examFormClose">&#215;</button></div>
+  <div class="ph"><span class="ph-title" id="examFormTitle">+ 新增申論題</span><button class="pcls" id="examFormClose">&#215;</button></div>
   <label class="flbl" style="margin-top:0"></label><select class="fs" id="examSubSel"></select>
   <label class="flbl">題目</label><textarea class="ft" id="examQInput" style="min-height:100px;" placeholder="題目"></textarea>
+  <label class="flbl">答案</label><textarea class="ft" id="examAInput" style="min-height:80px;" placeholder="此題參考答案"></textarea>
   <label class="flbl">爭點</label><input class="fi" id="examIssInput" placeholder="爭點">
   <label class="flbl">作答時間（分鐘）</label><input class="fi" id="examTimeInput" type="number" value="30" min="5" max="120">
   <div class="frow"><button class="fbtn bcl" id="examFCancel">取消</button><button class="fbtn bsv" id="examFSave">儲存</button></div>

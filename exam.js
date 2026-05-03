@@ -6,6 +6,32 @@ function openExamModePanel() {
   g('examListPanel')?.classList.remove('open');
   g('examAddForm')?.classList.remove('open');
 }
+function resetExamForm(){
+  const title=g('examFormTitle'); if(title) title.textContent='+ 新增申論題';
+  examEditingIndex=-1;
+  g('examQInput').value=''; g('examAInput').value=''; g('examIssInput').value=''; g('examTimeInput').value='30';
+}
+function openExamForm(idx=-1){
+  const esel=g('examSubSel');if(esel)esel.innerHTML=domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  examEditingIndex=idx;
+  const title=g('examFormTitle');
+  if(idx>=0&&examList[idx]){
+    const ex=examList[idx];
+    if(esel) esel.value=ex.domain||(domains[0]?domains[0].key:'all');
+    g('examQInput').value=ex.question||'';
+    g('examAInput').value=ex.answer||'';
+    g('examIssInput').value=(ex.issues||[]).join(',');
+    g('examTimeInput').value=ex.timeLimit||30;
+    if(title) title.textContent='✏️ 修改申論題';
+  }else{
+    resetExamForm();
+    if(esel&&domains[0]) esel.value=domains[0].key;
+  }
+  g('examListPanel').classList.remove('open');
+  g('examAddForm').classList.add('open');
+  setTimeout(()=>g('examAddForm').scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+}
+
 function openExamPanel() {
   g('examModePanel')?.classList.remove('open');
   loadExams();renderExamList();
@@ -16,14 +42,20 @@ function openExamPanel() {
 function renderExamList() {
   const el=g('examListItems');
   if(!examList.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:12px 0;">尚無題目，請點新增題目</div>';return;}
-  el.innerHTML=examList.map((ex,i)=>`<div class="exam-item" data-idx="${i}"><div><div class="exam-item-title">${subByKey(ex.domain).label} | ${ex.question.slice(0,35)}${ex.question.length>35?'...':''}</div><div class="exam-item-meta">${ex.timeLimit}分鐘</div></div><button class="exam-item-del" data-del="${i}">🗑️</button></div>`).join('');
-  el.querySelectorAll('.exam-item').forEach(el2=>{el2.addEventListener('click',ev=>{if(ev.target.getAttribute('data-del')!==null)return;startExam(examList[parseInt(el2.dataset.idx)]);});});
+  el.innerHTML=examList.map((ex,i)=>`<div class="exam-item" data-idx="${i}"><div><div class="exam-item-title">${subByKey(ex.domain).label} | ${ex.question.slice(0,35)}${ex.question.length>35?'...':''}</div><div class="exam-item-meta">${ex.timeLimit}分鐘</div></div><div style="display:flex;gap:6px;"><button class="exam-item-edit" data-edit="${i}">✏️</button><button class="exam-item-del" data-del="${i}">🗑️</button></div></div>`).join('');
+  el.querySelectorAll('.exam-item').forEach(el2=>{el2.addEventListener('click',ev=>{if(ev.target.getAttribute('data-del')!==null||ev.target.getAttribute('data-edit')!==null)return;startExam(examList[parseInt(el2.dataset.idx)]);});});
+  el.querySelectorAll('[data-edit]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();openExamForm(parseInt(btn.dataset.edit));}));
   el.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();examList.splice(parseInt(btn.dataset.del),1);saveExams();renderExamList();}));
 }
 function startExam(exam) {
   currentExam=exam;g('examListPanel').classList.remove('open');g('notesView').style.display='none';g('examView').classList.add('open');
   g('examBody').style.display='flex';g('examResult').style.display='none';
   g('examQuestionDisplay').textContent=exam.question;g('examIssueChips').innerHTML=(exam.issues||[]).map(iss=>`<span class="exam-issue-chip">${iss}</span>`).join('');
+  examAnswerReveal=false;
+  const answerWrap=g('examModelAnswerWrap'),answerText=g('examModelAnswerText'),answerBtn=g('examToggleAnswerBtn');
+  if(answerText) answerText.textContent=exam.answer||'（此題尚未設定答案）';
+  if(answerWrap) answerWrap.style.display='none';
+  if(answerBtn) answerBtn.textContent='顯示答案';
   g('examAnswerBox').value='';g('examWordCount').textContent='0 字';g('examHeaderTitle').textContent=`✒️ ${subByKey(exam.domain).label}`;
   examTotal=exam.timeLimit*60;examSec=examTotal;
   const updateTimer=()=>{const m=Math.floor(examSec/60),s=examSec%60;g('examTimer').textContent=`${m<10?'0':''}${m}:${s<10?'0':''}${s}`;if(examSec<=300)g('examTimer').classList.add('warning');};

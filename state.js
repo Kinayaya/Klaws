@@ -15,7 +15,7 @@ let mapVerticalScrollMode=false;
 let mapContentH=500;
 let nodeEls={}, linkElsMap={}, nodeLinksIndex={}, linkCurveOffsets={}, isMapOpen=false;
 let gridPage=1, sortMode='date_desc', multiSelMode=false, selectedIds={};
-let examList=[], examTimer=null, examSec=0, examTotal=0, currentExam=null;
+let examList=[], examTimer=null, examSec=0, examTotal=0, currentExam=null, examEditingIndex=-1, examAnswerReveal=false;
 let reviewMode=false, reviewQueueIndex=0, reviewReveal=false;
 let shortcuts=[], recordingBtn=null, _aiPendingAction=null, _saveTimer=null, rafId=null;
 let mapRedrawTimer=null, mapResizeObserver=null, mapCenterNodeId=null, mapCenterNodeIds={}, mapLaneConfigs={}, mapNodeMeta={};
