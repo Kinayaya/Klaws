@@ -32,8 +32,13 @@
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
   on('headerDatetimeBtn','click',()=>toggleCalendarView(true));
   on('logoSettingsBtn','click',()=>g('settingsModal')?.classList.add('open'));
+  g('settingsModal')?.addEventListener('click',e=>{ if(e.target?.id==='settingsModal') g('settingsModal')?.classList.remove('open'); });
   startHeaderDatetimeTicker();
-  on('ft','change',()=>renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null));
+  on('ft','change',()=>{renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null);syncFormHeaderLabels();});
+  on('fti','input',syncFormHeaderLabels);
+  on('typeTriggerBtn','click',()=>g('ft')?.focus());
+  on('titleTriggerBtn','click',()=>g('fti')?.focus());
+  on('fieldConfigTriggerBtn','click',editTypeFieldsForCurrentType);
   if(g('fc')) on('fc','change',()=>syncPartSelect(selectedValues('fc'),selectedValues('fsec'),[]));
   const si=g('searchInput'),sc=g('searchClear');
   if(si&&sc){
@@ -87,8 +92,6 @@
   on('clearUnusedPathsBtn','click',clearUnusedPaths);
   g('addTypeBtn')?.addEventListener('click',()=>addPath('type'));
   on('panelDirBtn','click',togglePanelDir);
-  on('addTypeFieldBtn','click',addTypeFieldForCurrentType);
-  on('removeTypeFieldBtn','click',removeTypeFieldForCurrentType);
   loadExams();on('examBtn','click',openExamPanel);on('examListClose','click',()=>g('examListPanel').classList.remove('open'));
   on('assistToolsBtn','click',()=>g('assistToolsModal')?.classList.add('open'));
   on('assistToolsCloseBtn','click',()=>g('assistToolsModal')?.classList.remove('open'));

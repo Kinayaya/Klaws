@@ -17,10 +17,22 @@ function syncFormModeVisibility(){
   setDisplay('form-links-wrap',isAssign?'none':'block');
   setDisplay('fpath-row',isPathEditable?'block':'none');
   setDisplay('fti',isAssign?'none':'block');
-  const titleLbl=document.querySelector('label[for="fti"]')||Array.from(document.querySelectorAll('#fp .flbl')).find(el=>el.textContent.trim()==='標題');
-  if(titleLbl) titleLbl.style.display=isAssign?'none':'block';
+  setDisplay('titleTriggerBtn',isAssign?'none':'inline');
+  setDisplay('typeTriggerBtn',isAssign?'none':'inline');
   const saveBtn=g('fpSave');
   if(saveBtn) saveBtn.textContent=isAssign?'加入頁面':'儲存';
+}
+function syncFormHeaderLabels(){
+  const typeSelect=g('ft'),titleInput=g('fti');
+  const typeBtn=g('typeTriggerBtn'),titleBtn=g('titleTriggerBtn');
+  if(typeBtn&&typeSelect){
+    const opt=typeSelect.options[typeSelect.selectedIndex];
+    typeBtn.textContent=(opt?.textContent||'類型').trim()||'類型';
+  }
+  if(titleBtn&&titleInput){
+    const v=(titleInput.value||'').trim();
+    titleBtn.textContent=v||'標題';
+  }
 }
 function inheritedParentPath(){
   const rootId=currentSubpageRootId();
@@ -81,6 +93,7 @@ function openForm(isEdit) {
     else{setSelectedValues('fs2',[]);}
     renderDynamicFields(g('ft').value,null);
   }
+  syncFormHeaderLabels();
   buildInlineLinksPanel();
   const inheritToggle=g('fpathInheritToggle'),pathInput=g('fpath');
   if(inheritToggle) inheritToggle.onchange=updatePathInheritanceUI;
@@ -160,6 +173,7 @@ function clearFormFieldValue(targetId){
   }else el.value='';
   el.dispatchEvent(new Event('input',{bubbles:true}));
   el.dispatchEvent(new Event('change',{bubbles:true}));
+  if(targetId==='fti'||targetId==='ft') syncFormHeaderLabels();
 }
 
 function bindFormClearButtons(){
@@ -297,6 +311,17 @@ function addTypeFieldForCurrentType(){
   saveData();
   renderDynamicFields(typeKey,editMode&&openId?noteById(openId):null);
   showToast('欄位已新增');
+}
+function editTypeFieldsForCurrentType(){
+  const typeKey=g('ft')?.value;
+  if(!typeKey) return;
+  const current=getTypeFieldKeys(typeKey);
+  const action=prompt('欄位設定：輸入 add 新增欄位，或輸入 remove 刪除欄位','add');
+  if(action===null) return;
+  const mode=action.trim().toLowerCase();
+  if(mode==='add') addTypeFieldForCurrentType();
+  else if(mode==='remove') removeTypeFieldForCurrentType();
+  else showToast('請輸入 add 或 remove');
 }
 function removeTypeFieldForCurrentType(){
   const typeKey=g('ft')?.value;

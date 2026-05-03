@@ -33,10 +33,9 @@
       <div class="brand-text"><span class="brand-name">KLaws</span><span class="brand-by">by Kina（張晧翔）</span></div>
     </div>
     <div class="header-status-wrap">
-      <span id="headerTitleWrap" class="header-achievement-wrap"><span class="brand-title" id="brandTitleBadge">LV1・點觀測員</span></span>
       <button id="headerDatetimeBtn" class="header-time-wrap" title="開啟日曆系統" aria-label="開啟日曆系統">----/--/-- --:--</button>
       <button class="map-btn" id="mapToggleBtn">&#128279; 體系圖</button>
-      <button class="tool-btn exam-btn-style" id="examBtn">&#9997; 申論</button>
+      <button class="tool-btn exam-btn-style" id="examBtn">&#9997; 測驗</button>
     </div>
     <div class="search-wrap">
       <span class="search-icon">&#128269;</span>
@@ -46,7 +45,6 @@
     <div class="tool-btns">
       <div class="primary-tools">
         <button class="tool-btn" id="compactToggleBtn" title="切換分類列顯示">&#9776; 分類</button>
-        <button class="tool-btn" id="reviewNowBtn">🧠 Review Now</button>
         <button class="add-btn" id="addBtn">+ 新增</button>
       </div>
       <input type="file" id="importFile" accept=".json" style="display:none">
@@ -90,8 +88,8 @@
   <div class="panel" id="fp" data-allow-touch-default="1">
     <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><button class="pcls" id="fpClose">&#215;</button></div>
     <div class="f2col">
-      <div><label class="flbl field-label-row" style="margin-top:0">類型 <button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="ft">清空</button></label><select class="fs" id="ft"></select></div>
-      <div><label class="flbl field-label-row" style="margin-top:0">標題 <button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="fti">清空</button></label><input class="fi" id="fti" placeholder="標題"></div>
+      <div><label class="flbl field-label-row" style="margin-top:0"><button class="field-inline-trigger" id="typeTriggerBtn" type="button">類型</button></label><select class="fs" id="ft"></select></div>
+      <div><label class="flbl field-label-row" style="margin-top:0"><button class="field-inline-trigger" id="titleTriggerBtn" type="button">標題</button></label><input class="fi" id="fti" placeholder="標題"></div>
     </div>
     <div id="fpath-row" style="display:none;">
       <label class="flbl field-label-row">路徑 <button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="fpath">清空</button></label>
@@ -112,13 +110,7 @@
       <div id="mapAssignSearchResult" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;"></div>
     </div>
     <div id="dynamicFieldWrap">
-      <div class="field-config-head">
-        <span>欄位</span>
-        <div class="field-config-actions">
-          <button class="tool-btn mini-btn" id="addTypeFieldBtn" type="button">+ 新增欄位</button>
-          <button class="tool-btn mini-btn" id="removeTypeFieldBtn" type="button">− 刪除欄位</button>
-        </div>
-      </div>
+      <div class="field-config-head"><button class="field-inline-trigger" id="fieldConfigTriggerBtn" type="button">欄位</button></div>
       <div id="dynamicFields"></div>
     </div>
     <div id="form-links-wrap" style="margin-top:16px;padding-top:14px;border-top:1px solid #eee;">
