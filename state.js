@@ -26,7 +26,7 @@ let mapCollapsed={};
 let mapLinkSourceId=null;
 let touchRadialMenu=null, actionUndoTimer=null, lastCardTap={id:0,time:0};
 let mapSubpages={}, mapPageStack=[];
-let mapPageNotes={root:[]}, mapAssignTargetPageId='root', mapAssignSelectedNoteIds={};
+let mapPageNotes={root:[]};
 let mapTreeCollapsedPaths={};
 let typeFieldConfigs={}, customFieldDefs={};
 let lastSavedPayloadRaw='';

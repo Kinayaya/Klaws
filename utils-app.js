@@ -525,8 +525,17 @@ const getMapPageAssignedIds = rootId => {
   const rootNode=mapNodeById(resolvedRootId);
   const rootPath=notePathKey(rootNode);
   if(rootPath){
+    const rootSegs=notePathSegments({path:rootPath});
+    const rootDepth=rootSegs.length;
     const pathIds=notes
-      .filter(n=>n.id===resolvedRootId||notePathKey(n)===rootPath)
+      .filter(n=>{
+        const segs=notePathSegments(n);
+        if(!segs.length) return false;
+        const isSelf=n.id===resolvedRootId;
+        const isPrefix=rootSegs.every((seg,idx)=>segs[idx]===seg);
+        const withinOneLevel=segs.length<=rootDepth+1;
+        return isSelf||(isPrefix&&withinOneLevel);
+      })
       .map(n=>n.id);
     return new Set(pathIds);
   }
