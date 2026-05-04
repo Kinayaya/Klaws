@@ -793,6 +793,46 @@ const difficultyRank=d=>({E:1,N:2,H:3}[d]||1);
 const skillXpRequired=level=>Math.round(28+Math.max(1,level)*10);
 const getSkillStage=(lvl=0)=>LEVEL_STAGES.find(s=>lvl>=s.min&&lvl<=s.max)?.rank||'E';
 
+function normalizeLevelSystem(){
+  const fallbackSettings={xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true};
+  if(!levelSystem||typeof levelSystem!=='object'||Array.isArray(levelSystem)) levelSystem={skills:[],tasks:[],settings:{...fallbackSettings}};
+  if(!Array.isArray(levelSystem.skills)) levelSystem.skills=[];
+  if(!Array.isArray(levelSystem.tasks)) levelSystem.tasks=[];
+  if(!levelSystem.settings||typeof levelSystem.settings!=='object'||Array.isArray(levelSystem.settings)) levelSystem.settings={...fallbackSettings};
+  const xpByDifficulty=(levelSystem.settings.xpByDifficulty&&typeof levelSystem.settings.xpByDifficulty==='object'&&!Array.isArray(levelSystem.settings.xpByDifficulty))
+    ? levelSystem.settings.xpByDifficulty
+    : {};
+  levelSystem.settings.xpByDifficulty={
+    E:Math.max(1,parseInt(xpByDifficulty.E,10)||fallbackSettings.xpByDifficulty.E),
+    N:Math.max(1,parseInt(xpByDifficulty.N,10)||fallbackSettings.xpByDifficulty.N),
+    H:Math.max(1,parseInt(xpByDifficulty.H,10)||fallbackSettings.xpByDifficulty.H)
+  };
+  if(typeof levelSystem.settings.xpBoost150Applied!=='boolean') levelSystem.settings.xpBoost150Applied=true;
+  levelSystem.skills=levelSystem.skills.filter(skill=>skill&&typeof skill==='object').map((skill,idx)=>({
+    ...skill,
+    id:(skill.id===undefined||skill.id===null)?`skill_${idx}_${Date.now()}`:skill.id,
+    name:safeStr(skill.name||'未命名技能').trim()||'未命名技能',
+    level:Math.max(1,Math.min(100,parseInt(skill.level,10)||1)),
+    xp:Math.max(0,parseInt(skill.xp,10)||0),
+    lastDoneByDiff:(skill.lastDoneByDiff&&typeof skill.lastDoneByDiff==='object'&&!Array.isArray(skill.lastDoneByDiff))?skill.lastDoneByDiff:{},
+    lastDecayAt:(typeof skill.lastDecayAt==='string'&&skill.lastDecayAt)?skill.lastDecayAt:new Date().toISOString()
+  }));
+  levelSystem.tasks=levelSystem.tasks.filter(task=>task&&typeof task==='object').map((task,idx)=>({
+    ...task,
+    id:(task.id===undefined||task.id===null)?`task_${idx}_${Date.now()}`:task.id,
+    title:safeStr(task.title||'未命名任務').trim()||'未命名任務',
+    difficulty:['E','N','H'].includes(task.difficulty)?task.difficulty:'N',
+    completions:Math.max(0,parseInt(task.completions,10)||0),
+    repeatCycle:TASK_REPEAT_OPTIONS.some(opt=>opt.key===task.repeatCycle)?task.repeatCycle:'daily',
+    subtasks:Array.isArray(task.subtasks)?task.subtasks.filter(sub=>sub&&typeof sub==='object').map(sub=>({
+      ...sub,
+      title:safeStr(sub.title||'').trim(),
+      done:!!sub.done,
+      difficulty:['E','N','H'].includes(sub.difficulty)?sub.difficulty:'N'
+    })):[]
+  }));
+}
+
 
 
 const getTaskRepeatLabel=cycle=>TASK_REPEAT_OPTIONS.find(opt=>opt.key===cycle)?.label||'每日';
