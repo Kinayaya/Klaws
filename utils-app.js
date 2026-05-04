@@ -778,17 +778,6 @@ const formatUsageDuration = (startRaw,endRaw=new Date()) => {
 
 const usageMinutesSinceStart = () => Math.max(0,Math.floor((new Date()-new Date(ensureUsageStart()))/60000));
 const doneTodoCount = todos => (Array.isArray(todos)?todos:[]).filter(t=>t&&t.done&&safeStr(t.text).trim()).length;
-function getCurrentTitle(){
-  const pts=Math.max(0,(levelSystem.tasks||[]).reduce((sum,t)=>sum+(Number(t.completions)||0),0));
-  return TITLE_LEVELS.reduce((pick,lvl)=>pts>=lvl.min?lvl:pick,TITLE_LEVELS[0]);
-}
-function applyBrandTitle(){
-  const el=g('brandTitleBadge');
-  if(!el) return;
-  const lvl=getCurrentTitle();
-  el.textContent=`LV${lvl.level}・${lvl.name}`;
-}
-
 const difficultyRank=d=>({E:1,N:2,H:3}[d]||1);
 const skillXpRequired=level=>Math.round(28+Math.max(1,level)*10);
 const getSkillStage=(lvl=0)=>LEVEL_STAGES.find(s=>lvl>=s.min&&lvl<=s.max)?.rank||'E';
@@ -931,7 +920,6 @@ function completeLevelTask(taskId,skillId,gainOverride=0){
   const gain=gainOverride>0?gainOverride:(levelSystem.settings.xpByDifficulty[task.difficulty]||Math.round(BASE_XP_BY_DIFFICULTY[task.difficulty||'N']*XP_BOOST_MULTIPLIER));
   task.lastReward={cycleKey:getTaskCycleKey(task,new Date()),skillId:String(skill.id),skillPrev:snapshotSkill(skill),gain};
   gainSkillXp(skill,task.difficulty,gain);
-  applyBrandTitle();
   return true;
 }
 function rollbackTaskCompletion(task,skill){
@@ -940,7 +928,6 @@ function rollbackTaskCompletion(task,skill){
   task.completions=Math.max(0,(task.completions||0)-1);
   task.lastCompletedAt='';
   task.lastReward=null;
-  applyBrandTitle();
   return true;
 }
 

@@ -75,7 +75,6 @@
   const draftSaver=debounce(saveNoteDraftFromForm,900);
   g('fp')?.addEventListener('input',()=>{ if(editMode) draftSaver(); });
   g('fp')?.addEventListener('focusout',()=>{ if(editMode) saveNoteDraftFromForm(); });
-  applyBrandTitle();
   bindPathManagerNav();
   on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
   on('archiveSaveBtn','click',createArchiveSnapshot);

@@ -13,7 +13,6 @@ function deleteLevelItem(kind,idx){
   if(!confirm(`確定刪除${mapLabel[kind]}「${item.name||'未命名'}」？`)) return;
   arr.splice(idx,1);
   saveData();
-  applyBrandTitle();
   renderLevelSystemPage();
   showToast(`${mapLabel[kind]}已刪除`);
 }
@@ -50,7 +49,6 @@ function renderLevelSystemPage(){
   if(!box) return;
   normalizeLevelSystem();
   applySkillDecay();
-  const titleInfo=getCurrentTitle();
   const allTaskCount=(levelSystem.tasks||[]).reduce((sum,t)=>sum+(Number(t.completions)||0),0);
   const sectionMap={
     level:{title:'等級',rows:renderLevelRows('skills'),toolbar:`<button class="tool-btn" id="addSkillBtn">+ 技能</button><button class="tool-btn" id="resetSkillLevelBtn">重置技能等級</button>`},
@@ -58,7 +56,7 @@ function renderLevelSystemPage(){
   };
   const section=sectionMap[levelSystemSection]||sectionMap.level;
   g('levelSystemTitle').textContent=section.title;
-  let html=`<div style="margin-top:2px;padding:10px;border:1px solid #e8edf6;border-radius:10px;background:#f8fbff;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span class="brand-title">LV${titleInfo.level}・${titleInfo.name}</span><span style="font-size:12px;color:#445;">任務完成：<b>${allTaskCount}</b> 次</span></div></div>`;
+  let html=`<div style="margin-top:2px;padding:10px;border:1px solid #e8edf6;border-radius:10px;background:#f8fbff;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span style="font-size:12px;color:#445;">任務完成：<b>${allTaskCount}</b> 次</span></div></div>`;
   html+=`<div class="level-toolbar">${section.toolbar}</div>`;
   html+=`<div class="level-part-title">${section.title}</div>${section.rows}`;
   box.innerHTML=html;
@@ -333,7 +331,7 @@ function addSkillItem(){
   const name=safeStr(prompt('技能名稱：','法條理解力')||'').trim();
   if(!name) return;
   levelSystem.skills.push({id:Date.now()+Math.random(),name,level:1,xp:0,lastDoneByDiff:{},lastDecayAt:new Date().toISOString()});
-  saveData();renderLevelSystemPage();applyBrandTitle();showToast('技能已新增');
+  saveData();renderLevelSystemPage();showToast('技能已新增');
 }
 function addTaskItem(){
   openLevelEditor('task');
@@ -462,8 +460,7 @@ function toggleSubtaskCompletion(taskIdx,subIdx,checked){
     sub.completions=Math.max(0,(sub.completions||0)-1);
     sub.lastCompletedAt='';
     sub.lastReward=null;
-      applyBrandTitle();
-    saveData();renderLevelSystemPage();
+        saveData();renderLevelSystemPage();
     showToast(`已返還 ${reward.gain||0} EXP 與小任務進度`);
     return;
   }
@@ -476,7 +473,6 @@ function toggleSubtaskCompletion(taskIdx,subIdx,checked){
   gainSkillXp(skill,diff,gain);
   sub.completions=(sub.completions||0)+1;
   sub.lastCompletedAt=new Date().toISOString();
-  applyBrandTitle();
   saveData();renderLevelSystemPage();
   showToast(`小任務完成：+${gain} EXP → ${skill.name}`);
 }

@@ -49,18 +49,6 @@ const LEVEL_STAGES=[
   {min:81,max:85,rank:'A'},{min:86,max:90,rank:'A+'},{min:91,max:98,rank:'S'},
   {min:99,max:99,rank:'SS'},{min:100,max:100,rank:'SSS'}
 ];
-const TITLE_LEVELS=[
-  {level:1,min:0,name:'點觀測員'},
-  {level:2,min:120,name:'條文解析者'},
-  {level:3,min:300,name:'脈絡梳理師'},
-  {level:4,min:650,name:'邏輯鏈編織手'},
-  {level:5,min:1100,name:'圖譜測繪員'},
-  {level:6,min:1700,name:'法理結構家'},
-  {level:7,min:2500,name:'維度跨越者'},
-  {level:8,min:3500,name:'體系導航員'},
-  {level:9,min:4800,name:'核心矩陣師'},
-  {level:10,min:6200,name:'Klaws 終極奇點'}
-];
 const TASK_REPEAT_OPTIONS=[
   {key:'daily',label:'每日'},
   {key:'every3days',label:'每三日'},
