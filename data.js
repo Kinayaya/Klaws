@@ -578,37 +578,17 @@ function saveArchives(arr){
     .map(normalizeArchiveRecord)
     .filter(Boolean)
     .slice(0,ARCHIVE_SNAPSHOT_LIMIT);
-  try{
-    writeJSON(ARCHIVES_KEY,next);
-    return {ok:true, kept:next.length, trimmed:0};
-  }catch(err){
-    const quotaExceeded=!!(err&&(
-      err.name==='QuotaExceededError'||
-      err.name==='NS_ERROR_DOM_QUOTA_REACHED'||
-      err.code===22||err.code===1014
-    ));
-    if(!quotaExceeded){
-      return {ok:false, reason:'unknown', error:err, kept:0, trimmed:0};
+
+  if(writeJSON(ARCHIVES_KEY,next)) return {ok:true, kept:next.length, trimmed:0};
+
+  const trimmed=next.slice();
+  while(trimmed.length>1){
+    trimmed.pop();
+    if(writeJSON(ARCHIVES_KEY,trimmed)){
+      return {ok:true, kept:trimmed.length, trimmed:next.length-trimmed.length, quotaRecovered:true};
     }
-    const trimmed=next.slice();
-    while(trimmed.length>1){
-      trimmed.pop();
-      try{
-        writeJSON(ARCHIVES_KEY,trimmed);
-        return {ok:true, kept:trimmed.length, trimmed:next.length-trimmed.length, quotaRecovered:true};
-      }catch(innerErr){
-        const stillQuota=!!(innerErr&&(
-          innerErr.name==='QuotaExceededError'||
-          innerErr.name==='NS_ERROR_DOM_QUOTA_REACHED'||
-          innerErr.code===22||innerErr.code===1014
-        ));
-        if(!stillQuota){
-          return {ok:false, reason:'unknown', error:innerErr, kept:0, trimmed:0};
-        }
-      }
-    }
-    return {ok:false, reason:'quota', kept:0, trimmed:next.length};
   }
+  return {ok:false, reason:'quota', kept:0, trimmed:next.length};
 }
 function loadRecycleBin(){
   const arr=readJSON(RECYCLE_BIN_KEY,[]);
