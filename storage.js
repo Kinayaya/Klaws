@@ -52,7 +52,12 @@
   };
 
   const writeJSON = (key, value) => {
-    localStorage.setItem(key, JSON.stringify(value));
+    try{
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    }catch(e){
+      return false;
+    }
   };
 
   const readJSONAsync = async (key, fallback) => {
