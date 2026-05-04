@@ -710,3 +710,32 @@ body.panel-dir-bottom #tp.open{transform:translateY(0)}
 @media (min-width: 1401px){
   #grid{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
+
+
+/* --- UI refinement: elegant + minimal map experience --- */
+:root{--ui-primary:#175da6;--ui-primary-soft:#edf4ff;--ui-text:#334155;--ui-muted:#64748b;--ui-border:#dbe5f1;--ui-surface:#ffffff;--ui-surface-soft:#f8fbff}
+#topbar{background:rgba(255,255,255,.94);border-bottom:1px solid var(--ui-border);box-shadow:0 8px 24px rgba(15,23,42,.05)}
+.view-switch{padding:4px;background:var(--ui-surface);border-color:#e7edf6;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+.view-switch-btn{padding:6px 11px;border-radius:9px;color:#5d6b80}
+.view-switch-btn.active{background:var(--ui-primary-soft);color:#124b86}
+.tool-btn,.map-btn,.zoom-btn{height:36px;padding:0 12px;border-radius:10px;border-color:var(--ui-border);background:var(--ui-surface);color:var(--ui-text);font-weight:600}
+.tool-btn:hover,.map-btn:hover,.zoom-btn:hover{background:#f4f8ff;border-color:#cad8eb}
+.add-btn{height:36px;padding:0 14px;border-radius:10px;background:linear-gradient(135deg,#16589b,#1d6abb);box-shadow:0 8px 18px rgba(23,93,166,.2)}
+#mapToolbar{padding:10px 14px;border-bottom:1px solid #e7edf6;gap:10px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#mapCanvas{background:linear-gradient(180deg,#f8fbff 0%,#f4f8fd 100%)}
+.map-tree-drawer-toggle{font-size:34px;padding:16px 12px;background:rgba(255,255,255,.92);border-color:#dbe5f1;box-shadow:0 10px 20px rgba(15,23,42,.1)}
+.map-card-inner{padding:12px 13px;gap:7px;color:#1e293b;background:#fff}
+.map-card-title{font-size:18px;line-height:1.4;font-weight:700;letter-spacing:.01em}
+.map-card-body-segment+.map-card-body-segment{border-top:1px solid #e8eef6;padding-top:7px;margin-top:2px}
+.map-card-body-text{font-size:14px;line-height:1.55;color:#5b6778}
+.map-card-foot{margin-top:4px;font-size:12px;color:#94a3b8}
+.map-lane-label{font-size:12px;font-weight:700;fill:#7b8798;letter-spacing:.02em}
+.map-node-highlight .node-card{stroke:#1d6abb!important;stroke-width:3px!important}
+.map-node.map-link-source .node-card{stroke:#124b86!important;stroke-width:2.8px!important}
+#mapPopup{border-color:#dbe5f1;border-radius:12px;box-shadow:0 14px 30px rgba(15,23,42,.18)}
+@media (max-width:900px){
+  #mapToolbar{gap:8px;padding:8px 10px}
+  .tool-btn,.map-btn,.zoom-btn,.add-btn{height:34px;font-size:12px}
+  .map-card-title{font-size:16px}
+  .map-card-body-text{font-size:13px}
+}
