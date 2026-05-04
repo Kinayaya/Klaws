@@ -43,6 +43,27 @@ function clearLegacyDomainsFromNotes(){
   return changed;
 }
 
+const LOCAL_FALLBACK_PREFIX='klaws_payload_backup_v1';
+function fallbackStorageKey(){
+  const host=(location&&location.host)?location.host:'unknown-host';
+  return `${LOCAL_FALLBACK_PREFIX}::${host}`;
+}
+function readLocalFallbackPayload(){
+  return readJSON(fallbackStorageKey(), null);
+}
+function writeLocalFallbackPayload(payload){
+  try{
+    writeJSON(fallbackStorageKey(), payload);
+  }catch(e){
+    console.warn('[saveData-local-fallback-failed]',e);
+  }
+}
+function clearLocalFallbackPayload(){
+  try{
+    localStorage.removeItem(fallbackStorageKey());
+  }catch(e){}
+}
+
 // ==================== 資料儲存 ====================
 function migrateLegacyGroupPartData(){
   let changed=false;
@@ -70,7 +91,14 @@ function migrateLegacyGroupPartData(){
 
 async function loadData() {
   try {
-    const d=await readJSONAsync(SKEY,null);
+    let d=await readJSONAsync(SKEY,null);
+    if(!d){
+      const fallbackPayload=readLocalFallbackPayload();
+      if(fallbackPayload){
+        console.warn('[loadData] indexeddb empty, restored from local fallback');
+        d=fallbackPayload;
+      }
+    }
     if(d) {
       notes=mergeAuxNodesIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapAuxNodes)?d.mapAuxNodes:[]);
       mapAuxNodes=[];
@@ -153,10 +181,20 @@ async function loadData() {
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
+      writeLocalFallbackPayload(getPayload());
     } else {
       notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
     }
   } catch(e) {
+    const fallbackPayload=readLocalFallbackPayload();
+    if(fallbackPayload){
+      console.warn('[loadData-failed] recovered from local fallback');
+      if(applySnapshotRaw(JSON.stringify(fallbackPayload))){
+        lastSavedPayloadRaw=JSON.stringify(getPayload());
+        return;
+      }
+      clearLocalFallbackPayload();
+    }
     notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
     const detail={
       name:e&&e.name?e.name:typeof e,
@@ -181,6 +219,7 @@ function saveData() {
     const payload=getPayload();
     const nextRaw=JSON.stringify(payload);
     writeJSONAsync(SKEY,payload).catch(err=>console.warn('[saveData-idb-failed]',err));
+    writeLocalFallbackPayload(payload);
     lastSavedPayloadRaw=nextRaw;
     pushPayloadToBackend(payload);
   } catch(e){}
