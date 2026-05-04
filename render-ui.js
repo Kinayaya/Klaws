@@ -314,10 +314,7 @@ function renderDetailQuickLinkSearch(){
   const existingIds=new Set(links.filter(l=>l.from===openId||l.to===openId).map(l=>l.from===openId?l.to:l.from));
   const pool=findMapNodesByKeyword(q,openId).filter(n=>!existingIds.has(n.id)&&(!isAuxnodeNode(n)||isNodeInCurrentMapPage(n.id)));
   if(!pool.length){root.innerHTML='<div class="dp-link-empty">找不到可關聯的筆記</div>';return;}
-  root.innerHTML=pool.map(n=>{
-    const tp=isAuxnodeNode(n)?{label:'',color:'#A855F7'}:typeByKey(n.type);
-    return `<div class="fl-result-item quick-add" data-quick-link-id="${n.id}"><span class="fl-result-type" style="background:${tp.color}">${tp.label}</span><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`;
-  }).join('');
+  root.innerHTML=pool.map(n=>`<div class="fl-result-item quick-add" data-quick-link-id="${n.id}"><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`).join('');
   root.querySelectorAll('[data-quick-link-id]').forEach(row=>row.addEventListener('click',()=>{
     const targetId=parseInt(row.dataset.quickLinkId,10);
     if(!openId||!targetId) return;
@@ -339,10 +336,7 @@ function renderMapPopupQuickLinkSearch(sourceId=null){
   const existingIds=new Set(links.filter(l=>l.from===srcId||l.to===srcId).map(l=>l.from===srcId?l.to:l.from));
   const pool=findMapNodesByKeyword(q,srcId).filter(n=>!existingIds.has(n.id)&&!isAuxnodeNode(n)&&isNodeInCurrentMapPage(n.id));
   if(!pool.length){root.innerHTML='<div class="dp-link-empty">找不到可關聯的筆記</div>';return;}
-  root.innerHTML=pool.map(n=>{
-    const tp=typeByKey(n.type);
-    return `<div class="fl-result-item quick-add" data-mp-quick-link-id="${n.id}"><span class="fl-result-type" style="background:${tp.color}">${tp.label}</span><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`;
-  }).join('');
+  root.innerHTML=pool.map(n=>`<div class="fl-result-item quick-add" data-mp-quick-link-id="${n.id}"><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`).join('');
   root.querySelectorAll('[data-mp-quick-link-id]').forEach(row=>row.addEventListener('click',()=>{
     const targetId=parseInt(row.dataset.mpQuickLinkId,10);
     if(!srcId||!targetId) return;
