@@ -94,6 +94,6 @@ function toggleMapView(open) {
     updateMapPagePath();
     setTimeout(()=>{const hadNodePos=Object.keys(nodePos).length>0;initNodePos();drawMap();if(!hadNodePos)saveData();},80);
   } else { updateMapPagePath();closeLanePanel();closeMapPopup(); }
+  if(typeof window.syncViewSwitchState==='function') window.syncViewSwitchState(currentView);
   saveLastViewState();
 }
-

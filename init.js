@@ -31,6 +31,16 @@
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
   on('headerDatetimeBtn','click',()=>toggleCalendarView(true));
+  const setActiveViewSwitch=(view='notes')=>{
+    ['viewNotesBtn','viewCalendarBtn','viewLevelBtn','viewMapBtn'].forEach(id=>g(id)?.classList.remove('active'));
+    const targetMap={notes:'viewNotesBtn',calendar:'viewCalendarBtn',level:'viewLevelBtn',map:'viewMapBtn'};
+    g(targetMap[view]||'viewNotesBtn')?.classList.add('active');
+  };
+  window.syncViewSwitchState=setActiveViewSwitch;
+  on('viewNotesBtn','click',()=>{toggleCalendarView(false);toggleLevelSystemView(false);toggleMapView(false);setActiveViewSwitch('notes');});
+  on('viewCalendarBtn','click',()=>{toggleCalendarView(true);setActiveViewSwitch('calendar');});
+  on('viewLevelBtn','click',()=>{toggleLevelSystemView(true);setActiveViewSwitch('level');});
+  on('viewMapBtn','click',()=>{toggleMapView(true);setActiveViewSwitch('map');});
   on('logoSettingsBtn','click',()=>g('settingsModal')?.classList.add('open'));
   g('settingsModal')?.addEventListener('click',e=>{ if(e.target?.id==='settingsModal') g('settingsModal')?.classList.remove('open'); });
   startHeaderDatetimeTicker();
@@ -275,6 +285,7 @@
   updateNotesHomeVisibility();
   render();
   restoreLastViewState();
+  setActiveViewSwitch(currentView);
   }catch(err){
     const detail={
       name:err&&err.name?err.name:typeof err,
