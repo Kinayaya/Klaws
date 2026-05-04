@@ -21,6 +21,7 @@ const SCOPE_LINKED_TOGGLE_KEY = 'klaws_scope_linked_toggle_v1';
 const COMPACT_FILTER_KEY = 'klaws_compact_filters_v1';
 const USAGE_START_KEY = 'klaws_usage_start_v1';
 const FORM_TAXONOMY_PREF_KEY = 'klaws_form_taxonomy_pref_v1';
+const BACKEND_SYNC_ENDPOINT_KEY = 'klaws_backend_sync_endpoint_v1';
 const LAST_VIEW_STATE_KEY = 'klaws_last_view_state_v1';
 const GOOGLE_DRIVE_CLIENT_ID_KEY = 'klaws_google_drive_client_id_v1';
 const GOOGLE_DRIVE_SYNC_FILE_NAME = 'klaws-sync-v1.json';
@@ -64,7 +65,7 @@ const REVIEW_INTERVALS_DAYS = { forgot:1, hard:3, knew:7, easy:14 };
 
 
 const { safeStr, uniq, pad2, escapeHtml, hl, parseTodos, formatTodosForEdit, parseSearchDateVariants, formatDate, normalizeNoteSchema } = window.KLawsUtils;
-const { readJSON, writeJSON } = window.KLawsStorage;
+const { readJSON, writeJSON, readJSONAsync, writeJSONAsync } = window.KLawsStorage;
 const { renderTodoHtml, sortedNotes } = window.KLawsRender;
 const { MAP_NODE_RADIUS_MIN, MAP_NODE_RADIUS_MAX, MAP_NODE_RADIUS_DEFAULT, MAP_LIGHT_BUNDLING_STRENGTH, DEFAULT_LANE_NAMES, MIN_LANE_COUNT, MAX_LANE_COUNT, clampMapRadius, defaultLaneNameAt, normalizeLaneCount, splitMapTitleLines } = window.KLawsMap;
 const { fmtDateKey, dueTimeText, relativeDateLabel } = window.KLawsCalendar;

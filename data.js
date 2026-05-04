@@ -68,9 +68,9 @@ function migrateLegacyGroupPartData(){
   return changed;
 }
 
-function loadData() {
+async function loadData() {
   try {
-    const d=readJSON(SKEY,null);
+    const d=await readJSONAsync(SKEY,null);
     if(d) {
       notes=mergeAuxNodesIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapAuxNodes)?d.mapAuxNodes:[]);
       mapAuxNodes=[];
@@ -166,11 +166,23 @@ function loadData() {
     console.error('[loadData-failed]',detail,e);
   }
 }
+function pushPayloadToBackend(payload){
+  const endpoint=(localStorage.getItem(BACKEND_SYNC_ENDPOINT_KEY)||'').trim();
+  if(!endpoint) return;
+  fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({updatedAt:new Date().toISOString(),payload})
+  }).catch(err=>console.warn('[backend-sync-push-failed]',err));
+}
+
 function saveData() {
   try {
-    const nextRaw=JSON.stringify(getPayload());
-    writeJSON(SKEY,getPayload());
+    const payload=getPayload();
+    const nextRaw=JSON.stringify(payload);
+    writeJSONAsync(SKEY,payload).catch(err=>console.warn('[saveData-idb-failed]',err));
     lastSavedPayloadRaw=nextRaw;
+    pushPayloadToBackend(payload);
   } catch(e){}
 }
 // ==================== 匯入/匯出 ====================

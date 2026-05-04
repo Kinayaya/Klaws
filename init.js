@@ -1,9 +1,9 @@
 // ==================== 初始化 ====================
-  window.addEventListener('load',()=>{
+  window.addEventListener('load',async ()=>{
   try{
   detachSidePanelsFromNotesView();
   ensureUsageStart();
-  loadData();
+  await loadData();
   const pathSample=[...notes].slice(0,5).map(n=>({id:n.id,path:n.path||''}));
   console.log('[loadData][path-sample]',pathSample);
   if(pathSample.some(x=>typeof x.path!=='string')) console.warn('[loadData][path-warning] invalid path type detected');
