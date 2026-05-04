@@ -4,6 +4,7 @@
   const STORE_NAME = 'kv';
 
   let dbPromise=null;
+  const normalizeIdbError = err => err instanceof Error ? err : new Error(err==null?'indexedDB request failed':String(err));
   const openDb = () => {
     if(dbPromise) return dbPromise;
     dbPromise=new Promise((resolve,reject)=>{
@@ -13,7 +14,7 @@
         if(!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
       };
       req.onsuccess=()=>resolve(req.result);
-      req.onerror=()=>reject(req.error);
+      req.onerror=()=>reject(normalizeIdbError(req.error));
     });
     return dbPromise;
   };
@@ -25,7 +26,7 @@
       const store=tx.objectStore(STORE_NAME);
       const req=store.get(key);
       req.onsuccess=()=>resolve(req.result);
-      req.onerror=()=>reject(req.error);
+      req.onerror=()=>reject(normalizeIdbError(req.error));
     });
   };
 
@@ -36,7 +37,7 @@
       const store=tx.objectStore(STORE_NAME);
       const req=store.put(value,key);
       req.onsuccess=()=>resolve(true);
-      req.onerror=()=>reject(req.error);
+      req.onerror=()=>reject(normalizeIdbError(req.error));
     });
   };
 
