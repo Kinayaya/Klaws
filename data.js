@@ -566,12 +566,6 @@ function loadRecycleBin(){
 function saveRecycleBin(){
   writeJSON(RECYCLE_BIN_KEY,recycleBin);
 }
-function purgeRecycleBin(){
-  const now=Date.now();
-  const before=recycleBin.length;
-  recycleBin=recycleBin.filter(item=>now-Date.parse(item.deletedAt||0)<RECYCLE_RETENTION_MS);
-  if(before!==recycleBin.length) saveRecycleBin();
-}
 function normalizeNotesTaxonomy(){
   const tSet=new Set(types.map(t=>t.key));
   const sSet=new Set(domains.map(s=>s.key));
