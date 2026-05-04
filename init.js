@@ -30,7 +30,6 @@
   on('selAllBtn','click',copySelectedNotes);on('selDeleteBtn','click',deleteSelected);on('selCancelBtn','click',exitMultiSel);
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
-  on('headerDatetimeBtn','click',()=>toggleCalendarView(true));
   const setActiveViewSwitch=(view='notes')=>{
     ['viewNotesBtn','viewCalendarBtn','viewLevelBtn','viewMapBtn'].forEach(id=>g(id)?.classList.remove('active'));
     const targetMap={notes:'viewNotesBtn',calendar:'viewCalendarBtn',level:'viewLevelBtn',map:'viewMapBtn'};
@@ -43,7 +42,6 @@
   on('viewMapBtn','click',()=>{toggleMapView(true);setActiveViewSwitch('map');});
   on('logoSettingsBtn','click',()=>g('settingsModal')?.classList.add('open'));
   g('settingsModal')?.addEventListener('click',e=>{ if(e.target?.id==='settingsModal') g('settingsModal')?.classList.remove('open'); });
-  startHeaderDatetimeTicker();
   on('ft','change',()=>{renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null);syncFormHeaderLabels();});
   on('fti','input',syncFormHeaderLabels);
   on('typeTriggerBtn','click',()=>g('ft')?.focus());
@@ -190,7 +188,6 @@
     if(now-lastTouchEndTs<320) e.preventDefault();
     lastTouchEndTs=now;
   },{passive:false});
-  on('mapToggleBtn','click',()=>toggleMapView(true));
   on('mapBackBtn','click',()=>{if(isMapOpen&&leaveMapSubpage())return;toggleMapView(false);});
   on('mapAddNoteBtn','click',()=>{formMode='note';openForm(false);});
   on('mapSearchInput','input',debounce(()=>{mapFilter.q=g('mapSearchInput').value;saveDataDeferred();if(isMapOpen)drawMap();},250));
