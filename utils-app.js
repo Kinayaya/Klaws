@@ -712,7 +712,7 @@ const measureMapCardHeight = (note,width,markedTitle,previewHtml) => {
 };
 const getMapCardBox = id => {
   const scale=Math.max(0.7,Math.min(2.3,getNodeRadius(id)/MAP_NODE_RADIUS_DEFAULT));
-  const width=Math.round(420*scale);
+  const width=Math.round(420*0.7*scale);
   const note=mapNodeById(id)||{};
   const markedTitle=`${mapTitleMarkers(id)}${note.title||'（未命名）'}`;
   const previewHtml=renderMapCardPreview(note);
