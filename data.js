@@ -27,6 +27,22 @@ function migratePathOverridesIntoNotes(){
   return changed;
 }
 
+function clearLegacyDomainsFromNotes(){
+  let changed=false;
+  [...notes,...mapAuxNodes].forEach(n=>{
+    const hadDomain=safeStr(n.domain).trim().length>0;
+    const hadDomains=Array.isArray(n.domains)&&n.domains.length>0;
+    if(hadDomain||hadDomains){
+      n.domain='';
+      n.domains=[];
+      changed=true;
+    }
+  });
+  if(Array.isArray(domains)&&domains.length){ domains=[]; changed=true; }
+  if(mapFilter&&typeof mapFilter==='object'&&mapFilter.sub!=='all'){ mapFilter.sub='all'; changed=true; }
+  return changed;
+}
+
 // ==================== 資料儲存 ====================
 function migrateLegacyGroupPartData(){
   let changed=false;
@@ -110,7 +126,7 @@ function loadData() {
       });
       typeFieldConfigs=(d.typeFieldConfigs&&typeof d.typeFieldConfigs==='object'&&!Array.isArray(d.typeFieldConfigs))?d.typeFieldConfigs:{};
       types.forEach(t=>{ typeFieldConfigs[t.key]=getTypeFieldKeys(t.key); });
-      let repaired=false,groupMigrated=false,groupPartMigrated=false;
+      let repaired=false,groupMigrated=false,groupPartMigrated=false,domainCleared=false;
       if(JSON.stringify(rawMapCollapsed)!==JSON.stringify(mapCollapsed)) repaired=true;
       if(JSON.stringify(rawMapSubpages)!==JSON.stringify(mapSubpages)) repaired=true;
       if(rawMapPageNotes&&JSON.stringify(rawMapPageNotes)!==JSON.stringify(mapPageNotes)) repaired=true;
@@ -126,9 +142,10 @@ function loadData() {
       });
       normalizeNotesTaxonomy();
       groupPartMigrated=migrateLegacyGroupPartData();
+      domainCleared=clearLegacyDomainsFromNotes();
       if(migratePathOverridesIntoNotes()) repaired=true;
       if(normalizeNoteIds(true)) repaired=true;
-      if(repaired||groupMigrated||groupPartMigrated){
+      if(repaired||groupMigrated||groupPartMigrated||domainCleared){
         if(groupPartMigrated){
           const migratedNotes=[...notes,...mapAuxNodes].filter(n=>safeStr(n.detail).includes('【舊資料】')).length;
           showToast(`已棄用，請使用路徑（已轉換 ${migratedNotes} 筆）`);

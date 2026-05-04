@@ -666,11 +666,15 @@ function openMapPopup(id){
 function showMapInfo(id){
   const n=mapNodeById(id);if(!n)return;
   const auxnode=isAuxnodeNode(n);
-  const tp=auxnode?{label:'',color:'#A855F7'}:typeByKey(n.type),sb=subByKey(n.domain),related=links.filter(l=>l.from===id||l.to===id);
+  const tp=auxnode?{label:'',color:'#A855F7'}:typeByKey(n.type),related=links.filter(l=>l.from===id||l.to===id);
   const quickWrap=g('mp-link-quick-wrap');
   const quickInput=g('mp-link-search');
   g('mpBadge').textContent=tp.label;g('mpBadge').style.background=tp.color;g('mpTitle').textContent=n.title;
-  g('mpDomain').textContent=sb.label;g('mpDomain').style.background=sb.color+'22';g('mpDomain').style.color=sb.color;
+  const mpDomainEl=g('mpDomain');
+  if(mpDomainEl){
+    mpDomainEl.textContent='';
+    mpDomainEl.style.display='none';
+  }
   if(quickWrap){
     quickWrap.style.display=auxnode?'flex':'none';
     if(quickInput){
