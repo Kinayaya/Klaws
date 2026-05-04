@@ -169,7 +169,7 @@ function renderFormLinkSearch() {
   const existIds=new Set(links.filter(l=>openId&&(l.from===openId||l.to===openId)).map(l=>l.from===openId?l.to:l.from));
   const pool=findMapNodesByKeyword(q,openId).filter(n=>!existIds.has(n.id)&&(!isAuxnodeNode(n)||isNodeInCurrentMapPage(n.id)));
   if(!pool.length){el.innerHTML='<div style="font-size:12px;color:#bbb;padding:4px 0;">找不到符合的筆記</div>';updateFormLinkBulkActions();return;}
-  el.innerHTML=pool.map(n=>{const tp=isAuxnodeNode(n)?{label:'',color:'#A855F7'}:typeByKey(n.type);return `<div class="fl-result-item ${formLinkSelections[n.id]?'selected':''}" data-nid="${n.id}"><input type="checkbox" ${formLinkSelections[n.id]?'checked':''}><span class="fl-result-type" style="background:${tp.color}">${tp.label}</span><span class="fl-result-title">${n.title}</span></div>`;}).join('');
+  el.innerHTML=pool.map(n=>`<div class="fl-result-item ${formLinkSelections[n.id]?'selected':''}" data-nid="${n.id}"><input type="checkbox" ${formLinkSelections[n.id]?'checked':''}><span class="fl-result-title">${n.title}</span></div>`).join('');
   el.querySelectorAll('.fl-result-item').forEach(item=>{
     item.addEventListener('click',()=>{
       const toId=parseInt(item.dataset.nid);
