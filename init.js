@@ -31,15 +31,18 @@
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
   const setActiveViewSwitch=(view='notes')=>{
-    ['viewNotesBtn','viewCalendarBtn','viewLevelBtn','viewMapBtn'].forEach(id=>g(id)?.classList.remove('active'));
-    const targetMap={notes:'viewNotesBtn',calendar:'viewCalendarBtn',level:'viewLevelBtn',map:'viewMapBtn'};
+    ['viewNotesBtn','viewCalendarBtn','viewLevelBtn','viewMapBtn','viewExamBtn'].forEach(id=>g(id)?.classList.remove('active'));
+    const targetMap={notes:'viewNotesBtn',calendar:'viewCalendarBtn',level:'viewLevelBtn',map:'viewMapBtn',exam:'viewExamBtn'};
     g(targetMap[view]||'viewNotesBtn')?.classList.add('active');
+    const compactBtn=g('compactToggleBtn');
+    if(compactBtn) compactBtn.style.display=view==='notes'?'inline-flex':'none';
   };
   window.syncViewSwitchState=setActiveViewSwitch;
   on('viewNotesBtn','click',()=>{toggleCalendarView(false);toggleLevelSystemView(false);toggleMapView(false);setActiveViewSwitch('notes');});
   on('viewCalendarBtn','click',()=>{toggleCalendarView(true);setActiveViewSwitch('calendar');});
   on('viewLevelBtn','click',()=>{toggleLevelSystemView(true);setActiveViewSwitch('level');});
   on('viewMapBtn','click',()=>{toggleMapView(true);setActiveViewSwitch('map');});
+  on('viewExamBtn','click',()=>{openExamModePanel();setActiveViewSwitch('exam');});
   on('logoSettingsBtn','click',()=>g('settingsModal')?.classList.add('open'));
   g('settingsModal')?.addEventListener('click',e=>{ if(e.target?.id==='settingsModal') g('settingsModal')?.classList.remove('open'); });
   on('ft','change',()=>{renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null);syncFormHeaderLabels();});
@@ -99,7 +102,7 @@
   on('clearUnusedPathsBtn','click',clearUnusedPaths);
   g('addTypeBtn')?.addEventListener('click',()=>addPath('type'));
   on('panelDirBtn','click',togglePanelDir);
-  loadExams();on('examBtn','click',openExamModePanel);on('examModeClose','click',()=>g('examModePanel').classList.remove('open'));
+  loadExams();on('examModeClose','click',()=>g('examModePanel').classList.remove('open'));
   on('examModeEssayBtn','click',openExamPanel);
   on('examModeReviewBtn','click',()=>{
     g('examModePanel')?.classList.remove('open');

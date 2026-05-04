@@ -153,7 +153,7 @@ function renderFormLinks() {
   if(!el||!openId){if(el)el.innerHTML='';return;}
   const related=links.filter(l=>l.from===openId||l.to===openId);
   if(!related.length){el.innerHTML='<span style="font-size:12px;color:#bbb">尚無關聯</span>';return;}
-  el.innerHTML=related.map(l=>{const otherId=l.from===openId?l.to:l.from,other=mapNodeById(otherId),tag=isAuxnodeNode(other)?'<span class="chip" style="margin-right:6px;background:#F2E8FF;color:#7A34B0;border-color:#D4B5EF"></span>':'',relNote=normalizeRelationNote(l.note);return `<div class="fl-item">${tag}<span class="chip" style="margin-right:6px;background:${relationColor(l.rel)};color:#fff;border-color:${relationColor(l.rel)}">${relationLabel(l.rel)}</span><button class="fl-item-title fl-item-open" type="button" data-open-note-id="${otherId}">${other?other.title:'（已刪除）'}</button>${relNote?`<span class="chip" title="${escapeHtml(relNote)}">${escapeHtml(relNote)}</span>`:''}<button class="fl-del" data-lid="${l.id}">✕</button></div>`;}).join('');
+  el.innerHTML=related.map(l=>{const otherId=l.from===openId?l.to:l.from,other=mapNodeById(otherId),tag=isAuxnodeNode(other)?'<span class="chip" style="margin-right:6px;background:#F2E8FF;color:#7A34B0;border-color:#D4B5EF"></span>':'',relNote=normalizeRelationNote(l.note);return `<div class="fl-item">${tag}<button class="fl-item-title fl-item-open" type="button" data-open-note-id="${otherId}">${other?other.title:'（已刪除）'}</button>${relNote?`<span class="chip" title="${escapeHtml(relNote)}">${escapeHtml(relNote)}</span>`:''}<button class="fl-del" data-lid="${l.id}">✕</button></div>`;}).join('');
   el.querySelectorAll('[data-open-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const targetId=parseInt(btn.dataset.openNoteId,10);
     if(!mapNodeById(targetId)) return;
@@ -194,9 +194,8 @@ function addSelectedFormLinks(){
   const targetIds=Object.keys(formLinkSelections).filter(id=>formLinkSelections[id]).map(Number);
   if(!targetIds.length){showToast('請先選擇要關聯的筆記');return;}
   let added=0;
-  const relType='cause';
   const relNote='';
-  targetIds.forEach(toId=>{ if(createRelationLink(openId,toId,relType,relNote)) added++; });
+  targetIds.forEach(toId=>{ if(createRelationLink(openId,toId,'',relNote)) added++; });
   formLinkSelections={};saveData();renderFormLinks();renderFormLinkSearch();showToast(`已建立 ${added} 筆關聯`);if(isMapOpen)scheduleMapRedraw(100);
 }
 

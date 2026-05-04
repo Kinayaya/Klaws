@@ -2,9 +2,11 @@
 function loadExams() { try{const r=localStorage.getItem('klaws_exams_v1');if(r){examList=JSON.parse(r);examList.forEach(e=>{if(/^tag_s_|^tag_t_/.test(e.domain))e.domain=subByKey(e.domain).label;});saveExams();}}catch(e){examList=[];} }
 function saveExams() { try{localStorage.setItem('klaws_exams_v1',JSON.stringify(examList));}catch(e){} }
 function openExamModePanel() {
+  currentView='exam';
   g('examModePanel')?.classList.add('open');
   g('examListPanel')?.classList.remove('open');
   g('examAddForm')?.classList.remove('open');
+  if(typeof window.syncViewSwitchState==='function') window.syncViewSwitchState(currentView);
 }
 function resetExamForm(){
   const title=g('examFormTitle'); if(title) title.textContent='+ 新增申論題';
@@ -100,6 +102,7 @@ function closeExamView() {
   g('examView').classList.remove('open');
   currentView='notes';
   updateNotesHomeVisibility();
+  if(typeof window.syncViewSwitchState==='function') window.syncViewSwitchState(currentView);
 }
 
 function initMoreMenu(){
