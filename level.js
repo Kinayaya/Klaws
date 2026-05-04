@@ -1,3 +1,9 @@
+function refreshAchievementProgress(){
+  if(typeof renderLevelSystemPage==='function' && g('levelSystemView')?.classList.contains('open')){
+    renderLevelSystemPage();
+  }
+}
+
 function moveLevelItem(kind,idx,dir){
   const arr=levelSystem[kind];
   const target=idx+dir;
