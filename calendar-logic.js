@@ -13,6 +13,7 @@ function toggleCalendarView(open){
   g('calendarView').classList.toggle('open',open);
   if(open) renderCalendar();
   else updateNotesHomeVisibility();
+  if(typeof window.syncViewSwitchState==='function') window.syncViewSwitchState(currentView);
   saveLastViewState();
 }
 function toggleLevelSystemView(open){
@@ -28,6 +29,7 @@ function toggleLevelSystemView(open){
   if(advanced) advanced.style.display=open?'none':'block';
   if(open) renderLevelSystemPage();
   else updateNotesHomeVisibility();
+  if(typeof window.syncViewSwitchState==='function') window.syncViewSwitchState(currentView);
   saveLastViewState();
 }
 function renderCalendar(){
