@@ -132,9 +132,6 @@
   on('scpReset','click',()=>{shortcuts=DEFAULT_SHORTCUTS.map(s=>({...s}));saveShortcuts();renderShortcutList();showToast('已恢復預設快捷鍵');});
   loadShortcuts();document.addEventListener('keydown',handleGlobalKey);
   loadRecycleBin();
-  purgeRecycleBin();
-  try{unusedTagTracker=JSON.parse(localStorage.getItem(UNUSED_TAG_TRACK_KEY)||'{}')||{};}catch(e){unusedTagTracker={};}
-  setInterval(()=>{purgeRecycleBin();autoCleanupUnusedPaths();},60000);
   const touchGuard=window.KLawsTouchGuard||{};
   const eventTargetElement = touchGuard.eventTargetElement||((target)=>{
     if(target&&typeof target.closest==='function') return target;

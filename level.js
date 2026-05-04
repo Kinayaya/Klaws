@@ -196,39 +196,6 @@ function movePath(idx,kind,dir){
   [arr[idx],arr[target]]=[arr[target],arr[idx]];
   saveData();renderPathLists();rebuildUI();render();
 }
-function autoCleanupUnusedPaths(){
-  const now=Date.now();
-  const usage={
-    type:new Set(notes.map(n=>n.type).filter(Boolean)),
-    domain:new Set(allMapNodes().flatMap(n=>noteDomains(n)).filter(Boolean)),
-    group:new Set(allMapNodes().flatMap(n=>noteGroups(n)).filter(Boolean)),
-    part:new Set(allMapNodes().flatMap(n=>noteParts(n)).filter(Boolean))
-  };
-  const nextTracker={};
-  const keepOrTrack=(kind,key)=>{
-    if(usage[kind].has(key)) return true;
-    const trackerKey=`${kind}:${key}`;
-    const since=unusedTagTracker[trackerKey]||now;
-    nextTracker[trackerKey]=since;
-    return now-since<UNUSED_TAG_PURGE_MS;
-  };
-  const before=types.length+domains.length+groups.length+parts.length;
-  types=types.filter(t=>keepOrTrack('type',t.key));
-  domains=domains.filter(s=>keepOrTrack('domain',s.key));
-  groups=groups.filter(c=>keepOrTrack('group',c.key));
-  parts=parts.filter(s=>keepOrTrack('part',s.key));
-  unusedTagTracker=nextTracker;
-  localStorage.setItem(UNUSED_TAG_TRACK_KEY,JSON.stringify(unusedTagTracker));
-  normalizeNotesTaxonomy();
-  const after=types.length+domains.length+groups.length+parts.length;
-  if(after!==before){
-    saveData();
-    if(g('tp')?.classList.contains('open')) renderPathLists();
-    rebuildUI();
-    render();
-    showToast(`已自動清理 ${before-after} 個未使用路徑`);
-  }
-}
 function clearUnusedPaths(){
   const usedTypes=new Set(notes.map(n=>n.type)),usedSubs=new Set(allMapNodes().flatMap(n=>noteDomains(n))),usedGroups=new Set(allMapNodes().flatMap(n=>noteGroups(n))),usedParts=new Set(allMapNodes().flatMap(n=>noteParts(n)));
   const before={types:types.length,subs:domains.length,groups:groups.length,parts:parts.length};
@@ -237,8 +204,6 @@ function clearUnusedPaths(){
   groups=groups.filter(c=>usedGroups.has(c.key));
   parts=parts.filter(s=>usedParts.has(s.key));
   normalizeNotesTaxonomy();
-  unusedTagTracker={};
-  localStorage.setItem(UNUSED_TAG_TRACK_KEY,JSON.stringify(unusedTagTracker));
   const removed=(before.types-types.length)+(before.subs-domains.length)+(before.groups-groups.length)+(before.parts-parts.length);
   saveData();renderPathLists();rebuildUI();render();showToast(removed?`已清理 ${removed} 個未使用路徑`:'沒有可清理的路徑');
 }
