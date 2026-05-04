@@ -30,7 +30,6 @@ input[type="checkbox"]{-webkit-appearance:auto;appearance:auto}
 .tool-btn,.map-btn{padding:6px 10px;border-radius:10px;border:1px solid #d6dce6;background:#f8fafc;font-size:12px;color:#475467;cursor:pointer;font-weight:600;white-space:nowrap}
 .map-btn{border-color:#d6dce6;background:#f8fafc;color:#475467}
 .tool-btn:active,.map-btn:active{background:#e5e5e5}
-.exam-btn-style{background:#f8fafc;color:#475467;border-color:#d6dce6;font-weight:600}
 .ai-btn-style{background:#0f172a;color:#93c5fd;border-color:#334155}
 .add-btn{padding:8px 14px;background:#0C447C;color:#fff;border-radius:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;white-space:nowrap}
 .add-btn:active{background:#0062cc}
