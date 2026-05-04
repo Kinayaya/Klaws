@@ -606,10 +606,19 @@ function ensureErudaInitialized(eruda){
 function safeErudaCall(eruda,method){
   if(!eruda||typeof eruda[method]!=='function') return false;
   if(method!=='init'&&!ensureErudaInitialized(eruda)) return false;
-  try{
+  const invoke=()=>{
     eruda[method]();
     return true;
+  };
+  try{
+    return invoke();
   }catch(err){
+    const msg=String(err&&err.message||err||'');
+    if(method!=='init'&&/call\s+"?eruda\.init\(\)"?\s+first/i.test(msg)){
+      try{
+        if(ensureErudaInitialized(eruda)) return invoke();
+      }catch(_){/* noop */}
+    }
     appendDebugLine('warn',[`Eruda ${method} failed:`,err]);
     return false;
   }

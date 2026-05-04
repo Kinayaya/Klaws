@@ -20,5 +20,5 @@ test('only switches to eruda mode when show succeeds', ()=>{
 });
 
 test('safeErudaCall swallows eruda runtime errors', ()=>{
-  assert.match(renderUi, /function safeErudaCall\(eruda,method\)\{[\s\S]*try\{[\s\S]*eruda\[method\]\(\);[\s\S]*\}catch\(err\)\{[\s\S]*return false;[\s\S]*\}/);
+    assert.match(renderUi, /function safeErudaCall\(eruda,method\)\{[\s\S]*try\{[\s\S]*\}catch\(err\)\{[\s\S]*appendDebugLine\('warn',[\s\S]*return false;[\s\S]*\}/);
 });
