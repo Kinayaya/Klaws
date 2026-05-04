@@ -256,7 +256,7 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 #mapCanvas.vertical-scroll-mode #mapSvg{height:auto;min-height:100%}
 .map-node{cursor:grab}
 .map-node:active{cursor:grabbing}
-.map-card-inner{padding:10px 11px;display:flex;flex-direction:column;gap:5px;width:80%;height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;color:#1f2937;background:#fff}
+.map-card-inner{padding:10px 11px;display:flex;flex-direction:column;gap:5px;width:100%;height:100%;border-radius:12px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;color:#1f2937;background:#fff}
 .map-card-head{display:flex;align-items:flex-start;justify-content:flex-start;gap:8px}
 .map-card-title{flex:1;font-size:20px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .map-card-body-segment+.map-card-body-segment{border-top:1px solid #e7ecf3;padding-top:5px;margin-top:1px}
@@ -724,7 +724,7 @@ body.panel-dir-bottom #tp.open{transform:translateY(0)}
 #mapToolbar{padding:10px 14px;border-bottom:1px solid #e7edf6;gap:10px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 #mapCanvas{background:linear-gradient(180deg,#f8fbff 0%,#f4f8fd 100%)}
 .map-tree-drawer-toggle{font-size:34px;padding:16px 12px;background:rgba(255,255,255,.92);border-color:#dbe5f1;box-shadow:0 10px 20px rgba(15,23,42,.1)}
-.map-card-inner{padding:12px 13px;gap:7px;color:#1e293b;background:#fff}
+.map-card-inner{padding:12px 13px;gap:7px;width:100%;height:100%;border-radius:12px;overflow:hidden;color:#1e293b;background:#fff}
 .map-card-title{font-size:18px;line-height:1.4;font-weight:700;letter-spacing:.01em}
 .map-card-body-segment+.map-card-body-segment{border-top:1px solid #e8eef6;padding-top:7px;margin-top:2px}
 .map-card-body-text{font-size:14px;line-height:1.55;color:#5b6778}
