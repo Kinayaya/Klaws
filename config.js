@@ -5,7 +5,7 @@ const DEFAULTS = {
     {id:1,type:'article',domain:'民法',title:'民法第 184 條 — 侵權行為',question:'民法第 184 條要件是什麼？',answer:'因故意或過失，不法侵害他人之權利者，負損害賠償責任。',prompt:'先回想「侵害權利 + 故意過失 + 因果關係」。',application:'在侵權責任題型中，用它判斷是否成立損害賠償。',tags:['侵權行為','損害賠償'],date:'2025-03-10',detail:'構成要件：\n1. 須有加害行為\n2. 行為須不法\n3. 須有故意或過失\n4. 須有損害\n5. 加害行為與損害間有因果關係'},
   ],
   links: [{id:1,from:3,to:4,rel:'example',color:'#2F8F6B'},{id:2,from:3,to:2,rel:'contrast',color:'#8A5CF6'},{id:3,from:1,to:5,rel:'application',color:'#D97706'}],
-  types: [{key:'article',label:'條文',color:'#007AFF'},{key:'concept',label:'概念',color:'#7F77DD'},{key:'diary',label:'日記',color:'#D85A30'}],
+  types: [{key:'article',label:'條文',color:'#007AFF'},{key:'concept',label:'概念',color:'#7F77DD'},{key:'issue',label:'爭點',color:'#D85A30'}],
   domains: [{key:'民法',label:'民法',color:'#D85A30'},{key:'刑法',label:'刑法',color:'#1D9E75'},{key:'憲法',label:'憲法',color:'#7F77DD'},{key:'行政法',label:'行政法',color:'#378ADD'}],
   groups: [
     {key:'總則',label:'總則',domain:'民法'},{key:'法律行為',label:'法律行為',domain:'民法'},
@@ -53,8 +53,12 @@ const BUILTIN_FIELD_DEFS = {
   detail:{key:'detail',label:'詳細筆記',kind:'textarea',placeholder:''},
   todos:{key:'todos',label:'📝 待辦清單',kind:'textarea',placeholder:''}
 };
-const DEFAULT_TYPE_FIELD_KEYS = {diary:['body','todos']};
-const DEFAULT_NORMAL_FIELD_KEYS = [];
+const DEFAULT_TYPE_FIELD_KEYS = {
+  article:['body','detail'],
+  concept:['body','detail'],
+  issue:['body','detail']
+};
+const DEFAULT_NORMAL_FIELD_KEYS = ['body','detail'];
 const RELATION_TYPE_META = {
   cause:{label:'cause',color:'#2563EB',needsNote:true,notePlaceholder:'請輸入因果說明（例如：A 造成 B）'},
   example:{label:'example',color:'#2F8F6B'},
