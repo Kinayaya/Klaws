@@ -430,9 +430,17 @@ function deleteMapAuxnode(id){
 function scheduleMapRedraw(ms=60){ if(mapRedrawTimer)clearTimeout(mapRedrawTimer);if(mapTimer)clearTimeout(mapTimer);mapRedrawTimer=setTimeout(()=>drawMap(),ms);mapTimer=mapRedrawTimer; }
 function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
-  if(!Array.isArray(visNotes)||!visNotes.length){body.innerHTML='<div class="map-tree-empty">目前沒有可顯示點。</div>';return;}
+  const list=Array.isArray(visNotes)?visNotes:[];
   const tree={label:'',items:{},notes:[]};
-  visNotes.forEach(n=>{
+  const fixedRootSegs=[...new Set(
+    notes
+      .map(n=>notePathSegments(n)[0])
+      .filter(Boolean)
+  )];
+  fixedRootSegs.forEach(seg=>{
+    if(!tree.items[seg]) tree.items[seg]={label:seg,items:{},notes:[]};
+  });
+  list.forEach(n=>{
     const pathSegs=notePathSegments(n);
     if(!pathSegs.length){tree.notes.push(n);return;}
     let cursor=tree;
@@ -462,12 +470,14 @@ function buildMapTreeIndex(visNotes){
     return `<ul>${groupItems}${noteItems}</ul>`;
   };
   const uncategorized=tree.notes.length?`<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 （未設定路徑）</span><span class="map-tree-count">${tree.notes.length}</span></div><ul>${tree.notes.map(note=>{const type=typeByKey(note.type);return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;}).join('')}</ul></li>`:'';
-  body.innerHTML=`<ul class="map-tree-list">${renderNode(tree,0,'')}${uncategorized}</ul>`;
+  const treeHtml=renderNode(tree,0,'');
+  if(!treeHtml&&!uncategorized){body.innerHTML='<div class="map-tree-empty">目前沒有可顯示點。</div>';return;}
+  body.innerHTML=`<ul class="map-tree-list">${treeHtml}${uncategorized}</ul>`;
   body.querySelectorAll('[data-tree-toggle-path]').forEach(btn=>btn.addEventListener('click',ev=>{
     const path=btn.dataset.treeTogglePath||'';
     if(!path) return;
     mapTreeCollapsedPaths[path]=!mapTreeCollapsedPaths[path];
-    buildMapTreeIndex(visNotes);
+    buildMapTreeIndex(list);
     saveDataDeferred();
     ev.stopPropagation();
   }));
