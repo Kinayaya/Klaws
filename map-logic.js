@@ -746,16 +746,13 @@ function showMapInfo(id){
   const slashLinks=extractSlashLinks(n.detail,id);
   if(!related.length&&!slashLinks.length){linksEl.innerHTML='<span class="mp-no-links">尚無關聯</span>';}
   else{
-    const causeRows=[],relationRows=[];
+    const relationRows=[];
     related.forEach(l=>{
-      const otherId=l.from===id?l.to:l.from,other=mapNodeById(otherId),dir=l.from===id?'→':'←',name=other?other.title:'（已刪除）',relNote=normalizeRelationNote(l.note);
-      if(l.rel==='cause'){causeRows.push(`<button type="button" class="mp-reason-item mp-link-name" data-nid="${otherId}">${escapeHtml(name)}</button>`);return;}
-      relationRows.push(`<div class="mp-link-row"><span class="mp-link-badge" style="background:${relationColor(l.rel)}">${dir} ${relationLabel(l.rel)}</span><span class="mp-link-name" data-nid="${otherId}">${name}</span>${relNote?`<span class="chip">${escapeHtml(relNote)}</span>`:''}</div>`);
+      const otherId=l.from===id?l.to:l.from,other=mapNodeById(otherId),name=other?other.title:'（已刪除）',relNote=normalizeRelationNote(l.note);
+      relationRows.push(`<div class="mp-link-row"><span class="mp-link-badge" style="background:${LINK_COLOR}">關聯</span><span class="mp-link-name" data-nid="${otherId}">${name}</span>${relNote?`<span class="chip">${escapeHtml(relNote)}</span>`:''}</div>`);
     });
-    const causeHtml=causeRows.length?`<div class="mp-link-group"><div class="mp-link-group-title">相關原因</div><div class="mp-reason-list">${causeRows.join('')}</div></div>`:'';
-    const relationHtml=relationRows.join('');
     const slashHtml=slashLinks.map(item=>`<div class="mp-link-row"><span class="mp-link-badge" style="background:#64748B">/ 連結</span><span class="mp-link-name" data-nid="${item.id}">${escapeHtml(item.title)}</span></div>`).join('');
-    linksEl.innerHTML=causeHtml+relationHtml+slashHtml;
+    linksEl.innerHTML=relationRows.join('')+slashHtml;
     linksEl.querySelectorAll('.mp-link-name').forEach(el=>{el.addEventListener('click',()=>{
       const targetId=parseInt(el.dataset.nid,10);
       highlightNode(targetId);

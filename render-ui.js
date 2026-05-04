@@ -232,15 +232,14 @@ function applyCompactFilterMode(enabled){
   const btn=g('compactToggleBtn');
   if(btn) btn.textContent=enabled?'☰ 顯示分類':'☰ 收合分類';
 }
-function createRelationLink(fromId,toId,relType='cause',relNote=''){
+function createRelationLink(fromId,toId,relType='',relNote=''){
   const a=parseInt(fromId,10),b=parseInt(toId,10);
   if(!Number.isFinite(a)||!Number.isFinite(b)||a===b) return false;
   const src=mapNodeById(a),target=mapNodeById(b);
   if(!src||!target) return false;
   if((isAuxnodeNode(src)||isAuxnodeNode(target))&&(!isNodeInCurrentMapPage(a)||!isNodeInCurrentMapPage(b))) return false;
   if(links.some(l=>(l.from===a&&l.to===b)||(l.from===b&&l.to===a))) return false;
-  const rel=normalizeRelationType(relType);
-  links.push({id:lid++,from:a,to:b,rel,color:relationColor(rel),note:normalizeRelationNote(relNote)});
+  links.push({id:lid++,from:a,to:b,note:normalizeRelationNote(relNote)});
   return true;
 }
 function clearMapLinkSource(opts={}){
@@ -505,9 +504,9 @@ function renderLinksForNote(id) {
   const el=g('dp-links');
   if(!related.length){el.innerHTML='<span style="font-size:12px;color:#bbb">尚無關聯</span>';return;}
   el.innerHTML=related.map(l=>{
-    const otherId=l.from===id?l.to:l.from,other=mapNodeById(otherId),dir=l.from===id?'→':'←';
+    const otherId=l.from===id?l.to:l.from,other=mapNodeById(otherId);
     const relationNote=normalizeRelationNote(l.note);
-    return `<div class="link-item"><div class="link-dot" style="background:${relationColor(l.rel)}"></div><span class="link-rel" style="background:${relationColor(l.rel)}">${dir} ${relationLabel(l.rel)}</span><span class="link-title link-jump" data-nid="${otherId}" style="cursor:pointer;color:#007AFF;text-decoration:underline;">${other?other.title:'（已刪除）'}</span>${relationNote?`<span class="chip" title="${escapeHtml(relationNote)}">${escapeHtml(relationNote)}</span>`:''}<button class="link-del" data-lid="${l.id}">✕</button></div>`;
+    return `<div class="link-item"><div class="link-dot" style="background:${LINK_COLOR}"></div><span class="link-title link-jump" data-nid="${otherId}" style="cursor:pointer;color:#007AFF;text-decoration:underline;">${other?other.title:'（已刪除）'}</span>${relationNote?`<span class="chip" title="${escapeHtml(relationNote)}">${escapeHtml(relationNote)}</span>`:''}<button class="link-del" data-lid="${l.id}">✕</button></div>`;
   }).join('');
   el.querySelectorAll('.link-jump').forEach(btn=>btn.addEventListener('click',()=>{
     const nid2=parseInt(btn.dataset.nid,10);
