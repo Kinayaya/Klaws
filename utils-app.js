@@ -659,7 +659,7 @@ const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
   setMapCenterForCurrentScope(target,opt);
   mapPageStack=prevStack;
 };
-const getPayload = () => ({notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodePos,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,achievements,levelSystem,panelDir:getPanelDir(),updatedAt:new Date().toISOString()});
+const getPayload = () => ({notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodePos,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,panelDir:getPanelDir(),updatedAt:new Date().toISOString()});
 const parseUpdatedAt = raw => {
   const n=Date.parse(raw||'');
   return Number.isFinite(n)?n:0;
@@ -779,7 +779,7 @@ const formatUsageDuration = (startRaw,endRaw=new Date()) => {
 const usageMinutesSinceStart = () => Math.max(0,Math.floor((new Date()-new Date(ensureUsageStart()))/60000));
 const doneTodoCount = todos => (Array.isArray(todos)?todos:[]).filter(t=>t&&t.done&&safeStr(t.text).trim()).length;
 function getCurrentTitle(){
-  const pts=Math.max(0,Number(getLevelAchievementPoints())||0);
+  const pts=Math.max(0,(levelSystem.tasks||[]).reduce((sum,t)=>sum+(Number(t.completions)||0),0));
   return TITLE_LEVELS.reduce((pick,lvl)=>pts>=lvl.min?lvl:pick,TITLE_LEVELS[0]);
 }
 function applyBrandTitle(){
@@ -788,87 +788,13 @@ function applyBrandTitle(){
   const lvl=getCurrentTitle();
   el.textContent=`LV${lvl.level}・${lvl.name}`;
 }
-function normalizeAchievements(){
-  const base=(achievements&&typeof achievements==='object')?achievements:{};
-  achievements={
-    points:Math.max(0,parseInt(base.points,10)||0),
-    taskCompletions:Math.max(0,parseInt(base.taskCompletions,10)||0),
-    unlocked:(base.unlocked&&typeof base.unlocked==='object'&&!Array.isArray(base.unlocked))?base.unlocked:{},
-    lastUsageMinuteReward:Math.max(0,parseInt(base.lastUsageMinuteReward,10)||0)
-  };
-}
+
 const difficultyRank=d=>({E:1,N:2,H:3}[d]||1);
 const skillXpRequired=level=>Math.round(28+Math.max(1,level)*10);
 const getSkillStage=(lvl=0)=>LEVEL_STAGES.find(s=>lvl>=s.min&&lvl<=s.max)?.rank||'E';
-const getLevelAchievementPoints=()=>((levelSystem.achievements||[]).filter(a=>a.unlocked).reduce((sum,a)=>sum+(Number(a.points)||0),0));
-function normalizeLevelSystem(){
-  const base=(levelSystem&&typeof levelSystem==='object')?levelSystem:{};
-  const settings=(base.settings&&typeof base.settings==='object')?base.settings:{};
-  const rawXp=settings.xpByDifficulty||{};
-  const wasBoostApplied=!!settings.xpBoost150Applied;
-  const normalizeXp=key=>{
-    const baseXp=Math.max(1,parseInt(rawXp[key],10)||BASE_XP_BY_DIFFICULTY[key]);
-    return wasBoostApplied?baseXp:Math.max(1,Math.round(baseXp*XP_BOOST_MULTIPLIER));
-  };
-  levelSystem={
-    skills:Array.isArray(base.skills)?base.skills:[],
-    tasks:Array.isArray(base.tasks)?base.tasks:[],
-    achievements:Array.isArray(base.achievements)?base.achievements:[],
-    settings:{
-      xpByDifficulty:{
-        E:normalizeXp('E'),
-        N:normalizeXp('N'),
-        H:normalizeXp('H')
-      },
-      xpBoost150Applied:true
-    }
-  };
-  levelSystem.skills=levelSystem.skills.map(s=>({id:s.id||Date.now()+Math.random(),name:safeStr(s.name||'未命名技能'),level:Math.max(0,Math.min(100,parseInt(s.level,10)||1)),xp:Math.max(0,parseInt(s.xp,10)||0),lastDoneByDiff:(s.lastDoneByDiff&&typeof s.lastDoneByDiff==='object')?s.lastDoneByDiff:{},lastDecayAt:s.lastDecayAt||new Date().toISOString()}));
-  levelSystem.tasks=levelSystem.tasks.map(t=>({
-    id:t.id||Date.now()+Math.random(),
-    name:safeStr(t.name||'未命名任務'),
-    difficulty:['E','N','H'].includes(t.difficulty)?t.difficulty:'N',
-    repeatCycle:TASK_REPEAT_OPTIONS.some(opt=>opt.key===t.repeatCycle)?t.repeatCycle:'daily',
-    completions:Math.max(0,parseInt(t.completions,10)||0),
-    lastCompletedAt:t.lastCompletedAt||'',
-    lastReward:(t.lastReward&&typeof t.lastReward==='object')?t.lastReward:null,
-    subtasks:Array.isArray(t.subtasks)?t.subtasks.map(sub=>({
-      id:sub.id||Date.now()+Math.random(),
-      text:safeStr(sub.text||'').trim(),
-      difficulty:['E','N','H'].includes(sub.difficulty)?sub.difficulty:(['E','N','H'].includes(t.difficulty)?t.difficulty:'N'),
-      completions:Math.max(0,parseInt(sub.completions,10)||0),
-      lastCompletedAt:sub.lastCompletedAt||'',
-      lastReward:(sub.lastReward&&typeof sub.lastReward==='object')?sub.lastReward:null
-    })).filter(sub=>sub.text):[]
-  }));
-  levelSystem.achievements=levelSystem.achievements.map(a=>({id:a.id||Date.now()+Math.random(),name:safeStr(a.name||'未命名成就'),target:Math.max(1,parseInt(a.target,10)||1),condition:safeStr(a.condition||'累積完成任務次數'),difficulty:['E','N','H'].includes(a.difficulty)?a.difficulty:'N',points:Math.max(0,parseInt(a.points,10)||0),progress:Math.max(0,parseInt(a.progress,10)||0),unlocked:!!a.unlocked}));
-}
-function migrateLegacyAchievements(){
-  if(levelSystem.achievements.length) return;
-  normalizeAchievements();
-  const legacyDefs=[
-    {name:'任務啟程',target:1,condition:'累積完成任務次數',difficulty:'N',points:10,progress:achievements.taskCompletions},
-    {name:'十連達成',target:10,condition:'累積完成任務次數',difficulty:'N',points:30,progress:achievements.taskCompletions},
-    {name:'專注一小時',target:60,condition:'累積使用分鐘',difficulty:'N',points:20,progress:usageMinutesSinceStart()}
-  ];
-  levelSystem.achievements=legacyDefs.map((d,i)=>({id:`legacy_${i}`,...d,unlocked:d.progress>=d.target}));
-}
-function refreshAchievementProgress(){
-  normalizeLevelSystem();
-  const usageMins=usageMinutesSinceStart();
-  const completionByDifficulty={E:0,N:0,H:0};
-  (levelSystem.tasks||[]).forEach(task=>{
-    const cnt=Number(task.completions)||0;
-    if(difficultyRank(task.difficulty)>=difficultyRank('E')) completionByDifficulty.E+=cnt;
-    if(difficultyRank(task.difficulty)>=difficultyRank('N')) completionByDifficulty.N+=cnt;
-    if(difficultyRank(task.difficulty)>=difficultyRank('H')) completionByDifficulty.H+=cnt;
-  });
-  levelSystem.achievements.forEach(def=>{
-    const value=def.condition.includes('分鐘')?usageMins:completionByDifficulty[def.difficulty||'N'];
-    def.progress=Math.max(def.progress||0,value);
-    if(!def.unlocked&&def.progress>=def.target) def.unlocked=true;
-  });
-}
+
+
+
 const getTaskRepeatLabel=cycle=>TASK_REPEAT_OPTIONS.find(opt=>opt.key===cycle)?.label||'每日';
 const getSubtaskXpGain = difficulty => Math.max(1,levelSystem.settings.xpByDifficulty[difficulty]||Math.round(BASE_XP_BY_DIFFICULTY[difficulty||'N']*XP_BOOST_MULTIPLIER));
 function snapshotSkill(skill){
@@ -965,7 +891,6 @@ function completeLevelTask(taskId,skillId,gainOverride=0){
   const gain=gainOverride>0?gainOverride:(levelSystem.settings.xpByDifficulty[task.difficulty]||Math.round(BASE_XP_BY_DIFFICULTY[task.difficulty||'N']*XP_BOOST_MULTIPLIER));
   task.lastReward={cycleKey:getTaskCycleKey(task,new Date()),skillId:String(skill.id),skillPrev:snapshotSkill(skill),gain};
   gainSkillXp(skill,task.difficulty,gain);
-  refreshAchievementProgress();
   applyBrandTitle();
   return true;
 }
@@ -975,7 +900,6 @@ function rollbackTaskCompletion(task,skill){
   task.completions=Math.max(0,(task.completions||0)-1);
   task.lastCompletedAt='';
   task.lastReward=null;
-  refreshAchievementProgress();
   applyBrandTitle();
   return true;
 }
