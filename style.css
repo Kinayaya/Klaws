@@ -260,7 +260,7 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .map-card-head{display:flex;align-items:flex-start;justify-content:flex-start;gap:8px}
 .map-card-title{flex:1;font-size:20px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .map-card-body-segment+.map-card-body-segment{border-top:1px solid #e7ecf3;padding-top:5px;margin-top:1px}
-.map-card-body-text{font-size:18px;color:#5c6677;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.map-card-body-text{font-size:18px;color:#5c6677;line-height:1.45;white-space:pre-wrap;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .map-card-foot{margin-top:2px;font-size:20px;color:#8b95a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .map-lane-label{font-size:11px;font-weight:600;fill:#9aa3b2;pointer-events:none}
 #lanePanel{position:absolute;top:10px;right:10px;z-index:25;display:none;background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.15);width:min(310px,92vw)}
@@ -547,6 +547,13 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 #fp .fl-result-type{font-size:14px;padding:4px 10px}
 #fp #form-links-wrap{max-height:42vh;overflow-y:auto;padding-right:2px;}
 #fp #form-links-list{max-height:22vh;overflow-y:auto;padding-right:2px;}
+#fp .ph{position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:blur(6px);padding:8px 0 10px;border-bottom:1px solid #edf2f7;z-index:2}
+#fp .form-section{margin-top:16px;padding:14px;border:1px solid #e7eef7;border-radius:12px;background:linear-gradient(180deg,#fff 0%,#fbfdff 100%)}
+#fp .form-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;font-weight:700;letter-spacing:.08em;color:#64748b;text-transform:uppercase;margin-bottom:10px}
+#fp .form-section .flbl{margin-top:8px}
+#fp .field-textarea{min-height:120px;resize:vertical}
+#fp .form-link-search{margin-bottom:8px}
+#fp .field-help-text{font-size:12px;color:#64748b;margin-top:4px}
 #tp{
   width:100vw;
   left:0;
