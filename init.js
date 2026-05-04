@@ -145,6 +145,10 @@
     const el=eventTargetElement(target);
     return !!(el&&el.closest('#mapCanvas'));
   };
+  const isInsideScrollablePanel = target => {
+    const el=eventTargetElement(target);
+    return !!(el&&el.closest('#fp, #dp, #tp, #ap, #settingsModal, #levelEditorModal, #calendarEventModal, #calendarSettingsModal, #assistToolsModal'));
+  };
   const shouldBlockDoubleClickZoom = target => {
     const el=eventTargetElement(target);
     if(!el) return true;
@@ -163,7 +167,7 @@
     document.addEventListener(evt,e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
   });
   document.addEventListener('touchstart',e=>{
-    if(isInsideMapCanvas(e.target)||isInteractiveTouchTarget(e.target)) return;
+    if(isInsideMapCanvas(e.target)||isInsideScrollablePanel(e.target)||isInteractiveTouchTarget(e.target)) return;
     if(e.touches.length>1){ e.preventDefault(); return; }
     const t=e.touches[0];
     if(!t) return;
@@ -172,10 +176,10 @@
     lastTouchTs=now; lastTouchX=t.clientX; lastTouchY=t.clientY;
   },{passive:false});
   document.addEventListener('touchmove',e=>{
-    if(!isInsideMapCanvas(e.target)&&e.touches.length>1) e.preventDefault();
+    if(!isInsideMapCanvas(e.target)&&!isInsideScrollablePanel(e.target)&&e.touches.length>1) e.preventDefault();
   },{passive:false});
   document.addEventListener('touchend',e=>{
-    if(isInsideMapCanvas(e.target)||isInteractiveTouchTarget(e.target)) return;
+    if(isInsideMapCanvas(e.target)||isInsideScrollablePanel(e.target)||isInteractiveTouchTarget(e.target)) return;
     const now=Date.now();
     if(now-lastTouchEndTs<320) e.preventDefault();
     lastTouchEndTs=now;
