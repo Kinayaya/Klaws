@@ -39,10 +39,9 @@ let focusTimerDragState={active:false,pointerId:null,startX:0,startY:0,originX:0
 let focusTimerPos={x:null,y:null,initialized:false};
 let headerDatetimeTimer=null;
 let googleAccessToken='', googleTokenExpireAt=0, googleSyncBusy=false, googleSyncLastError='';
-let achievements={points:0,taskCompletions:0,unlocked:{},lastUsageMinuteReward:0}; // backward compatibility for legacy data
 const XP_BOOST_MULTIPLIER = 2.5;
 const BASE_XP_BY_DIFFICULTY = {E:12,N:22,H:36};
-let levelSystem={skills:[],tasks:[],achievements:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
+let levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
 let levelTaskExpanded={}, levelEditorState={kind:'',idx:-1};
 const LEVEL_STAGES=[
   {min:0,max:20,rank:'E'},{min:21,max:40,rank:'F'},{min:41,max:50,rank:'D'},

@@ -60,7 +60,6 @@
   on('settingsMoreBtn','click',()=>{g('settingsModal')?.classList.remove('open');g('assistToolsModal')?.classList.add('open');});
   on('settingsTasksBtn','click',()=>{g('settingsModal')?.classList.remove('open');openLevelSection('tasks');});
   on('settingsLevelBtn','click',()=>{g('settingsModal')?.classList.remove('open');openLevelSection('level');});
-  on('settingsAchievementsBtn','click',()=>{g('settingsModal')?.classList.remove('open');openLevelSection('achievements');});
   on('reviewNowBtn','click',()=>{
     reviewMode=!reviewMode;
     reviewReveal=false;
