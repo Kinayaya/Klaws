@@ -192,7 +192,7 @@ function render() {
     return hay.includes(q)||(normalizedDate&&formatDate(ev.date)===normalizedDate);
   }).map(ev=>({__isReminder:true,id:`r_${ev.id}`,title:ev.title||'未命名提醒',body:ev.body||'',date:ev.date,type:'reminder',eventId:ev.id,dueHour:ev.dueHour||0,dueMinute:ev.dueMinute||0})) : [];
   const mixed=[...filtered,...reminderHits];
-  if(!mixed.length){grid.innerHTML='<div class="empty">沒有符合的筆記</div>';return;}
+  if(!mixed.length){const hasFilters=!!(q||hasTaxonomyFilter()||reviewMode);grid.innerHTML=hasFilters?'<div class="empty">沒有符合的筆記，試試調整關鍵字或篩選條件</div>':'<div class="empty empty-state"><div class="empty-emoji">🗂️</div><div class="empty-title">還沒有筆記</div><div class="empty-sub">先新增第一筆內容，或點選左側分類開始整理你的法律知識。</div><button class="add-btn empty-cta" id="emptyAddBtn">+ 新增第一筆</button></div>';const cta=g('emptyAddBtn');if(cta) cta.addEventListener('click',()=>openForm());return;}
   const maxPg=Math.ceil(mixed.length/PAGE_SIZE)||1;
   if(gridPage>maxPg) gridPage=maxPg;
   const pgF=mixed.slice((gridPage-1)*PAGE_SIZE,gridPage*PAGE_SIZE);
