@@ -20,3 +20,10 @@ test('group and part path search can bypass panel pre-filter', ()=>{
   assert.match(levelJs, /if\(!partGroupFilter&&!hasSearch\)/);
   assert.match(levelJs, /if\(!hasSearch\) list=list\.filter\(item=>item\.group===partGroupFilter\|\|item\.group==='all'\);/);
 });
+
+
+test('path search also matches path keys to avoid empty results for key-based queries', ()=>{
+  assert.match(levelJs, /`\$\{item\.label\|\|''\} \$\{item\.key\|\|''\}`\.toLowerCase\(\)\.includes\(pathSearchQ\)/);
+  assert.match(levelJs, /`\$\{item\.label\|\|''\} \$\{item\.key\|\|''\} \$\{subByKey\(item\.domain\)\.label\}`\.toLowerCase\(\)\.includes\(pathSearchQ\)/);
+  assert.match(levelJs, /`\$\{item\.label\|\|''\} \$\{item\.key\|\|''\} \$\{groupByKey\(item\.group\)\.label\}`\.toLowerCase\(\)\.includes\(pathSearchQ\)/);
+});
