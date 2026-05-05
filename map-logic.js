@@ -431,6 +431,8 @@ function scheduleMapRedraw(ms=60){ if(mapRedrawTimer)clearTimeout(mapRedrawTimer
 function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
   const list=Array.isArray(visNotes)?visNotes:[];
+  const levelIcons=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+  const getLevelIcon=depth=>depth===0?'🗂️':(levelIcons[depth-1]||`${depth}.`);
   const tree={label:'',items:{},notes:[]};
   const ensurePath=pathSegs=>{
     let cursor=tree;
@@ -449,7 +451,7 @@ function buildMapTreeIndex(visNotes){
   const countNode=node=>node.notes.length+Object.values(node.items).reduce((sum,ch)=>sum+countNode(ch),0);
   const renderNode=(node,depth=0,parentPath='')=>{
     const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
-    const icon=depth===0?'🗂️':'📁';
+    const icon=getLevelIcon(depth);
     const noteItems=node.notes.map(note=>{
       const type=typeByKey(note.type);
       return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;
