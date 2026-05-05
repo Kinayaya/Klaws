@@ -12,3 +12,11 @@ test('path manager defines renderPathLists for init and path actions', ()=>{
 test('renderPathLists falls back to type panel when active category panel is absent', ()=>{
   assert.match(levelJs, /if\(!activePathCategory\|\|!panelExists\) activePathCategory='type';/);
 });
+
+test('group and part path search can bypass panel pre-filter', ()=>{
+  assert.match(levelJs, /const hasSearch=!!pathSearchQ;/);
+  assert.match(levelJs, /if\(!groupDomainFilter&&!hasSearch\)/);
+  assert.match(levelJs, /if\(!hasSearch\) list=list\.filter\(item=>item\.domain===groupDomainFilter\|\|item\.domain==='all'\);/);
+  assert.match(levelJs, /if\(!partGroupFilter&&!hasSearch\)/);
+  assert.match(levelJs, /if\(!hasSearch\) list=list\.filter\(item=>item\.group===partGroupFilter\|\|item\.group==='all'\);/);
+});

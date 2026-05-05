@@ -122,9 +122,10 @@ function renderPathList(cid,arr,kind) {
 }
 function renderGroupPathList() {
   const el=g('groupTagList'); if(!el) return;
-  if(!groupDomainFilter){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
-let list=groups.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('group',item.key)}));
-  list=list.filter(item=>item.domain===groupDomainFilter||item.domain==='all');
+  const hasSearch=!!pathSearchQ;
+  if(!groupDomainFilter&&!hasSearch){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
+  let list=groups.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('group',item.key)}));
+  if(!hasSearch) list=list.filter(item=>item.domain===groupDomainFilter||item.domain==='all');
   if(pathSearchQ) list=list.filter(item=>`${item.label} ${subByKey(item.domain).label}`.toLowerCase().includes(pathSearchQ));
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
@@ -142,9 +143,10 @@ return `<div class="tag-item ${partGroupFilter===item.key?'active-domain':''}" d
 }
 function renderPartPathList() {
   const el=g('partTagList'); if(!el) return;
-  if(!partGroupFilter){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
+  const hasSearch=!!pathSearchQ;
+  if(!partGroupFilter&&!hasSearch){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
   let list=parts.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('part',item.key)}));
-  list=list.filter(item=>item.group===partGroupFilter||item.group==='all');
+  if(!hasSearch) list=list.filter(item=>item.group===partGroupFilter||item.group==='all');
   if(pathSearchQ) list=list.filter(item=>`${item.label} ${groupByKey(item.group).label}`.toLowerCase().includes(pathSearchQ));
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
