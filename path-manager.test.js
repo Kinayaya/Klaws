@@ -13,6 +13,12 @@ test('renderPathLists falls back to type panel when active category panel is abs
   assert.match(levelJs, /if\(!activePathCategory\|\|!panelExists\) activePathCategory='type';/);
 });
 
+
+test('path manager shows all category panels during search to avoid hidden matches', ()=>{
+  assert.match(levelJs, /const hasSearch=!!pathSearchQ;/);
+  assert.match(levelJs, /panel\.hidden=hasSearch\?false:!isActive;/);
+});
+
 test('group and part path search can bypass panel pre-filter', ()=>{
   assert.match(levelJs, /const hasSearch=!!pathSearchQ;/);
   assert.match(levelJs, /if\(!groupDomainFilter&&!hasSearch\)/);
