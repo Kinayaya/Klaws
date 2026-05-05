@@ -69,8 +69,6 @@
   on('settingsManageBtn','click',()=>{g('settingsModal')?.classList.remove('open');openPathMgr();});
   on('settingsArchiveBtn','click',()=>{g('settingsModal')?.classList.remove('open');manageArchives();});
   on('settingsMoreBtn','click',()=>{g('settingsModal')?.classList.remove('open');g('assistToolsModal')?.classList.add('open');});
-  on('settingsTasksBtn','click',()=>{g('settingsModal')?.classList.remove('open');openLevelSection('tasks');});
-  on('settingsLevelBtn','click',()=>{g('settingsModal')?.classList.remove('open');openLevelSection('level');});
   on('reviewNowBtn','click',()=>{
     reviewMode=!reviewMode;
     reviewReveal=false;
@@ -98,8 +96,6 @@
   on('cloudLogoutBtn','click',logoutGoogleDriveSync);
   on('tpClose','click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
   on('pathSearchInput','input',debounce(()=>{pathSearchQ=(val('pathSearchInput')||'').toLowerCase().trim();renderPathLists();},150));
-  on('pathUnusedOnly','change',()=>{pathUnusedOnly=!!g('pathUnusedOnly').checked;renderPathLists();});
-  on('clearUnusedPathsBtn','click',clearUnusedPaths);
   g('addTypeBtn')?.addEventListener('click',()=>addPath('type'));
   on('panelDirBtn','click',togglePanelDir);
   loadExams();on('examModeClose','click',()=>g('examModePanel').classList.remove('open'));

@@ -432,23 +432,19 @@ function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
   const list=Array.isArray(visNotes)?visNotes:[];
   const tree={label:'',items:{},notes:[]};
-  const fixedRootSegs=[...new Set(
-    notes
-      .map(n=>notePathSegments(n)[0])
-      .filter(Boolean)
-  )];
-  fixedRootSegs.forEach(seg=>{
-    if(!tree.items[seg]) tree.items[seg]={label:seg,items:{},notes:[]};
-  });
-  list.forEach(n=>{
-    const pathSegs=notePathSegments(n);
-    if(!pathSegs.length){tree.notes.push(n);return;}
+  const ensurePath=pathSegs=>{
     let cursor=tree;
     pathSegs.forEach(seg=>{
       if(!cursor.items[seg]) cursor.items[seg]={label:seg,items:{},notes:[]};
       cursor=cursor.items[seg];
     });
-    cursor.notes.push(n);
+    return cursor;
+  };
+  collectTreePathSegments(notes,notePathSegments).forEach(ensurePath);
+  list.forEach(n=>{
+    const pathSegs=notePathSegments(n);
+    if(!pathSegs.length){tree.notes.push(n);return;}
+    ensurePath(pathSegs).notes.push(n);
   });
   const countNode=node=>node.notes.length+Object.values(node.items).reduce((sum,ch)=>sum+countNode(ch),0);
   const renderNode=(node,depth=0,parentPath='')=>{

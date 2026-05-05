@@ -107,7 +107,6 @@ function renderPathList(cid,arr,kind) {
   const source=Array.isArray(arr)?arr:[];
   let list=source.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount(kind,item.key)}));
   if(pathSearchQ) list=list.filter(item=>item.label.toLowerCase().includes(pathSearchQ));
-  if(pathUnusedOnly) list=list.filter(item=>item._usage===0);
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的路徑）</div>';return;}
   el.innerHTML=list.map(item=>`<div class="tag-item ${kind==='sub'&&groupDomainFilter===item.key?'active-domain':''}" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="${kind}" ${kind==='sub'?`data-domain-key="${item.key}"`:''}><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div class="tag-color-dot" style="background:${item.color}"></div><span class="tag-item-label">${item.label}</span><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="${kind}" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="${kind}" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="${kind}" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="${kind}" data-del="1">🗑</button></div></div>`).join('');
   if(kind==='sub'){
@@ -127,7 +126,6 @@ function renderGroupPathList() {
 let list=groups.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('group',item.key)}));
   list=list.filter(item=>item.domain===groupDomainFilter||item.domain==='all');
   if(pathSearchQ) list=list.filter(item=>`${item.label} ${subByKey(item.domain).label}`.toLowerCase().includes(pathSearchQ));
-  if(pathUnusedOnly) list=list.filter(item=>item._usage===0);
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
     const subLabel=item.domain==='all'?'全部':subByKey(item.domain).label;
@@ -148,7 +146,6 @@ function renderPartPathList() {
   let list=parts.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('part',item.key)}));
   list=list.filter(item=>item.group===partGroupFilter||item.group==='all');
   if(pathSearchQ) list=list.filter(item=>`${item.label} ${groupByKey(item.group).label}`.toLowerCase().includes(pathSearchQ));
-  if(pathUnusedOnly) list=list.filter(item=>item._usage===0);
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
     const groupLabel=item.group==='all'?'全部':groupByKey(item.group).label;
@@ -196,17 +193,6 @@ function movePath(idx,kind,dir){
   if(!arr[idx]||target<0||target>=arr.length) return;
   [arr[idx],arr[target]]=[arr[target],arr[idx]];
   saveData();renderPathLists();rebuildUI();render();
-}
-function clearUnusedPaths(){
-  const usedTypes=new Set(notes.map(n=>n.type)),usedSubs=new Set(allMapNodes().flatMap(n=>noteDomains(n))),usedGroups=new Set(allMapNodes().flatMap(n=>noteGroups(n))),usedParts=new Set(allMapNodes().flatMap(n=>noteParts(n)));
-  const before={types:types.length,subs:domains.length,groups:groups.length,parts:parts.length};
-  types=types.filter(t=>usedTypes.has(t.key));
-  domains=domains.filter(s=>usedSubs.has(s.key));
-  groups=groups.filter(c=>usedGroups.has(c.key));
-  parts=parts.filter(s=>usedParts.has(s.key));
-  normalizeNotesTaxonomy();
-  const removed=(before.types-types.length)+(before.subs-domains.length)+(before.groups-groups.length)+(before.parts-parts.length);
-  saveData();renderPathLists();rebuildUI();render();showToast(removed?`已清理 ${removed} 個未使用路徑`:'沒有可清理的路徑');
 }
 function editPath(idx,kind) {
   if(kind==='group'){editGroupPath(idx);return;}
