@@ -89,7 +89,6 @@ function toggleMapView(open) {
     buildMapFilters();
     updateMapPinnedGroup();
     const mapSearch=g('mapSearchInput');if(mapSearch)mapSearch.value=mapFilter.q||'';
-    g('zoomLabel').textContent=Math.round(mapScale*100)+'%';
     setMapLinkedOnlyBtnStyle();
     updateMapPagePath();
     setTimeout(()=>{const hadNodePos=Object.keys(nodePos).length>0;initNodePos();drawMap();if(!hadNodePos)saveData();},80);

@@ -36,7 +36,7 @@
     <div class="view-switch" aria-label="主視圖切換">
       <button class="view-switch-btn active" id="viewNotesBtn" type="button">筆記</button>
       <button class="view-switch-btn" id="viewCalendarBtn" type="button">日曆</button>
-      <button class="view-switch-btn" id="viewLevelBtn" type="button">等級</button>
+      <button class="view-switch-btn" id="viewLevelBtn" type="button">任務</button>
       <button class="view-switch-btn" id="viewMapBtn" type="button">體系圖</button>
       <button class="view-switch-btn" id="viewExamBtn" type="button">測驗</button>
     </div>
@@ -88,7 +88,7 @@
 
   <!-- Form Panel -->
   <div class="panel" id="fp" data-allow-touch-default="1">
-    <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><button class="pcls" id="fpClose">&#215;</button></div>
+    <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><div class="ph-inline-actions"><button class="fbtn bcl" id="fpCancel">取消</button><button class="fbtn bsv" id="fpSave">儲存</button></div><button class="pcls" id="fpClose">&#215;</button></div>
     <div class="form-section">
       <div class="form-section-title"><span>基本資料</span></div>
       <div class="f2col">
@@ -121,10 +121,6 @@
         <button class="tool-btn" id="flAddSelectedBtn" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459;">建立 0 筆關聯</button>
       </div>
       <div id="fl-results" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
-    </div>
-    <div class="frow">
-      <button class="fbtn bcl" id="fpCancel">取消</button>
-      <button class="fbtn bsv" id="fpSave">儲存</button>
     </div>
   </div>
 
@@ -193,7 +189,7 @@
     <div class="ph"><span class="ph-title">設定</span><button class="pcls" id="settingsCloseBtn">&#215;</button></div>
     <div class="settings-grid">
       <button class="tool-btn settings-item-btn" id="settingsTasksBtn">任務</button>
-      <button class="tool-btn settings-item-btn" id="settingsLevelBtn">等級</button>
+      <button class="tool-btn settings-item-btn" id="settingsLevelBtn">任務</button>
             <button class="tool-btn settings-item-btn" id="settingsManageBtn">管理</button>
       <button class="tool-btn settings-item-btn" id="settingsArchiveBtn">儲存回收區</button>
       <button class="tool-btn settings-item-btn" id="settingsMoreBtn">更多</button>
@@ -270,9 +266,6 @@
     <button class="tool-btn map-adv-item" id="mapLinkedOnlyBtn" style="background:#3B6D11;color:#fff;border-color:#3B6D11;">&#128279; 只顯示關聯</button>
     <button class="tool-btn map-adv-item" id="mapLaneBtn">&#129521; 泳道</button>
     <span id="mapPagePath" class="map-page-path">主頁</span>
-    <button class="zoom-btn" id="zoomIn">+</button>
-    <span id="zoomLabel">100%</span>
-    <button class="zoom-btn" id="zoomOut">&#8722;</button>
       </div>
   <div id="mapCanvas">
     <button class="map-tree-drawer-toggle" id="mapTreeToggleBtn" type="button" title="路徑索引" aria-label="開啟路徑索引">❯</button>

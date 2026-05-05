@@ -223,6 +223,8 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .zoom-btn{padding:3px 10px;border:1px solid #ddd;border-radius:6px;background:#f5f5f5;font-size:13px;cursor:pointer}
 .zoom-btn:active{background:#e5e5e5}
 #zoomLabel{font-size:11px;color:#9aa3b2;min-width:44px;text-align:center}
+.ph-inline-actions{display:flex;align-items:center;gap:6px;margin-left:8px}
+.ph-inline-actions .fbtn{padding:6px 10px;font-size:12px;border-radius:8px}
 .map-node-dimmed{opacity:.65!important}
 .map-node-highlight .node-card{stroke:#FF2A2A!important;stroke-width:3.5px!important}
 .map-node.map-link-source .node-card{stroke:#0C447C!important;stroke-width:3.2px!important}
