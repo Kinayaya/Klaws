@@ -68,6 +68,39 @@ function renderLevelSystemPage(){
   box.querySelectorAll('[data-task-expand]').forEach(btn=>btn.addEventListener('click',()=>toggleTaskExpand(Number(btn.dataset.taskExpand))));
   box.querySelectorAll('[data-task-check]').forEach(checkbox=>checkbox.addEventListener('change',()=>toggleTaskCompletionFromCheckbox(Number(checkbox.dataset.taskCheck),checkbox.checked)));
 }
+function renderPathLists(){
+  const panelRoot=g('tp');
+  const panels=panelRoot?panelRoot.querySelectorAll('[data-category-panel]'):[];
+  const panelExists=Array.from(panels).some(panel=>panel.dataset.categoryPanel===activePathCategory);
+  if(!activePathCategory||!panelExists) activePathCategory='type';
+  panelRoot?.querySelectorAll('.tag-nav-btn').forEach(btn=>{
+    btn.classList.toggle('active',(btn.dataset.category||'type')===activePathCategory);
+  });
+  panels.forEach(panel=>{
+    const isActive=panel.dataset.categoryPanel===activePathCategory;
+    panel.classList.toggle('active',isActive);
+    panel.hidden=!isActive;
+  });
+  renderPathList('typeTagList',types,'type');
+  renderPathList('subTagList',domains,'sub');
+  renderGroupPathList();
+  renderPartPathList();
+  renderPathManagerSelectOptions();
+}
+function renderPathManagerSelectOptions(){
+  const groupDomainSel=g('newGroupDomain');
+  if(groupDomainSel){
+    const current=groupDomainSel.value||'all';
+    groupDomainSel.innerHTML='<option value="all">全部</option>'+domains.map(s=>`<option value="${escapeHtml(s.key)}">${escapeHtml(s.label)}</option>`).join('');
+    groupDomainSel.value=domains.some(s=>s.key===current)||current==='all'?current:'all';
+  }
+  const partGroupSel=g('newPartGroup');
+  if(partGroupSel){
+    const current=partGroupSel.value||'all';
+    partGroupSel.innerHTML='<option value="all">全部</option>'+groups.map(ch=>`<option value="${escapeHtml(ch.key)}">${escapeHtml(ch.label)}</option>`).join('');
+    partGroupSel.value=groups.some(ch=>ch.key===current)||current==='all'?current:'all';
+  }
+}
 function renderPathList(cid,arr,kind) {
   const el=g(cid);
   if(!el) return;
