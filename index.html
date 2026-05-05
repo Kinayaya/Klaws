@@ -138,6 +138,7 @@
   <div class="tag-manager-layout">
     <div class="tag-category-nav" id="pathCategoryNav">
       <button class="tag-nav-btn active" data-category="type">類型</button>
+      <button class="tag-nav-btn" data-category="sub">路徑</button>
     </div>
     <div class="tag-manager-content">
       <div class="tag-category-panel" data-category-panel="type">
@@ -147,6 +148,15 @@
           <input id="newTypeLabel" placeholder="新類型名稱">
           <input type="color" class="color-pick" id="newTypeColor" value="#378ADD">
           <button class="tag-add-icon-btn" id="addTypeBtn">+</button>
+        </div>
+      </div>
+      <div class="tag-category-panel" data-category-panel="sub" hidden>
+        <div class="tag-part-title">路徑</div>
+        <div class="tag-list" id="subTagList"></div>
+        <div class="tag-add-row">
+          <input id="newSubLabel" placeholder="新路徑名稱">
+          <input type="color" class="color-pick" id="newSubColor" value="#43A047">
+          <button class="tag-add-icon-btn" id="addSubBtn">+</button>
         </div>
       </div>
     </div>
