@@ -13,7 +13,7 @@ input[type="checkbox"]{-webkit-appearance:auto;appearance:auto}
 #topbar{background:rgba(255,255,255,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:10px 16px 8px;border-bottom:1px solid #dfe6f0;position:sticky;top:0;z-index:50;box-shadow:0 6px 20px rgba(15,23,42,.05)}
 .title-row{display:grid;grid-template-columns:auto minmax(280px,1fr) auto;grid-template-areas:"brand switch tools" "search search search";align-items:center;margin-bottom:8px;gap:10px}
 .brand-wrap{grid-area:brand}
-.view-switch{grid-area:switch;justify-self:center}
+.view-switch{grid-area:switch;justify-self:center;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:120}
 .tool-btns{grid-area:tools}
 .search-wrap{position:relative;justify-self:center;width:min(680px,100%);max-width:none;grid-area:search;order:0}
 .search-wrap input{width:100%;padding:10px 12px 10px 32px;border:1px solid #d2dbe8;border-radius:12px;font-size:13px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
@@ -61,6 +61,7 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .scope-link-toggle input{width:14px;height:14px;cursor:pointer}
 #content{padding:24px 24px 32px;max-width:1360px;margin:0 auto}
 #notesView{position:relative}
+.notes-filter-toggle{position:absolute;left:24px;top:14px;z-index:15}
 #grid{display:grid;gap:12px;grid-template-columns:repeat(8,minmax(0,1fr))}
 .card{background:#fff;border-radius:14px;border:1px solid #e1e8f2;padding:14px 14px 14px 15px;position:relative;cursor:pointer;transition:box-shadow .16s ease-out,border-color .16s ease-out,transform .16s ease-out;min-height:168px;box-shadow:0 4px 14px rgba(15,23,42,.05)}
 .card.swipe-left{transform:translateX(-54px);transition:transform .16s ease}
@@ -705,9 +706,10 @@ body.panel-dir-bottom #tp.open{transform:translateY(0)}
   .title-row{grid-template-columns:1fr auto;gap:8px}
   .brand-wrap{grid-column:1 / 2}
   .header-status-wrap,.view-switch,.tool-btns{grid-column:1 / -1}
-  .view-switch{overflow:auto;padding:4px}
+  .view-switch{overflow:auto;padding:4px;top:6px}
   .search-wrap{width:100%}
   #grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .notes-filter-toggle{left:14px;top:10px}
 }
 
 @media (min-width: 981px) and (max-width: 1400px){
