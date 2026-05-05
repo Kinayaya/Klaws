@@ -722,7 +722,7 @@ const getMapCardBox = id => {
   if(previewHtml){
     const measuredHeight=measureMapCardHeight(note,width,markedTitle,previewHtml);
     if(Number.isFinite(measuredHeight)){
-      const value={width,height:Math.max(60,Math.round(measuredHeight*0.7)),bodyLines:0};
+      const value={width,height:Math.max(60,Math.round(measuredHeight)),bodyLines:0};
       mapCardBoxCache[id]={key:cacheKey,value};
       return value;
     }
@@ -737,7 +737,7 @@ const getMapCardBox = id => {
   const charsPerLine=Math.max(9,Math.floor((width-24)/10));
   const bodyLines=previewTexts.reduce((sum,text)=>sum+estimateMapTextLines(text,charsPerLine),0);
   const segmentExtra=Math.max(0,previewTexts.length-1)*9;
-  const height=Math.round((86+bodyLines*18+segmentExtra)*0.7);
+  const height=Math.round(86+bodyLines*18+segmentExtra);
   const value={width,height,bodyLines};
   mapCardBoxCache[id]={key:cacheKey,value};
   return value;
