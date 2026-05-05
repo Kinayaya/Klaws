@@ -97,6 +97,7 @@
   on('tpClose','click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
   on('pathSearchInput','input',debounce(()=>{pathSearchQ=(val('pathSearchInput')||'').toLowerCase().trim();renderPathLists();},150));
   g('addTypeBtn')?.addEventListener('click',()=>addPath('type'));
+  g('addSubBtn')?.addEventListener('click',()=>addPath('sub'));
   on('panelDirBtn','click',togglePanelDir);
   loadExams();on('examModeClose','click',()=>g('examModePanel').classList.remove('open'));
   on('examModeEssayBtn','click',openExamPanel);
