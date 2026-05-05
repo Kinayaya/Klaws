@@ -478,7 +478,12 @@ const getCollapsedNodesForCurrentContext = () => {
 const isMapNodeCollapsed = noteId => !!mapCollapsed[mapCollapseKey(noteId)];
 const mapSubpageContextKey = () => 'global';
 const mapSubpageKey = noteId => `${mapSubpageContextKey()}::${noteId}`;
-const mapPageNoteKey = rootId => Number.isFinite(parseInt(rootId,10))?String(parseInt(rootId,10)):'root';
+const mapPageNoteKey = rootId => {
+  if(rootId===undefined||rootId===null||rootId==='root') return 'root';
+  if(isPathPageKey(rootId)) return String(rootId);
+  const numericRootId=parseInt(rootId,10);
+  return Number.isFinite(numericRootId)?String(numericRootId):'root';
+};
 const findSubpageKeyByNoteId = noteId => {
   const exactKey=mapSubpageKey(noteId);
   if(mapSubpages[exactKey]) return exactKey;
