@@ -2,6 +2,6 @@
   "name": "klaws",
   "private": true,
   "scripts": {
-    "test": "node --test klaws-core.test.js debug-tool.test.js touch-guard.test.js view-state.test.js eruda-guard.test.js path-manager.test.js"
+    "test": "node --test klaws-core.test.js debug-tool.test.js touch-guard.test.js view-state.test.js eruda-guard.test.js path-manager.test.js map-tree-index.test.js"
   }
 }

@@ -4,7 +4,7 @@ let recycleBin=[];
 let cv='all', cs='all', cch='all', csec='all', searchQ='', openId=null, editMode=false;
 let selectedDomains=[], selectedGroups=[], selectedParts=[];
 let scopeLinkedEnabled = localStorage.getItem(SCOPE_LINKED_TOGGLE_KEY)==='1';
-let formLinkSelections={}, pathSearchQ='', pathUnusedOnly=false;
+let formLinkSelections={}, pathSearchQ='';
 let groupDomainFilter='', partGroupFilter='';
 let activePathCategory='type';
 let nodePos={}, dragNode=null, dragOffX=0, dragOffY=0, mapW=800, mapH=500;
