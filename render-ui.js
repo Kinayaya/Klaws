@@ -523,6 +523,7 @@ let debugMode='';
 let debugCaptureInstalled=false;
 let debugLines=[];
 let debugPanelEl=null, debugPanelBodyEl=null;
+let erudaUnavailable=false;
 const debugConsoleRaw={};
 const runtimeDebugBridge=window.__KLawsDebugRuntime||null;
 window.__KLawsDebugPushLine=(text)=>{
@@ -635,15 +636,21 @@ async function toggleDebugTool(){
   btn?.classList.add('active');
   showToast('偵錯工具已開啟');
 
+  if(erudaUnavailable) return;
   try{
     const er=await ensureEruda();
     if(!er||typeof er.init!=='function') throw new Error('eruda unavailable');
+    const erudaReady=ensureErudaInitialized(er);
+    if(!erudaReady) throw new Error('eruda init unavailable');
     const erudaShown=safeErudaCall(er,'show');
     if(erudaShown){
       hideLocalDebugConsole();
       debugMode='eruda';
+    }else{
+      erudaUnavailable=true;
     }
   }catch(e){
+    erudaUnavailable=true;
     appendDebugLine('warn',['Eruda fallback:',e]);
   }
 }
