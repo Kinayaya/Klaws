@@ -73,13 +73,14 @@ function renderPathLists(){
   const panels=panelRoot?panelRoot.querySelectorAll('[data-category-panel]'):[];
   const panelExists=Array.from(panels).some(panel=>panel.dataset.categoryPanel===activePathCategory);
   if(!activePathCategory||!panelExists) activePathCategory='type';
+  const hasSearch=!!pathSearchQ;
   panelRoot?.querySelectorAll('.tag-nav-btn').forEach(btn=>{
-    btn.classList.toggle('active',(btn.dataset.category||'type')===activePathCategory);
+    btn.classList.toggle('active',!hasSearch&&(btn.dataset.category||'type')===activePathCategory);
   });
   panels.forEach(panel=>{
     const isActive=panel.dataset.categoryPanel===activePathCategory;
-    panel.classList.toggle('active',isActive);
-    panel.hidden=!isActive;
+    panel.classList.toggle('active',hasSearch||isActive);
+    panel.hidden=hasSearch?false:!isActive;
   });
   renderPathList('typeTagList',types,'type');
   renderPathList('subTagList',domains,'sub');
