@@ -571,14 +571,12 @@ function buildMapTreeIndex(visNotes){
       ev.stopPropagation();
       const path=safeStr(btn.dataset.treeNavPath||'').trim();
       if(!path) return;
-      const op=prompt('編輯路徑：輸入新路徑名稱。
-若要刪除此路徑，請輸入 /delete',path);
+      const op=prompt(`編輯路徑：輸入新路徑名稱。\n若要刪除此路徑，請輸入 /delete`,path);
       if(op===null) return;
       const next=safeStr(op).trim();
       if(!next) return;
       if(next==='/delete'){
-        if(!confirm(`確定刪除路徑「${path}」？
-此路徑下筆記會移除該路徑前綴。`)) return;
+        if(!confirm(`確定刪除路徑「${path}」？\n此路徑下筆記會移除該路徑前綴。`)) return;
         const changed=deletePathForNotes(path);
         saveData();
         saveLastViewState();
