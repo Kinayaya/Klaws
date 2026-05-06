@@ -153,6 +153,10 @@
     const el=eventTargetElement(target);
     return !!(el&&el.closest('#fp, #dp, #tp, #ap, #settingsModal, #levelEditorModal, #calendarEventModal, #calendarSettingsModal, #assistToolsModal'));
   };
+  const isInsideMapTreeSidebar = target => {
+    const el=eventTargetElement(target);
+    return !!(el&&el.closest('#mapTreeSidebar'));
+  };
   const shouldBlockDoubleClickZoom = target => {
     const el=eventTargetElement(target);
     if(!el) return true;
@@ -183,8 +187,13 @@
     if(!isInsideMapCanvas(e.target)&&!isInsideScrollablePanel(e.target)&&e.touches.length>1) e.preventDefault();
   },{passive:false});
   document.addEventListener('touchend',e=>{
-    if(isInsideMapCanvas(e.target)||isInsideScrollablePanel(e.target)||isInteractiveTouchTarget(e.target)) return;
     const now=Date.now();
+    if(isInsideMapTreeSidebar(e.target)){
+      if(now-lastTouchEndTs<320) e.preventDefault();
+      lastTouchEndTs=now;
+      return;
+    }
+    if(isInsideMapCanvas(e.target)||isInsideScrollablePanel(e.target)||isInteractiveTouchTarget(e.target)) return;
     if(now-lastTouchEndTs<320) e.preventDefault();
     lastTouchEndTs=now;
   },{passive:false});
