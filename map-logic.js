@@ -440,6 +440,41 @@ function deleteMapAuxnode(id){
   showToast('已刪除');
 }
 function scheduleMapRedraw(ms=60){ if(mapRedrawTimer)clearTimeout(mapRedrawTimer);if(mapTimer)clearTimeout(mapTimer);mapRedrawTimer=setTimeout(()=>drawMap(),ms);mapTimer=mapRedrawTimer; }
+
+function replacePathPrefixForNotes(oldPath,newPath){
+  const oldSegs=notePathSegments({path:oldPath});
+  if(!oldSegs.length) return 0;
+  const newSegs=notePathSegments({path:newPath});
+  let changed=0;
+  notes.forEach(note=>{
+    const segs=notePathSegments(note);
+    if(segs.length<oldSegs.length) return;
+    const isPrefix=oldSegs.every((seg,idx)=>segs[idx]===seg);
+    if(!isPrefix) return;
+    const nextSegs=[...newSegs,...segs.slice(oldSegs.length)];
+    const nextPath=nextSegs.join(' > ');
+    if((note.path||'')===nextPath) return;
+    note.path=nextPath;
+    changed++;
+  });
+  return changed;
+}
+function deletePathForNotes(targetPath){
+  const targetSegs=notePathSegments({path:targetPath});
+  if(!targetSegs.length) return 0;
+  let changed=0;
+  notes.forEach(note=>{
+    const segs=notePathSegments(note);
+    if(segs.length<targetSegs.length) return;
+    const isPrefix=targetSegs.every((seg,idx)=>segs[idx]===seg);
+    if(!isPrefix) return;
+    const nextPath=segs.slice(targetSegs.length).join(' > ');
+    if((note.path||'')===nextPath) return;
+    note.path=nextPath;
+    changed++;
+  });
+  return changed;
+}
 function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
   const filterQ=safeStr(mapTreeFilterQ||'').trim().toLowerCase();
@@ -484,7 +519,7 @@ function buildMapTreeIndex(visNotes){
       const collapsed=!!mapTreeCollapsedPaths[treePath];
       const toggleSymbol=collapsed?'➕':'➖';
       const collapsedByFilter=filterQ?false:collapsed;
-      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn" data-tree-nav-path="${escapeHtml(treePath)}">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
+      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn" data-tree-nav-path="${escapeHtml(treePath)}" title="雙擊可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
@@ -501,35 +536,64 @@ function buildMapTreeIndex(visNotes){
     saveDataDeferred();
     ev.stopPropagation();
   }));
-  body.querySelectorAll('[data-tree-nav-path]').forEach(btn=>btn.addEventListener('click',()=>{
-    const path=safeStr(btn.dataset.treeNavPath||'').trim();
-    if(!path) return;
-    const segs=notePathSegments({path});
-    if(!segs.length){showToast('找不到對應的路徑頁面');return;}
-    const rootDepth=segs.length;
-    const noteIds=notes.filter(n=>{
-      const nSegs=notePathSegments(n);
-      if(!nSegs.length) return false;
-      const isPrefix=segs.every((seg,idx)=>nSegs[idx]===seg);
-      const withinOneLevel=nSegs.length<=rootDepth+1;
-      return isPrefix&&withinOneLevel;
-    }).map(n=>n.id);
-    const pathPageKey=`path::${path}`;
-    setMapPageAssignedIds(pathPageKey,noteIds);
-    if(mapPageStack.length){
-      const existingIdx=mapPageStack.indexOf(pathPageKey);
-      if(existingIdx!==-1) mapPageStack=mapPageStack.slice(0,existingIdx+1);
-      else mapPageStack[mapPageStack.length-1]=pathPageKey;
-      nodePos={};
-      updateMapPagePath();
-      forceLayout();
-      drawMap();
+  body.querySelectorAll('[data-tree-nav-path]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const path=safeStr(btn.dataset.treeNavPath||'').trim();
+      if(!path) return;
+      const segs=notePathSegments({path});
+      if(!segs.length){showToast('找不到對應的路徑頁面');return;}
+      const rootDepth=segs.length;
+      const noteIds=notes.filter(n=>{
+        const nSegs=notePathSegments(n);
+        if(!nSegs.length) return false;
+        const isPrefix=segs.every((seg,idx)=>nSegs[idx]===seg);
+        const withinOneLevel=nSegs.length<=rootDepth+1;
+        return isPrefix&&withinOneLevel;
+      }).map(n=>n.id);
+      const pathPageKey=`path::${path}`;
+      setMapPageAssignedIds(pathPageKey,noteIds);
+      if(mapPageStack.length){
+        const existingIdx=mapPageStack.indexOf(pathPageKey);
+        if(existingIdx!==-1) mapPageStack=mapPageStack.slice(0,existingIdx+1);
+        else mapPageStack[mapPageStack.length-1]=pathPageKey;
+        nodePos={};
+        updateMapPagePath();
+        forceLayout();
+        drawMap();
+        saveData();
+        saveLastViewState();
+        return;
+      }
+      enterMapSubpage(pathPageKey);
+    });
+    btn.addEventListener('dblclick',ev=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      const path=safeStr(btn.dataset.treeNavPath||'').trim();
+      if(!path) return;
+      const op=prompt('編輯路徑：輸入新路徑名稱。
+若要刪除此路徑，請輸入 /delete',path);
+      if(op===null) return;
+      const next=safeStr(op).trim();
+      if(!next) return;
+      if(next==='/delete'){
+        if(!confirm(`確定刪除路徑「${path}」？
+此路徑下筆記會移除該路徑前綴。`)) return;
+        const changed=deletePathForNotes(path);
+        saveData();
+        saveLastViewState();
+        drawMap();
+        showToast(changed?`已刪除路徑，更新 ${changed} 筆筆記`:'已刪除路徑');
+        return;
+      }
+      const changed=replacePathPrefixForNotes(path,next);
+      if(!changed){showToast('沒有筆記需要更新');return;}
       saveData();
       saveLastViewState();
-      return;
-    }
-    enterMapSubpage(pathPageKey);
-  }));
+      drawMap();
+      showToast(`路徑已更新，共 ${changed} 筆`);
+    });
+  });
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const id=parseInt(btn.dataset.treeNoteId,10);
     if(!Number.isFinite(id)||!mapNodeById(id)) return;
