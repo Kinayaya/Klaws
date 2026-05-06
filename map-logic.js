@@ -1,4 +1,16 @@
 // ==================== 體系圖 ====================
+const MAP_TREE_SIDEBAR_OPEN_KEY='klaws_map_tree_sidebar_open_v1';
+function setMapTreeSidebarOpen(willOpen){
+  const sidebar=g('mapTreeSidebar');
+  const toggleBtn=g('mapTreeToggleBtn');
+  if(!sidebar||!toggleBtn) return;
+  mapTreeSidebarOpen=!!willOpen;
+  sidebar.classList.toggle('open',mapTreeSidebarOpen);
+  toggleBtn.classList.toggle('open',mapTreeSidebarOpen);
+  toggleBtn.textContent=mapTreeSidebarOpen?'❮':'❯';
+  toggleBtn.setAttribute('aria-label',mapTreeSidebarOpen?'收合路徑索引':'開啟路徑索引');
+  try{ localStorage.setItem(MAP_TREE_SIDEBAR_OPEN_KEY,mapTreeSidebarOpen?'1':'0'); }catch(e){}
+}
 function initNodePos() { const canvas=g('mapCanvas');mapW=canvas.offsetWidth||800;mapH=canvas.offsetHeight||500;const cx=mapW/2,cy=mapH/2,r=Math.min(mapW,mapH)*.44;notes.forEach((n,i)=>{if(!nodePos[n.id]){const angle=(i/notes.length)*2*Math.PI;nodePos[n.id]={x:cx+r*Math.cos(angle),y:cy+r*Math.sin(angle)};}}); }
 function getNodeRadius(id){ return MAP_NODE_RADIUS_DEFAULT; }
 function clampNodeToCanvas(id){
@@ -430,6 +442,7 @@ function deleteMapAuxnode(id){
 function scheduleMapRedraw(ms=60){ if(mapRedrawTimer)clearTimeout(mapRedrawTimer);if(mapTimer)clearTimeout(mapTimer);mapRedrawTimer=setTimeout(()=>drawMap(),ms);mapTimer=mapRedrawTimer; }
 function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
+  const filterQ=safeStr(mapTreeFilterQ||'').trim().toLowerCase();
   const list=Array.isArray(visNotes)?visNotes:[];
   const levelIcons=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
   const getLevelIcon=depth=>depth===0?'🗂️':(levelIcons[depth-1]||`${depth}.`);
@@ -452,17 +465,26 @@ function buildMapTreeIndex(visNotes){
   const renderNode=(node,depth=0,parentPath='')=>{
     const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
     const icon=getLevelIcon(depth);
-    const noteItems=node.notes.map(note=>{
+    const noteItems=node.notes.filter(note=>{
+      if(!filterQ) return true;
+      const t=safeStr(note.title||'').toLowerCase();
+      return t.includes(filterQ);
+    }).map(note=>{
       const type=typeByKey(note.type);
-      return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;
+      const activeCls=mapFocusedNodeId===note.id?' active':'';
+      return `<li><button class="map-tree-node${activeCls}" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;
     }).join('');
     const groupItems=keys.map(key=>{
       const child=node.items[key];
       const total=countNode(child);
       const treePath=buildTreePathLabel(parentPath,child.label);
+      const pathMatch=!filterQ||safeStr(treePath).toLowerCase().includes(filterQ);
+      const childHtml=renderNode(child,depth+1,treePath);
+      if(filterQ&&!pathMatch&&!childHtml) return '';
       const collapsed=!!mapTreeCollapsedPaths[treePath];
       const toggleSymbol=collapsed?'➕':'➖';
-      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsed?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn" data-tree-nav-path="${escapeHtml(treePath)}">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsed?'none':'block'}">${renderNode(child,depth+1,treePath)}</div></li>`;
+      const collapsedByFilter=filterQ?false:collapsed;
+      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn" data-tree-nav-path="${escapeHtml(treePath)}">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
@@ -859,25 +881,23 @@ function executeQuickCommand(cmd,{closeSheet=true}={}){
   else if(cmd==='delete') deleteMapNode();
 }
 function bindTouchQuickActions(){
+  const treeFilterInput=g('mapTreeFilterInput');
+  if(treeFilterInput){
+    treeFilterInput.value=mapTreeFilterQ||'';
+    treeFilterInput.addEventListener('input',debounce(()=>{
+      mapTreeFilterQ=safeStr(treeFilterInput.value||'');
+      if(isMapOpen) buildMapTreeIndex(visibleNotes());
+    },120));
+  }
+  try{ mapTreeSidebarOpen=localStorage.getItem(MAP_TREE_SIDEBAR_OPEN_KEY)==='1'; }catch(e){ mapTreeSidebarOpen=false; }
+  setMapTreeSidebarOpen(mapTreeSidebarOpen);
   on('mapTreeToggleBtn','click',()=>{
     const sidebar=g('mapTreeSidebar');
-    const toggleBtn=g('mapTreeToggleBtn');
-    if(!sidebar||!toggleBtn) return;
-    const willOpen=!sidebar.classList.contains('open');
-    sidebar.classList.toggle('open',willOpen);
-    toggleBtn.classList.toggle('open',willOpen);
-    toggleBtn.textContent=willOpen?'❮':'❯';
-    toggleBtn.setAttribute('aria-label',willOpen?'收合路徑索引':'開啟路徑索引');
+    const willOpen=!(sidebar&&sidebar.classList.contains('open'));
+    setMapTreeSidebarOpen(willOpen);
   });
   on('mapTreeCloseBtn','click',()=>{
-    const sidebar=g('mapTreeSidebar');
-    const toggleBtn=g('mapTreeToggleBtn');
-    sidebar?.classList.remove('open');
-    toggleBtn?.classList.remove('open');
-    if(toggleBtn){
-      toggleBtn.textContent='❯';
-      toggleBtn.setAttribute('aria-label','開啟路徑索引');
-    }
+    setMapTreeSidebarOpen(false);
   });
 }
 
