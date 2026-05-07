@@ -210,6 +210,7 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 #mapView.open{display:flex}
 #mapView.map-merged #mapCanvas{height:56vh;min-height:360px}
 #mapToolbar{background:#fff;padding:8px 12px;border-bottom:1px solid #e5e5e5;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.map-advanced-toggle{background:#f5f5f5;color:#555;border-color:#ddd}
 .map-adv-item{display:none}
 #mapView.map-advanced-open .map-adv-item{display:inline-flex}
 .map-primary-action{background:#0C447C;color:#fff;border-color:#0C447C;font-weight:600}
@@ -257,6 +258,13 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .map-tree-node{display:flex;align-items:center;gap:6px;width:100%;text-align:left;border:1px solid #e3e9f2;background:#fff;border-radius:8px;padding:8px 10px;font-size:14px;cursor:pointer;line-height:1.45;min-height:40px}
 .map-tree-node:hover{background:#eef6ff;border-color:#c6d9f0}
 .map-tree-node.active{background:#e7f2ff;border-color:#7bb2f0}
+.mp-review{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed #dbe3ef}
+.mp-review-title{font-size:11px;font-weight:700;color:#64748b;letter-spacing:.06em}
+.mp-review-row{font-size:12px;color:#334155;line-height:1.45}
+.mp-review-law{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 8px;max-height:110px;overflow:auto;white-space:pre-wrap}
+.mp-auxnode-btn{width:100%;padding:8px;margin:4px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+.mp-auxnode-btn.edit{border:1px solid #ddd;background:#f5f5f5;color:#555}
+.mp-auxnode-btn.delete{border:1px solid #f3c7c7;background:#fff2f2;color:#c43d3d;margin:4px 0 8px}
 .map-tree-node-color{width:8px;height:8px;border-radius:99px;flex-shrink:0}
 .map-tree-empty{font-size:12px;color:#8a97a9;padding:8px}
 #mapSvg{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible}
