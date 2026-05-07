@@ -15,7 +15,7 @@ function buildSubRow() {
   row.querySelectorAll('.sc').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.s;
     if(key==='all') selectedDomains=[];
-    else selectedDomains=selectedDomains[0]===key?[]:[key];
+    else selectedDomains=toggleSingleSelection(selectedDomains,key);
     cs=selectedDomains.length===1?selectedDomains[0]:'all';
     selectedGroups=[];selectedParts=[];cch='all';csec='all';
     gridPage=1;buildSubRow();render();
@@ -34,7 +34,7 @@ function buildGroupRow() {
   row.querySelectorAll('.ch').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.ch;
     if(key==='all') selectedGroups=[];
-    else selectedGroups=selectedGroups[0]===key?[]:[key];
+    else selectedGroups=toggleSingleSelection(selectedGroups,key);
     const partKeys=new Set(partsByGroups(selectedGroups).map(sec=>sec.key));
     selectedParts=selectedParts.filter(k=>partKeys.has(k));
     cch=selectedGroups.length===1?selectedGroups[0]:'all';
@@ -55,7 +55,7 @@ function buildPartRow() {
   row.querySelectorAll('.ch').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.sec;
     if(key==='all') selectedParts=[];
-    else selectedParts=selectedParts[0]===key?[]:[key];
+    else selectedParts=toggleSingleSelection(selectedParts,key);
     csec=selectedParts.length===1?selectedParts[0]:'all';
     gridPage=1;buildPartRow();render();
   }));
@@ -78,6 +78,10 @@ function normalizeFilterSelections(){
   cs=selectedDomains.length===1?selectedDomains[0]:'all';
   cch=selectedGroups.length===1?selectedGroups[0]:'all';
   csec=selectedParts.length===1?selectedParts[0]:'all';
+}
+function toggleSingleSelection(selectedKeys,key){
+  if(!key) return [];
+  return selectedKeys[0]===key?[]:[key];
 }
 function groupsByDomain(subKey){ return groups.filter(ch=>subKey==='all'||ch.domain===subKey||ch.domain==='all'); }
 function selectedValues(id){
@@ -124,12 +128,14 @@ function buildFormSelects() {
 function rebuildUI() { buildTypeRow();buildSubRow();buildFormSelects(); }
 
 function hasTaxonomyFilter() {
-  return !!selectedDomains.length;
+  return !!(selectedDomains.length||selectedGroups.length||selectedParts.length);
 }
 function baseScopeMatch(note) {
   const subs=noteDomains(note), chs=noteGroups(note), secs=noteParts(note);
   return (cv==='all'||note.type===cv)
     &&(!selectedDomains.length||intersects(selectedDomains,subs))
+    &&(!selectedGroups.length||intersects(selectedGroups,chs))
+    &&(!selectedParts.length||intersects(selectedParts,secs))
 ;
 }
 function noteMatchesSearch(note, q, normalizedDate='') {
