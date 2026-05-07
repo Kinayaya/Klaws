@@ -752,6 +752,7 @@ function showMapInfo(id){
   const quickWrap=g('mp-link-quick-wrap');
   const quickInput=g('mp-link-search');
   g('mpBadge').textContent=tp.label;g('mpBadge').style.background=tp.color;g('mpTitle').textContent=n.title;
+  renderMapReviewCard(n);
   const mpDomainEl=g('mpDomain');
   if(mpDomainEl){
     mpDomainEl.textContent='';
@@ -811,14 +812,12 @@ function showMapInfo(id){
     auxnodeEditBtn?.remove();auxnodeDeleteBtn?.remove();
     if(auxnode){
       auxnodeEditBtn=document.createElement('button');
-      auxnodeEditBtn.className='mp-auxnode-edit-btn';
+      auxnodeEditBtn.className='mp-auxnode-edit-btn mp-auxnode-btn edit';
       auxnodeEditBtn.textContent='✏️ 編輯';
-      auxnodeEditBtn.style.cssText='width:100%;padding:8px;margin:4px 0;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #ddd;background:#f5f5f5;color:#555;';
       auxnodeEditBtn.onclick=()=>editMapAuxnode(id);
       auxnodeDeleteBtn=document.createElement('button');
-      auxnodeDeleteBtn.className='mp-auxnode-delete-btn';
+      auxnodeDeleteBtn.className='mp-auxnode-delete-btn mp-auxnode-btn delete';
       auxnodeDeleteBtn.textContent='🗑️ 刪除';
-      auxnodeDeleteBtn.style.cssText='width:100%;padding:8px;margin:4px 0 8px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #f3c7c7;background:#fff2f2;color:#c43d3d;';
       auxnodeDeleteBtn.onclick=()=>deleteMapAuxnode(id);
       goBtn.parentNode.insertBefore(auxnodeEditBtn,goBtn);
       goBtn.parentNode.insertBefore(auxnodeDeleteBtn,goBtn);
@@ -844,6 +843,23 @@ function showMapInfo(id){
       openMapPopup(targetId);
     });});
   }
+}
+function extractLawLines(text){
+  return safeStr(text).split('\n').map(v=>v.trim()).filter(v=>/^第.+條/.test(v)).slice(0,2);
+}
+function renderMapReviewCard(note){
+  const root=g('mpReview');
+  if(!root) return;
+  const body=safeStr(note?.body||note?.detail||'').trim();
+  const lines=body.split('\n').map(v=>v.trim()).filter(Boolean);
+  const focusLine=lines[0]||'（尚未填寫）';
+  const keypoints=lines.slice(1,4);
+  const lawLines=extractLawLines(body);
+  root.innerHTML=`<div class="mp-review-title">快速複習</div>
+    <div class="mp-review-row"><b>爭點：</b>${escapeHtml(focusLine)}</div>
+    <div class="mp-review-row"><b>要件：</b>${keypoints.length?escapeHtml(keypoints.join(' / ')):'（可補 1~3 點）'}</div>
+    <div class="mp-review-row"><b>法條原文：</b></div>
+    <div class="mp-review-law">${escapeHtml(lawLines.length?lawLines.join('\n'):'（保留完整法條於筆記內文，這裡顯示條號定位）')}</div>`;
 }
 function closeMapPopup(){ g('mapPopup').classList.remove('open'); }
 function getFocusNodeSet(id){ const set={[id]:true};links.forEach(l=>{if(l.from===id)set[l.to]=true;if(l.to===id)set[l.from]=true;});return set; }
