@@ -1,114 +1,48 @@
-// ==================== 申論測驗 ====================
-function loadExams() { try{const r=localStorage.getItem('klaws_exams_v1');if(r){examList=JSON.parse(r);examList.forEach(e=>{if(/^tag_s_|^tag_t_/.test(e.domain))e.domain=subByKey(e.domain).label;});saveExams();}}catch(e){examList=[];} }
-function saveExams() { try{localStorage.setItem('klaws_exams_v1',JSON.stringify(examList));}catch(e){} }
-function openExamModePanel() {
-  currentView='exam';
-  g('examModePanel')?.classList.add('open');
-  g('examListPanel')?.classList.remove('open');
-  g('examAddForm')?.classList.remove('open');
-  if(typeof window.syncViewSwitchState==='function') window.syncViewSwitchState(currentView);
+async function loadExams() {
+  try{
+    const fromIdb=await storageAdapter.primaryStore.get('klaws_exams_v1',null);
+    const r=fromIdb||localStorage.getItem('klaws_exams_v1');
+    if(r){
+      examList=Array.isArray(r)?r:JSON.parse(r);
+      examList.forEach(e=>{if(/^tag_s_|^tag_t_/.test(e.domain))e.domain=subByKey(e.domain).label;});
+      saveExams();
+    }
+  }catch(e){examList=[];}
 }
-function resetExamForm(){
-  const title=g('examFormTitle'); if(title) title.textContent='+ 新增申論題';
-  examEditingIndex=-1;
-  g('examQInput').value=''; g('examAInput').value=''; g('examIssInput').value=''; g('examTimeInput').value='30';
+function saveExams() {
+  try{localStorage.setItem('klaws_exams_v1',JSON.stringify(examList));}catch(e){}
+  storageAdapter.primaryStore.set('klaws_exams_v1',examList).catch(()=>{});
 }
-function openExamForm(idx=-1){
-  const esel=g('examSubSel');if(esel)esel.innerHTML=domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
-  examEditingIndex=idx;
-  const title=g('examFormTitle');
-  if(idx>=0&&examList[idx]){
-    const ex=examList[idx];
-    if(esel) esel.value=ex.domain||(domains[0]?domains[0].key:'all');
-    g('examQInput').value=ex.question||'';
-    g('examAInput').value=ex.answer||'';
-    g('examIssInput').value=(ex.issues||[]).join(',');
-    g('examTimeInput').value=ex.timeLimit||30;
-    if(title) title.textContent='✏️ 修改申論題';
-  }else{
-    resetExamForm();
-    if(esel&&domains[0]) esel.value=domains[0].key;
-  }
-  g('examListPanel').classList.remove('open');
-  g('examAddForm').classList.add('open');
-  setTimeout(()=>g('examAddForm').scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+function resetExamForm(){g('examQInput').value='';g('examAInput').value='';g('examIssInput').value='';g('examTimeInput').value='30';g('examSubSel').value='all';examEditingIndex=-1;const titleEl=g('examFormTitle');if(titleEl) titleEl.textContent='新增題目';const saveBtn=g('examFSave');if(saveBtn) saveBtn.textContent='儲存題目';}
+function openExamPanel(){const panel=g('examModePanel');if(!panel)return;panel.classList.add('open');renderExamList();}
+function renderExamList(){
+  const root=g('examList');if(!root)return;
+  if(!examList.length){root.innerHTML='<div class="item"><small style="color:var(--muted)">尚無題目，請先新增。</small></div>';return;}
+  root.innerHTML=examList.map((e,i)=>`<div class="item" data-idx="${i}"><div><strong>${escapeHtml(e.question||'(未命名題目)')}</strong><div><small>${escapeHtml(subByKey(e.domain).label||'全部')||'全部'} · ${Number(e.timeLimit)||30} 秒</small></div></div><button class="tool-btn" data-del="${i}">刪除</button></div>`).join('');
+  root.querySelectorAll('[data-idx]').forEach(el=>el.addEventListener('click',()=>{const i=parseInt(el.dataset.idx);if(!Number.isFinite(i)||!examList[i])return;const q=examList[i];g('examQInput').value=q.question||'';g('examAInput').value=q.answer||'';g('examIssInput').value=(q.issues||[]).join(', ');g('examTimeInput').value=String(q.timeLimit||30);g('examSubSel').value=q.domain||'all';examEditingIndex=i;const titleEl=g('examFormTitle');if(titleEl) titleEl.textContent='編輯題目';const saveBtn=g('examFSave');if(saveBtn) saveBtn.textContent='更新題目';g('examAddForm').classList.add('open');}));
+  root.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();examList.splice(parseInt(btn.dataset.del),1);saveExams();renderExamList();}));
 }
-
-function openExamPanel() {
-  g('examModePanel')?.classList.remove('open');
-  loadExams();renderExamList();
-  const esel=g('examSubSel');if(esel)esel.innerHTML=domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
-  g('examListPanel').classList.add('open');g('examAddForm').classList.remove('open');g('dp').classList.remove('open');
-  setTimeout(()=>g('examListPanel').scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+function startExam(){
+  if(!examList.length){showToast('題庫為空，請先新增題目');return;}
+  const cfg={qCount:parseInt(g('examQuestionCount').value)||10,time:parseInt(g('examTimeLimit').value)||30,domain:g('examDomainFilter').value||'all'};
+  const pool=cfg.domain==='all'?examList:examList.filter(x=>x.domain===cfg.domain);
+  if(!pool.length){showToast('此領域目前沒有題目');return;}
+  const shuffled=[...pool].sort(()=>Math.random()-0.5).slice(0,Math.min(cfg.qCount,pool.length));
+  examSession={questions:shuffled,index:0,answers:[],timeLimit:cfg.time,startAt:Date.now(),timer:null};
+  g('examModePanel').classList.remove('open');
+  g('examQuestionPanel').classList.add('open');
+  renderExamQuestion();
 }
-function renderExamList() {
-  const el=g('examListItems');
-  if(!examList.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:12px 0;">尚無題目，請點新增題目</div>';return;}
-  el.innerHTML=examList.map((ex,i)=>`<div class="exam-item" data-idx="${i}"><div><div class="exam-item-title">${subByKey(ex.domain).label} | ${ex.question.slice(0,35)}${ex.question.length>35?'...':''}</div><div class="exam-item-meta">${ex.timeLimit}分鐘</div></div><div style="display:flex;gap:6px;"><button class="exam-item-edit" data-edit="${i}">✏️</button><button class="exam-item-del" data-del="${i}">🗑️</button></div></div>`).join('');
-  el.querySelectorAll('.exam-item').forEach(el2=>{el2.addEventListener('click',ev=>{if(ev.target.getAttribute('data-del')!==null||ev.target.getAttribute('data-edit')!==null)return;startExam(examList[parseInt(el2.dataset.idx)]);});});
-  el.querySelectorAll('[data-edit]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();openExamForm(parseInt(btn.dataset.edit));}));
-  el.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();examList.splice(parseInt(btn.dataset.del),1);saveExams();renderExamList();}));
-}
-function startExam(exam) {
-  currentExam=exam;g('examListPanel').classList.remove('open');g('notesView').style.display='none';g('examView').classList.add('open');
-  g('examBody').style.display='flex';g('examResult').style.display='none';
-  g('examQuestionDisplay').textContent=exam.question;g('examIssueChips').innerHTML=(exam.issues||[]).map(iss=>`<span class="exam-issue-chip">${iss}</span>`).join('');
-  examAnswerReveal=false;
-  const answerWrap=g('examModelAnswerWrap'),answerText=g('examModelAnswerText'),answerBtn=g('examToggleAnswerBtn');
-  if(answerText) answerText.textContent=exam.answer||'（此題尚未設定答案）';
-  if(answerWrap) answerWrap.style.display='none';
-  if(answerBtn) answerBtn.textContent='顯示答案';
-  g('examAnswerBox').value='';g('examWordCount').textContent='0 字';g('examHeaderTitle').textContent=`✒️ ${subByKey(exam.domain).label}`;
-  examTotal=exam.timeLimit*60;examSec=examTotal;
-  const updateTimer=()=>{const m=Math.floor(examSec/60),s=examSec%60;g('examTimer').textContent=`${m<10?'0':''}${m}:${s<10?'0':''}${s}`;if(examSec<=300)g('examTimer').classList.add('warning');};
-  updateTimer();clearInterval(examTimer);examTimer=setInterval(()=>{examSec--;updateTimer();if(examSec<=0)doSubmit(true);},1000);
-}
-function doSubmit(timeUp) {
-  clearInterval(examTimer);const ans=g('examAnswerBox').value.trim(),used=Math.round((examTotal-examSec)/60*10)/10;
-  g('examBody').style.display='none';g('examResult').style.display='flex';g('examResult').classList.add('open');
-  g('resultScoreNum').textContent='--';g('resultComment').textContent='評分中，請稍候…';g('resultRef').textContent='';g('resultTags').innerHTML='';
-  gradeEssay(currentExam,ans,used,timeUp);
-}
-function gradeEssay(exam,ans,used,timeUp) {
-  const issueList=(exam.issues||[]).join('、');
-  const prompt=`你是台灣大學法律系教授，正在批改學生的申論題作答。請給予詳細、具體、有教育價值的評語。\n\n【】${subByKey(exam.domain).label}\n【題目】\n${exam.question.slice(0,300)}\n【預設爭點】${issueList}\n【學生作答】\n${(ans||'(未作答)').slice(0,3000)}\n【作答時間】${used}分鐘${timeUp?' (時間到，作答可能不完整)':''}\n\n請依下列 JSON 格式輸出評分（只輸出 JSON，不加任何其他文字或 markdown）：\n{"score":<0-100整數>,"comment":"<100-150字整體總評>","issue_analysis":[{"issue":"<爭點名稱>","hit":<true/false>,"analysis":"<針對此爭點的詳細評析>"}],"strengths":["<具體優點1>"],"weaknesses":["<具體缺點1>"],"suggestions":["<具體改進建議1>"],"reference":"<參考答題要點>"}`;
-  const provider=getAiProvider();
-  const endpoint=provider==='groq'?'https://api.groq.com/openai/v1/chat/completions':'https://openrouter.ai/api/v1/chat/completions';
-  const headers={'Content-Type':'application/json','Authorization':'Bearer '+getAiKey()};
-  if(provider==='openrouter'){
-    headers['HTTP-Referer']='https://kinayaya.github.io/LawsNote';
-    headers['X-Title']='KLaws';
-  }
-  fetch(endpoint,{
-    method:'POST',headers,
-    body:JSON.stringify({model:getAiModel(),max_tokens:5000,messages:[{role:'user',content:prompt}]})
-  }).then(r=>r.json()).then(d=>{
-    if(d.error){g('resultScoreNum').textContent='?';g('resultComment').textContent='AI 錯誤：'+(d.error.message||JSON.stringify(d.error));return;}
-    let raw=(((d.choices||[{}])[0].message||{}).content||'').replace(/```json|```/g,'').trim();
-    const start=raw.indexOf('{'),end=raw.lastIndexOf('}');if(start!==-1&&end!==-1)raw=raw.slice(start,end+1);
-    try{showResult(JSON.parse(raw));}catch(e){g('resultScoreNum').textContent='?';g('resultComment').textContent='AI 回應無法解析，原始內容：\n'+raw.slice(0,300);}
-  }).catch(e=>{g('resultScoreNum').textContent='?';g('resultComment').textContent='評分服務暫時無法連線。錯誤：'+e.message;});
-}
-function showResult(r) {
-  g('resultScoreNum').textContent=r.score||'--';
-  const sc=g('resultScoreNum').parentElement;sc.style.background=r.score>=80?'#1D9E75':r.score>=60?'#378ADD':r.score>=40?'#D85A30':'#8B1A1A';
-  g('resultComment').textContent=r.comment||'';
-  const iaEl=g('resultIssueAnalysis');if(iaEl)iaEl.innerHTML=(r.issue_analysis||[]).map(item=>`<div class="issue-analysis-item"><div class="issue-analysis-head"><span class="issue-analysis-name">${item.issue}</span><span class="issue-hit-badge" style="background:${item.hit?'#1D9E75':'#D85A30'}">${item.hit?'✔ 有涵蓋':'✘ 未涵蓋'}</span></div><div class="issue-analysis-body">${item.analysis}</div></div>`).join('');
-  let tags='';(r.strengths||[]).forEach(s=>tags+=`<span class="result-tag good">✓ ${s}</span>`);(r.weaknesses||[]).forEach(s=>tags+=`<span class="result-tag bad">✗ ${s}</span>`);(r.suggestions||[]).forEach(s=>tags+=`<span class="result-tag ok">→ ${s}</span>`);
-  g('resultTags').innerHTML=tags;g('resultRef').textContent=r.reference||'';
-}
-function closeExamView() {
-  clearInterval(examTimer);
-  g('examView').classList.remove('open');
-  currentView='notes';
-  updateNotesHomeVisibility();
-  if(typeof window.syncViewSwitchState==='function') window.syncViewSwitchState(currentView);
-}
-
-function initMoreMenu(){
-  const btn=g('moreToolsBtn'),menu=g('moreToolsMenu');
-  if(!btn||!menu) return;
-  btn.addEventListener('click',e=>{e.stopPropagation();menu.classList.toggle('open');});
-  menu.querySelectorAll('button,label').forEach(el=>el.addEventListener('click',()=>menu.classList.remove('open')));
-  document.addEventListener('click',e=>{if(!menu.contains(e.target)&&e.target!==btn)menu.classList.remove('open');});
+function renderExamQuestion(){
+  if(!examSession) return;
+  const q=examSession.questions[examSession.index];
+  if(!q){finishExam();return;}
+  g('examQMeta').textContent=`第 ${examSession.index+1} / ${examSession.questions.length} 題`;
+  g('examQText').textContent=q.question||'';
+  g('examAnswerInput').value='';
+  const timeEl=g('examTimer');
+  let remain=examSession.timeLimit;
+  timeEl.textContent=`剩餘 ${remain} 秒`;
+  if(examSession.timer) clearInterval(examSession.timer);
+  examSession.timer=setInterval(()=>{remain--;timeEl.textContent=`剩餘 ${Math.max(remain,0)} 秒`;if(remain<=0){submitCurrentAnswer(true);}},1000);
 }

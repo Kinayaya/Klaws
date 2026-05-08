@@ -73,5 +73,24 @@
     await idbSet(key, value);
   };
 
-  global.KLawsStorage = { readJSON, writeJSON, readJSONAsync, writeJSONAsync };
+
+  const createStoreAdapter = () => {
+    const isQuotaErr = err => {
+      const name=err&&err.name?String(err.name):'';
+      return name==='QuotaExceededError' || name==='NS_ERROR_DOM_QUOTA_REACHED';
+    };
+    const primaryStore={
+      get: async (key,fallback=null)=> readJSONAsync(key,fallback),
+      set: async (key,value)=> writeJSONAsync(key,value)
+    };
+    const fallbackStore={
+      get: key => readJSON(key,null),
+      set: (key,value)=> writeJSON(key,value),
+      remove: key => { try{ localStorage.removeItem(key); }catch(e){} }
+    };
+    const snapshotStore={...primaryStore};
+    return { primaryStore, fallbackStore, snapshotStore, isQuotaErr };
+  };
+
+  global.KLawsStorage = { readJSON, writeJSON, readJSONAsync, writeJSONAsync, createStoreAdapter };
 })(window);
