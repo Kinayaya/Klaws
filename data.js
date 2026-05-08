@@ -44,6 +44,8 @@ function clearLegacyDomainsFromNotes(){
 }
 
 const LOCAL_FALLBACK_PREFIX='klaws_payload_backup_v1';
+const FALLBACK_META_VERSION = 1;
+const FALLBACK_META_MIGRATION_KEY = 'klaws_fallback_meta_migration_v1';
 const FALLBACK_WRITE_INTERVAL_MS = 5*60*1000;
 const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
 const ARCHIVE_NOISE_EXCLUDE_KEYS = ['nodePos','mapCenterNodeId','mapCenterNodeIds','mapFilter'];
@@ -56,11 +58,20 @@ function fallbackStorageKey(){
 function readLocalFallbackPayload(){
   return readJSON(fallbackStorageKey(), null);
 }
-function writeLocalFallbackPayload(payload, force=false){
+function buildFallbackMeta({idbFailed=false,lastSaveAt=Date.now()}={}){
+  return {
+    version:FALLBACK_META_VERSION,
+    lastSaveAt,
+    idbFailed:Boolean(idbFailed),
+    requiresManualRestore:Boolean(idbFailed)
+  };
+}
+function writeLocalFallbackPayload(meta, force=false){
   const now=Date.now();
   if(!force && (now-lastFallbackWriteAt)<FALLBACK_WRITE_INTERVAL_MS && !idbHealthDegraded) return false;
+  const fallbackMeta=(meta&&typeof meta==='object'&&!Array.isArray(meta))?meta:buildFallbackMeta();
   try{
-    const ok=storageAdapter.fallbackStore.set(fallbackStorageKey(), payload);
+    const ok=storageAdapter.fallbackStore.set(fallbackStorageKey(), fallbackMeta);
     if(ok) lastFallbackWriteAt=now;
     return ok;
   }catch(e){
@@ -72,6 +83,22 @@ function clearLocalFallbackPayload(){
   try{
     storageAdapter.fallbackStore.remove(fallbackStorageKey());
   }catch(e){}
+}
+
+function clearLegacyLocalFallbackKeys(){
+  if(localStorage.getItem(FALLBACK_META_MIGRATION_KEY)==='1') return;
+  try{
+    const staleKeys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(typeof key==='string'&&key.startsWith(`${LOCAL_FALLBACK_PREFIX}::`)) staleKeys.push(key);
+    }
+    staleKeys.forEach(key=>window.KLawsStorage.governedRemoveLocal(key));
+    window.KLawsStorage.governedWriteLocal(FALLBACK_META_MIGRATION_KEY,'1','core');
+    if(staleKeys.length) console.info('[fallback-migration] cleared legacy local fallback keys',{count:staleKeys.length});
+  }catch(e){
+    console.warn('[fallback-migration-failed]',e);
+  }
 }
 
 // ==================== 資料儲存 ====================
@@ -100,15 +127,9 @@ function migrateLegacyGroupPartData(){
 }
 
 async function loadData() {
+  clearLegacyLocalFallbackKeys();
   try {
     let d=await readJSONAsync(SKEY,null);
-    if(!d){
-      const fallbackPayload=storageAdapter.fallbackStore.get(fallbackStorageKey());
-      if(fallbackPayload){
-        console.warn('[loadData] indexeddb empty, restored from local fallback');
-        d=fallbackPayload;
-      }
-    }
     if(d) {
       notes=mergeAuxNodesIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapAuxNodes)?d.mapAuxNodes:[]);
       mapAuxNodes=[];
@@ -191,22 +212,13 @@ async function loadData() {
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
-      writeLocalFallbackPayload(getPayload(), true);
+      writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}), true);
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
     } else {
       notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
     }
   } catch(e) {
-    const fallbackPayload=storageAdapter.fallbackStore.get(fallbackStorageKey());
-    if(fallbackPayload){
-      console.warn('[loadData-failed] recovered from local fallback');
-      if(applySnapshotRaw(JSON.stringify(fallbackPayload))){
-        lastSavedPayloadRaw=JSON.stringify(getPayload());
-        return;
-      }
-      clearLocalFallbackPayload();
-    }
     notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
     const detail={
       name:e&&e.name?e.name:typeof e,
@@ -214,6 +226,7 @@ async function loadData() {
       stack:e&&e.stack?String(e.stack):''
     };
     console.error('[loadData-failed]',detail,e);
+    showToast('資料載入失敗，請手動匯入備份檔復原。');
   }
 }
 function pushPayloadToBackend(payload){
@@ -237,10 +250,10 @@ function saveData() {
     }).catch(err=>{
       idbHealthDegraded=true;
       console.warn('[saveData-idb-failed]',err);
-      writeLocalFallbackPayload(payload,true);
+      writeLocalFallbackPayload(buildFallbackMeta({idbFailed:true}),true);
       console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
     });
-    writeLocalFallbackPayload(payload);
+    writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}));
     lastSavedPayloadRaw=nextRaw;
     pushPayloadToBackend(payload);
   } catch(e){}
