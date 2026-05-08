@@ -9,7 +9,7 @@ function setMapTreeSidebarOpen(willOpen){
   toggleBtn.classList.toggle('open',mapTreeSidebarOpen);
   toggleBtn.textContent=mapTreeSidebarOpen?'❮':'❯';
   toggleBtn.setAttribute('aria-label',mapTreeSidebarOpen?'收合路徑索引':'開啟路徑索引');
-  try{ localStorage.setItem(MAP_TREE_SIDEBAR_OPEN_KEY,mapTreeSidebarOpen?'1':'0'); }catch(e){}
+  try{ window.KLawsStorage.governedWriteLocal(MAP_TREE_SIDEBAR_OPEN_KEY,mapTreeSidebarOpen?'1':'0','ephemeral'); }catch(e){}
 }
 function initNodePos() { const canvas=g('mapCanvas');mapW=canvas.offsetWidth||800;mapH=canvas.offsetHeight||500;const cx=mapW/2,cy=mapH/2,r=Math.min(mapW,mapH)*.44;notes.forEach((n,i)=>{if(!nodePos[n.id]){const angle=(i/notes.length)*2*Math.PI;nodePos[n.id]={x:cx+r*Math.cos(angle),y:cy+r*Math.sin(angle)};}}); }
 function getNodeRadius(id){ return MAP_NODE_RADIUS_DEFAULT; }
