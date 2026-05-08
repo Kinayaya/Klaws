@@ -579,16 +579,50 @@ function saveArchives(arr){
     .filter(Boolean)
     .slice(0,ARCHIVE_SNAPSHOT_LIMIT);
 
+  const estimateBytes=value=>{
+    try{return new TextEncoder().encode(JSON.stringify(value)).length;}catch(e){return 0;}
+  };
+  const debugLog=(phase,extra={})=>{
+    console.debug('[archive-save]',{
+      phase,
+      archiveCount:next.length,
+      bytes:estimateBytes(next),
+      trimmed:false,
+      ...extra
+    });
+  };
+
+  debugLog('initial-write');
   if(writeJSON(ARCHIVES_KEY,next)) return {ok:true, kept:next.length, trimmed:0};
 
+  if(next.length<=1){
+    debugLog('initial-write-failed',{reason:'quota_global_or_non_archive'});
+    return {ok:false, reason:'quota_global_or_non_archive', kept:0, trimmed:0};
+  }
+
   const trimmed=next.slice();
+  debugLog('retry-before-trim',{trimmed:true, retryCount:trimmed.length});
   while(trimmed.length>1){
     trimmed.pop();
+    const trimmedBytes=estimateBytes(trimmed);
+    console.debug('[archive-save]',{
+      phase:'retry-after-trim',
+      archiveCount:trimmed.length,
+      bytes:trimmedBytes,
+      trimmed:true,
+      trimmedCount:next.length-trimmed.length
+    });
     if(writeJSON(ARCHIVES_KEY,trimmed)){
       return {ok:true, kept:trimmed.length, trimmed:next.length-trimmed.length, quotaRecovered:true};
     }
   }
-  return {ok:false, reason:'quota', kept:0, trimmed:next.length};
+  console.debug('[archive-save]',{
+    phase:'retry-failed',
+    archiveCount:trimmed.length,
+    bytes:estimateBytes(trimmed),
+    trimmed:true
+  });
+  return {ok:false, reason:'quota_archive_only', kept:0, trimmed:next.length-1};
 }
 function loadRecycleBin(){
   const arr=readJSON(RECYCLE_BIN_KEY,[]);
@@ -662,7 +696,15 @@ function createArchiveSnapshot(){
   });
   const saved=saveArchives(archives);
   if(!saved?.ok){
-    showToast('存檔失敗：裝置儲存空間不足。請先刪除舊存檔，或使用「下載備份」。');
+    if(saved.reason==='quota_archive_only'){
+      showToast('存檔失敗：存檔空間不足。建議先刪除較舊存檔，再重試；清理前請先執行「下載備份」。');
+      return;
+    }
+    if(saved.reason==='quota_global_or_non_archive'){
+      showToast('存檔失敗：裝置/瀏覽器儲存已接近上限，非僅存檔資料造成。請先「下載備份」，再清理大型資料或瀏覽器儲存後重試。');
+      return;
+    }
+    showToast('存檔失敗：儲存空間不足。請先「下載備份」，再清理資料後重試。');
     return;
   }
   renderArchivePanel();
