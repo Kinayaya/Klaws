@@ -44,6 +44,11 @@ function clearLegacyDomainsFromNotes(){
 }
 
 const LOCAL_FALLBACK_PREFIX='klaws_payload_backup_v1';
+const FALLBACK_WRITE_INTERVAL_MS = 5*60*1000;
+const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
+const ARCHIVE_NOISE_EXCLUDE_KEYS = ['nodePos','mapCenterNodeId','mapCenterNodeIds','mapFilter'];
+let lastFallbackWriteAt = 0;
+let idbHealthDegraded = false;
 function fallbackStorageKey(){
   const host=(location&&location.host)?location.host:'unknown-host';
   return `${LOCAL_FALLBACK_PREFIX}::${host}`;
@@ -51,16 +56,21 @@ function fallbackStorageKey(){
 function readLocalFallbackPayload(){
   return readJSON(fallbackStorageKey(), null);
 }
-function writeLocalFallbackPayload(payload){
+function writeLocalFallbackPayload(payload, force=false){
+  const now=Date.now();
+  if(!force && (now-lastFallbackWriteAt)<FALLBACK_WRITE_INTERVAL_MS && !idbHealthDegraded) return false;
   try{
-    writeJSON(fallbackStorageKey(), payload);
+    const ok=storageAdapter.fallbackStore.set(fallbackStorageKey(), payload);
+    if(ok) lastFallbackWriteAt=now;
+    return ok;
   }catch(e){
     console.warn('[saveData-local-fallback-failed]',e);
+    return false;
   }
 }
 function clearLocalFallbackPayload(){
   try{
-    localStorage.removeItem(fallbackStorageKey());
+    storageAdapter.fallbackStore.remove(fallbackStorageKey());
   }catch(e){}
 }
 
@@ -93,7 +103,7 @@ async function loadData() {
   try {
     let d=await readJSONAsync(SKEY,null);
     if(!d){
-      const fallbackPayload=readLocalFallbackPayload();
+      const fallbackPayload=storageAdapter.fallbackStore.get(fallbackStorageKey());
       if(fallbackPayload){
         console.warn('[loadData] indexeddb empty, restored from local fallback');
         d=fallbackPayload;
@@ -181,12 +191,14 @@ async function loadData() {
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
-      writeLocalFallbackPayload(getPayload());
+      writeLocalFallbackPayload(getPayload(), true);
+      storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
+      storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
     } else {
       notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
     }
   } catch(e) {
-    const fallbackPayload=readLocalFallbackPayload();
+    const fallbackPayload=storageAdapter.fallbackStore.get(fallbackStorageKey());
     if(fallbackPayload){
       console.warn('[loadData-failed] recovered from local fallback');
       if(applySnapshotRaw(JSON.stringify(fallbackPayload))){
@@ -218,7 +230,16 @@ function saveData() {
   try {
     const payload=getPayload();
     const nextRaw=JSON.stringify(payload);
-    writeJSONAsync(SKEY,payload).catch(err=>console.warn('[saveData-idb-failed]',err));
+    const saveStartedAt=performance.now();
+    storageAdapter.primaryStore.set(SKEY,payload).then(()=>{
+      idbHealthDegraded=false;
+      console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
+    }).catch(err=>{
+      idbHealthDegraded=true;
+      console.warn('[saveData-idb-failed]',err);
+      writeLocalFallbackPayload(payload,true);
+      console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
+    });
     writeLocalFallbackPayload(payload);
     lastSavedPayloadRaw=nextRaw;
     pushPayloadToBackend(payload);
@@ -560,7 +581,7 @@ function normalizeArchiveRecord(item){
   };
 }
 function loadArchives(){
-  const raw=readJSON(ARCHIVES_KEY,[]);
+  const raw=window.__klawsArchivesCache||readJSON(ARCHIVES_KEY,[]);
   const fromArray=Array.isArray(raw)?raw:
     (Array.isArray(raw?.archives)?raw.archives:
       (Array.isArray(raw?.items)?raw.items:
@@ -593,7 +614,7 @@ function saveArchives(arr){
   };
 
   debugLog('initial-write');
-  if(writeJSON(ARCHIVES_KEY,next)) return {ok:true, kept:next.length, trimmed:0};
+  if(writeJSON(ARCHIVES_KEY,next)){ storageAdapter.primaryStore.set(ARCHIVES_IDB_KEY,next).catch(()=>{}); window.__klawsArchivesCache=next; return {ok:true, kept:next.length, trimmed:0}; }
 
   if(next.length<=1){
     debugLog('initial-write-failed',{reason:'quota_global_or_non_archive'});
@@ -612,7 +633,7 @@ function saveArchives(arr){
       trimmed:true,
       trimmedCount:next.length-trimmed.length
     });
-    if(writeJSON(ARCHIVES_KEY,trimmed)){
+    if(writeJSON(ARCHIVES_KEY,trimmed)){ storageAdapter.primaryStore.set(ARCHIVES_IDB_KEY,trimmed).catch(()=>{}); window.__klawsArchivesCache=trimmed;
       return {ok:true, kept:trimmed.length, trimmed:next.length-trimmed.length, quotaRecovered:true};
     }
   }
@@ -625,11 +646,12 @@ function saveArchives(arr){
   return {ok:false, reason:'quota_archive_only', kept:0, trimmed:next.length-1};
 }
 function loadRecycleBin(){
-  const arr=readJSON(RECYCLE_BIN_KEY,[]);
+  const arr=window.__klawsRecycleCache||readJSON(RECYCLE_BIN_KEY,[]);
   recycleBin=Array.isArray(arr)?arr:[];
+  storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ recycleBin=v; window.__klawsRecycleCache=v; renderArchivePanel(); } }).catch(()=>{});
 }
 function saveRecycleBin(){
-  writeJSON(RECYCLE_BIN_KEY,recycleBin);
+  writeJSON(RECYCLE_BIN_KEY,recycleBin); storageAdapter.primaryStore.set(RECYCLE_BIN_KEY,recycleBin).catch(()=>{}); window.__klawsRecycleCache=recycleBin;
 }
 function normalizeNotesTaxonomy(){
   const tSet=new Set(types.map(t=>t.key));
@@ -687,7 +709,7 @@ function createArchiveSnapshot(){
   if(!name){showToast('存檔名稱不可空白');return;}
   const archives=loadArchives();
   const payload=getPayload();
-  const archivePayload={...payload,nodePos:{}};
+  const archivePayload=Object.keys(payload||{}).reduce((acc,key)=>{ if(ARCHIVE_NOISE_EXCLUDE_KEYS.includes(key)) return acc; acc[key]=payload[key]; return acc; },{});
   archives.unshift({
     id:`${Date.now()}_${Math.random().toString(16).slice(2)}`,
     name,
