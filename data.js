@@ -44,18 +44,76 @@ function clearLegacyDomainsFromNotes(){
 }
 
 const LOCAL_FALLBACK_PREFIX='klaws_payload_backup_v1';
+const LOCAL_FALLBACK_MAX_SIZE=900000;
+const LOCAL_FALLBACK_FIELDS=['nid','lid','notes','links','types','nodeSizes','mapPageNotes'];
+let lastFallbackWriteState={status:'idle',size:0,storedSize:0,reason:'',at:''};
+let fallbackWriteWarned=false;
 function fallbackStorageKey(){
   const host=(location&&location.host)?location.host:'unknown-host';
   return `${LOCAL_FALLBACK_PREFIX}::${host}`;
+}
+function cleanupLegacyFallbackKeys(){
+  const active=fallbackStorageKey();
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const key=localStorage.key(i);
+      if(!key||!key.startsWith('klaws_payload_backup_')) continue;
+      if(key!==active) localStorage.removeItem(key);
+    }
+  }catch(e){
+    console.warn('[saveData-local-fallback-cleanup-failed]',e);
+  }
+}
+function getLastFallbackWriteState(){
+  return {...lastFallbackWriteState};
+}
+function compactFallbackPayload(payload){
+  const compact={schema:'fallback-lite-v1'};
+  LOCAL_FALLBACK_FIELDS.forEach(key=>{
+    if(payload&&Object.prototype.hasOwnProperty.call(payload,key)) compact[key]=payload[key];
+  });
+  return compact;
+}
+function setFallbackWriteState(status,size,storedSize,reason){
+  lastFallbackWriteState={status,size,storedSize,reason:reason||'',at:new Date().toISOString()};
+}
+function notifyFallbackWriteIssueOnce(reason,err){
+  if(fallbackWriteWarned) return;
+  fallbackWriteWarned=true;
+  showToast('本機備援寫入失敗，請盡快下載備份');
+  console.error('[saveData-local-fallback-alert]',reason,err||'');
 }
 function readLocalFallbackPayload(){
   return readJSON(fallbackStorageKey(), null);
 }
 function writeLocalFallbackPayload(payload){
+  const raw=JSON.stringify(payload||{});
+  const size=raw.length;
+  if(size>LOCAL_FALLBACK_MAX_SIZE){
+    const compact=compactFallbackPayload(payload);
+    const compactRaw=JSON.stringify(compact);
+    if(compactRaw.length>LOCAL_FALLBACK_MAX_SIZE){
+      setFallbackWriteState('skipped',size,0,'oversized');
+      return false;
+    }
+    try{
+      writeJSON(fallbackStorageKey(), compact);
+      setFallbackWriteState('degraded',size,compactRaw.length,'oversized');
+      return true;
+    }catch(e){
+      setFallbackWriteState('failed',size,0,e&&e.message?e.message:'write-failed');
+      notifyFallbackWriteIssueOnce('degraded-write-failed',e);
+      return false;
+    }
+  }
   try{
     writeJSON(fallbackStorageKey(), payload);
+    setFallbackWriteState('success',size,size,'');
+    return true;
   }catch(e){
-    console.warn('[saveData-local-fallback-failed]',e);
+    setFallbackWriteState('failed',size,0,e&&e.message?e.message:'write-failed');
+    notifyFallbackWriteIssueOnce('write-failed',e);
+    return false;
   }
 }
 function clearLocalFallbackPayload(){
@@ -90,6 +148,7 @@ function migrateLegacyGroupPartData(){
 }
 
 async function loadData() {
+  cleanupLegacyFallbackKeys();
   try {
     let d=await readJSONAsync(SKEY,null);
     if(!d){
@@ -662,7 +721,13 @@ function createArchiveSnapshot(){
   });
   const saved=saveArchives(archives);
   if(!saved?.ok){
-    showToast('存檔失敗：裝置儲存空間不足。請先刪除舊存檔，或使用「下載備份」。');
+    const fallbackState=getLastFallbackWriteState();
+    const fallbackHint=fallbackState.status==='failed'
+      ?' 本機備援也失敗，請立即下載備份。'
+      :(fallbackState.status==='skipped'
+        ?' 本機備援因容量限制略過，請立即下載備份。'
+        :(fallbackState.status==='degraded'?' 本機備援僅保存精簡資料。':''));
+    showToast(`存檔失敗：裝置儲存空間不足。請先刪除舊存檔，或使用「下載備份」。${fallbackHint}`);
     return;
   }
   renderArchivePanel();
