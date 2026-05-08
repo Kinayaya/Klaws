@@ -529,6 +529,8 @@ let debugMode='';
 let debugCaptureInstalled=false;
 let debugLines=[];
 let debugPanelEl=null, debugPanelBodyEl=null;
+let debugStorageEl=null;
+let storageWarnLevel='';
 let erudaUnavailable=false;
 const debugConsoleRaw={};
 const runtimeDebugBridge=window.__KLawsDebugRuntime||null;
@@ -562,20 +564,56 @@ function ensureLocalDebugConsole(){
   if(debugPanelEl) return;
   const panel=document.createElement('div');
   panel.id='localDebugPanel';
-  panel.innerHTML='<div class="local-debug-head"><b>內建偵錯主控台</b><div><button type="button" class="tool-btn mini-btn" id="localDebugClearBtn">清空</button><button type="button" class="tool-btn mini-btn" id="localDebugCloseBtn">關閉</button></div></div><pre class="local-debug-body" id="localDebugBody"></pre>';
+  panel.innerHTML='<div class="local-debug-head"><b>內建偵錯主控台</b><div><button type="button" class="tool-btn mini-btn" id="localDebugStorageRefreshBtn">刷新儲存</button><button type="button" class="tool-btn mini-btn" id="localDebugClearBtn">清空</button><button type="button" class="tool-btn mini-btn" id="localDebugCloseBtn">關閉</button></div></div><div class="local-debug-storage" id="localDebugStorage">儲存健康：讀取中…</div><pre class="local-debug-body" id="localDebugBody"></pre>';
   document.body.appendChild(panel);
   debugPanelEl=panel;
   debugPanelBodyEl=panel.querySelector('#localDebugBody');
+  debugStorageEl=panel.querySelector('#localDebugStorage');
   panel.querySelector('#localDebugClearBtn')?.addEventListener('click',()=>{
     debugLines=[];
     if(debugPanelBodyEl) debugPanelBodyEl.textContent='';
   });
+  panel.querySelector('#localDebugStorageRefreshBtn')?.addEventListener('click',()=>refreshStorageHealth({force:true,withToast:true}));
   panel.querySelector('#localDebugCloseBtn')?.addEventListener('click',()=>toggleDebugTool());
   if(debugPanelBodyEl) debugPanelBodyEl.textContent=debugLines.join('\n');
+}
+function formatStorageBytes(bytes){
+  const n=Number(bytes)||0;
+  if(n<=0) return '0 B';
+  const units=['B','KB','MB','GB','TB'];
+  const exp=Math.min(units.length-1,Math.floor(Math.log(n)/Math.log(1024)));
+  const val=n/Math.pow(1024,exp);
+  return `${val.toFixed(val>=10||exp===0?0:1)} ${units[exp]}`;
+}
+function maybeWarnStorageRatio(ratio, withToast=false){
+  const level=ratio>=0.92?'critical':(ratio>=0.85?'warn':'');
+  if(!level){ storageWarnLevel=''; return; }
+  if(!withToast&&storageWarnLevel===level) return;
+  storageWarnLevel=level;
+  if(level==='critical') showToast('儲存空間接近上限，請先匯出資料再清理。');
+  else showToast('儲存空間已達 85%，建議近期整理容量。');
+}
+async function refreshStorageHealth(opts={}){
+  if(!window.KLawsStorage||typeof window.KLawsStorage.getStorageHealth!=='function') return;
+  const force=!!(opts&&opts.force);
+  const withToast=!!(opts&&opts.withToast);
+  try{
+    const health=await window.KLawsStorage.getStorageHealth({force});
+    const ratio=Number(health&&health.ratio)||0;
+    if(debugStorageEl){
+      const percent=(ratio*100).toFixed(1);
+      debugStorageEl.textContent=`儲存健康：已使用 ${formatStorageBytes(health.usage)} / 總容量 ${formatStorageBytes(health.quota)}（${percent}%）`;
+    }
+    maybeWarnStorageRatio(ratio,withToast);
+  }catch(err){
+    appendDebugLine('warn',['Load storage health failed:',err]);
+    if(debugStorageEl) debugStorageEl.textContent='儲存健康：讀取失敗';
+  }
 }
 function showLocalDebugConsole(){
   ensureLocalDebugConsole();
   if(debugPanelEl) debugPanelEl.classList.add('open');
+  setTimeout(()=>{refreshStorageHealth();},0);
 }
 function hideLocalDebugConsole(){
   if(debugPanelEl) debugPanelEl.classList.remove('open');

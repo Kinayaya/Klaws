@@ -84,6 +84,16 @@
     const available=Math.max(0,quota-usage);
     return {quota,usage,available,ratio:quota?usage/quota:0};
   };
+  const STORAGE_HEALTH_TTL_MS = 30*1000;
+  let storageHealthCache = {ts:0,data:{quota:0,usage:0,available:0,ratio:0}};
+  const getStorageHealth = async (opts={}) => {
+    const force = !!(opts&&opts.force);
+    const now=Date.now();
+    if(!force&&storageHealthCache.data&&(now-storageHealthCache.ts)<STORAGE_HEALTH_TTL_MS) return storageHealthCache.data;
+    const data=await estimateUsage();
+    storageHealthCache={ts:now,data};
+    return data;
+  };
   const cleanupRebuildableCaches = async () => {
     if(typeof caches==='undefined'||!caches.keys) return {deleted:[],count:0};
     const names=await caches.keys();
@@ -154,5 +164,5 @@
     return { primaryStore, fallbackStore, snapshotStore, isQuotaErr };
   };
 
-  global.KLawsStorage = { readJSON, writeJSON, readJSONAsync, writeJSONAsync, createStoreAdapter, estimateUsage, cleanupRebuildableCaches, enforceWritePolicy, handleQuotaExceeded, governedWrite, governedWriteLocal, governedRemoveLocal };
+  global.KLawsStorage = { readJSON, writeJSON, readJSONAsync, writeJSONAsync, createStoreAdapter, estimateUsage, getStorageHealth, cleanupRebuildableCaches, enforceWritePolicy, handleQuotaExceeded, governedWrite, governedWriteLocal, governedRemoveLocal };
 })(window);
