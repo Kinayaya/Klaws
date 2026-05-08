@@ -54,7 +54,7 @@ function loadFormTaxonomyPref(){
   }
 }
 function saveFormTaxonomyPref(domain='', group='', part=''){
-  localStorage.setItem(FORM_TAXONOMY_PREF_KEY,JSON.stringify({
+  window.KLawsStorage.governedWriteLocal(FORM_TAXONOMY_PREF_KEY,JSON.stringify({
     domain:safeStr(domain),
     group:safeStr(group),
     part:safeStr(part)
@@ -63,7 +63,7 @@ function saveFormTaxonomyPref(domain='', group='', part=''){
 function saveLastViewState(){
   const view=(currentView==='map'||currentView==='calendar'||currentView==='level')?currentView:'notes';
   const mapStack=(view==='map')?normalizeMapPageStack(mapPageStack):[];
-  localStorage.setItem(LAST_VIEW_STATE_KEY,JSON.stringify({view,mapPageStack:mapStack}));
+  window.KLawsStorage.governedWriteLocal(LAST_VIEW_STATE_KEY,JSON.stringify({view,mapPageStack:mapStack}),'ephemeral');
 }
 function updateNotesHomeVisibility(){
   if(currentView!=='notes') return;
@@ -284,7 +284,7 @@ const getPanelDir = () => localStorage.getItem('klaws_panel_dir')==='bottom'?'bo
 const applyPanelDir = dir => {
   const next=dir==='bottom'?'bottom':'side';
   document.body.classList.toggle('panel-dir-bottom',next==='bottom');
-  localStorage.setItem('klaws_panel_dir',next);
+  window.KLawsStorage.governedWriteLocal('klaws_panel_dir',next,'ephemeral');
   const btn=g('panelDirBtn');
   if(btn) btn.textContent=next==='bottom'?'↥ 底部展開':'↤ 右側展開';
 };
@@ -451,11 +451,11 @@ const hexRgb = hex => { if(hex.length===4) hex='#'+hex[1]+hex[1]+hex[2]+hex[2]+h
 const lightC = hex => `rgba(${hexRgb(hex).join(',')},0.12)`;
 const darkC = hex => { let r=hexRgb(hex); return `rgb(${Math.round(r[0]*.55)},${Math.round(r[1]*.55)},${Math.round(r[2]*.55)})`; };
 const getAiKey = () => localStorage.getItem('klaws_ai_key')||'';
-const saveAiKey = k => localStorage.setItem('klaws_ai_key',k);
+const saveAiKey = k => window.KLawsStorage.governedWriteLocal('klaws_ai_key',k,'core');
 const getAiModel = () => localStorage.getItem('klaws_ai_model')||'openrouter/free';
-const saveAiModel = m => localStorage.setItem('klaws_ai_model',m);
+const saveAiModel = m => window.KLawsStorage.governedWriteLocal('klaws_ai_model',m,'ephemeral');
 const getAiProvider = () => localStorage.getItem('klaws_ai_provider')||'openrouter';
-const saveAiProvider = p => localStorage.setItem('klaws_ai_provider',p);
+const saveAiProvider = p => window.KLawsStorage.governedWriteLocal('klaws_ai_provider',p,'ephemeral');
 const getMapScopeContextKey = () => {
   const pageRoot=mapPageStack.length?mapPageStack[mapPageStack.length-1]:'root';
   return `${mapFilter.sub||'all'}::${mapFilter.group||'all'}::${mapFilter.part||'all'}::${pageRoot}`;
@@ -751,7 +751,7 @@ const ensureUsageStart = () => {
   const raw=localStorage.getItem(USAGE_START_KEY);
   if(raw&&Number.isFinite(Date.parse(raw))) return raw;
   const now=new Date().toISOString();
-  localStorage.setItem(USAGE_START_KEY,now);
+  window.KLawsStorage.governedWriteLocal(USAGE_START_KEY,now,'ephemeral');
   return now;
 };
 const formatUsageDuration = (startRaw,endRaw=new Date()) => {

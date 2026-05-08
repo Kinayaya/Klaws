@@ -234,7 +234,7 @@ function render() {
 }
 function applyCompactFilterMode(enabled){
   document.body.classList.toggle('compact-filters',!!enabled);
-  localStorage.setItem(COMPACT_FILTER_KEY,enabled?'1':'0');
+  window.KLawsStorage.governedWriteLocal(COMPACT_FILTER_KEY,enabled?'1':'0','ephemeral');
   const btn=g('compactToggleBtn');
   if(btn) btn.textContent=enabled?'☰ 顯示分類':'☰ 收合分類';
 }

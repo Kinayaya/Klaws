@@ -17,12 +17,12 @@ function migratePathOverridesIntoNotes(){
     }
   });
   if(changed){
-    localStorage.removeItem('klaws_note_paths_v1');
-    localStorage.setItem('klaws_path_override_migrated_v1','1');
+    window.KLawsStorage.governedRemoveLocal('klaws_note_paths_v1');
+    window.KLawsStorage.governedWriteLocal('klaws_path_override_migrated_v1','1','core');
     showToast(`已完成舊路徑遷移：${migratedCount} 筆`);
     console.info('[path-migration] applied overrides',{migratedCount});
   }else{
-    localStorage.setItem('klaws_path_override_migrated_v1','1');
+    window.KLawsStorage.governedWriteLocal('klaws_path_override_migrated_v1','1','core');
   }
   return changed;
 }
@@ -894,7 +894,7 @@ function askGoogleDriveClientId(){
   const current=getGoogleDriveClientId();
   const next=(prompt('請輸入 Google OAuth Client ID（Web Application）',current)||'').trim();
   if(!next) return '';
-  localStorage.setItem(GOOGLE_DRIVE_CLIENT_ID_KEY,next);
+  window.KLawsStorage.governedWriteLocal(GOOGLE_DRIVE_CLIENT_ID_KEY,next,'core');
   return next;
 }
 async function ensureGoogleAccessToken(forcePrompt=false){

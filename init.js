@@ -20,7 +20,7 @@
     scopeLinkedToggle.checked=scopeLinkedEnabled;
     scopeLinkedToggle.addEventListener('change',()=>{
       scopeLinkedEnabled=!!scopeLinkedToggle.checked;
-      localStorage.setItem(SCOPE_LINKED_TOGGLE_KEY,scopeLinkedEnabled?'1':'0');
+      window.KLawsStorage.governedWriteLocal(SCOPE_LINKED_TOGGLE_KEY,scopeLinkedEnabled?'1':'0','ephemeral');
       gridPage=1;
       render();
       showToast(scopeLinkedEnabled?'已啟用跨關聯顯示':'已關閉跨關聯顯示');

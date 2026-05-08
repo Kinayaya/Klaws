@@ -198,7 +198,7 @@ function checkReminders(){
       g('reminderCloseBtn').onclick=()=>{
         pop.classList.remove('open');
         reminderDismissed[e.id]=true;
-        localStorage.setItem('klaws_reminder_dismissed_v1',JSON.stringify(reminderDismissed));
+        window.KLawsStorage.governedWriteLocal('klaws_reminder_dismissed_v1',JSON.stringify(reminderDismissed),'ephemeral');
       };
     }
     if(channels.email&&calendarSettings.emails.length){

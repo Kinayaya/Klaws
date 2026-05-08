@@ -1,6 +1,6 @@
 // ==================== 快捷鍵 ====================
 function loadShortcuts() { try{const raw=localStorage.getItem('legal_shortcuts_v2');if(raw){const p=JSON.parse(raw);shortcuts=DEFAULT_SHORTCUTS.map(s=>p.find(x=>x.id===s.id)?{...s,...p.find(x=>x.id===s.id)}:{...s});}else shortcuts=DEFAULT_SHORTCUTS.map(s=>({...s}));}catch(e){shortcuts=DEFAULT_SHORTCUTS.map(s=>({...s}));} }
-function saveShortcuts() { localStorage.setItem('legal_shortcuts_v2',JSON.stringify(shortcuts)); }
+function saveShortcuts() { window.KLawsStorage.governedWriteLocal('legal_shortcuts_v2',JSON.stringify(shortcuts),'ephemeral'); }
 const codeToDisplay = c => !c?'未設定':c==='Escape'?'Esc':c==='Space'?'Space':c==='Backspace'?'Backspace':c==='Enter'?'Enter':c==='Tab'?'Tab':c.startsWith('Key')?c.slice(3).toUpperCase():c.startsWith('Digit')?c.slice(5):c;
 const fmtKey = sc => !sc.code?'未設定':[sc.ctrl?'Ctrl':'',sc.alt?'Alt':'',sc.shift?'Shift':'',codeToDisplay(sc.code)].filter(Boolean).join(' + ');
 function renderShortcutList() {

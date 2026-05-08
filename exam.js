@@ -17,7 +17,7 @@ async function loadExams() {
 }
 
 function saveExams() {
-  try { localStorage.setItem('klaws_exams_v1', JSON.stringify(examList)); } catch (e) {}
+  window.KLawsStorage.governedWriteLocal('klaws_exams_v1', JSON.stringify(examList), 'rebuildable');
   storageAdapter.primaryStore.set('klaws_exams_v1', examList).catch(() => {});
 }
 
