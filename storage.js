@@ -56,9 +56,9 @@
     }
   };
 
-  const writeJSON = (key, value) => {
-    const res=governedWrite({kind:'core',store:'localStorage',key,value,serializer:v=>JSON.stringify(v)});
-    return !!res.ok;
+  const writeJSON = async (key, value) => {
+    const res=await governedWrite({kind:'core',store:'localStorage',key,value,serializer:v=>JSON.stringify(v)});
+    return Boolean(res&&res.ok);
   };
 
   const readJSONAsync = async (key, fallback) => {
@@ -127,7 +127,7 @@
       return {ok:false,error:makeStorageError('WRITE_FAILED','儲存失敗，請稍後再試。',{kind,store,key,cause:err}),hint:'write_failed'};
     }
   };
-  const governedWriteLocal = (key,value,kind='core') => governedWrite({kind,store:'localStorage',key,value,serializer:v=>typeof v==='string'?v:JSON.stringify(v)});
+  const governedWriteLocal = async (key,value,kind='core') => await governedWrite({kind,store:'localStorage',key,value,serializer:v=>typeof v==='string'?v:JSON.stringify(v)});
   const governedRemoveLocal = async key => {
     try{ localStorage.removeItem(key); return {ok:true}; }
     catch(err){ return {ok:false,error:makeStorageError('REMOVE_FAILED','刪除失敗，請稍後再試。',{key,cause:err}),hint:'remove_failed'}; }
@@ -144,8 +144,11 @@
     };
     const fallbackStore={
       get: key => readJSON(key,null),
-      set: (key,value,kind='core')=> governedWrite({kind,store:'localStorage',key,value,serializer:v=>JSON.stringify(v)}).then(res=>!!res.ok),
-      remove: key => { governedRemoveLocal(key); }
+      set: async (key,value,kind='core')=> {
+        const res=await governedWrite({kind,store:'localStorage',key,value,serializer:v=>JSON.stringify(v)});
+        return Boolean(res&&res.ok);
+      },
+      remove: async key => { await governedRemoveLocal(key); }
     };
     const snapshotStore={...primaryStore};
     return { primaryStore, fallbackStore, snapshotStore, isQuotaErr };

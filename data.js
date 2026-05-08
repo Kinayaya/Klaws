@@ -66,22 +66,28 @@ function buildFallbackMeta({idbFailed=false,lastSaveAt=Date.now()}={}){
     requiresManualRestore:Boolean(idbFailed)
   };
 }
-function writeLocalFallbackPayload(meta, force=false){
+async function writeLocalFallbackPayload(meta, force=false){
   const now=Date.now();
   if(!force && (now-lastFallbackWriteAt)<FALLBACK_WRITE_INTERVAL_MS && !idbHealthDegraded) return false;
   const fallbackMeta=(meta&&typeof meta==='object'&&!Array.isArray(meta))?meta:buildFallbackMeta();
+  const storageKey=fallbackStorageKey();
+  const payloadBytes=JSON.stringify(fallbackMeta).length;
   try{
-    const ok=storageAdapter.fallbackStore.set(fallbackStorageKey(), fallbackMeta);
+    const ok=await storageAdapter.fallbackStore.set(storageKey, fallbackMeta);
     if(ok) lastFallbackWriteAt=now;
+    if(!ok){
+      console.warn('[saveData-local-fallback-failed]',{code:'LOCAL_FALLBACK_WRITE_FAILED',key:storageKey,bytes:payloadBytes});
+    }
     return ok;
   }catch(e){
-    console.warn('[saveData-local-fallback-failed]',e);
+    const code=e&&e.code?e.code:'LOCAL_FALLBACK_WRITE_THROWN';
+    console.warn('[saveData-local-fallback-failed]',{code,key:storageKey,bytes:payloadBytes,error:e});
     return false;
   }
 }
-function clearLocalFallbackPayload(){
+async function clearLocalFallbackPayload(){
   try{
-    storageAdapter.fallbackStore.remove(fallbackStorageKey());
+    await storageAdapter.fallbackStore.remove(fallbackStorageKey());
   }catch(e){}
 }
 
@@ -212,7 +218,7 @@ async function loadData() {
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
-      writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}), true);
+      await writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}), true);
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
     } else {
@@ -239,7 +245,7 @@ function pushPayloadToBackend(payload){
   }).catch(err=>console.warn('[backend-sync-push-failed]',err));
 }
 
-function saveData() {
+async function saveData() {
   try {
     const payload=getPayload();
     const nextRaw=JSON.stringify(payload);
@@ -249,11 +255,12 @@ function saveData() {
       console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
     }).catch(err=>{
       idbHealthDegraded=true;
-      console.warn('[saveData-idb-failed]',err);
-      writeLocalFallbackPayload(buildFallbackMeta({idbFailed:true}),true);
+      const code=err&&err.code?err.code:(storageAdapter.isQuotaErr(err)?'QUOTA_EXCEEDED':'IDB_WRITE_FAILED');
+      console.warn('[saveData-idb-failed]',{code,key:SKEY,bytes:nextRaw.length,error:err});
+      void writeLocalFallbackPayload(buildFallbackMeta({idbFailed:true}),true);
       console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
     });
-    writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}));
+    await writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}));
     lastSavedPayloadRaw=nextRaw;
     pushPayloadToBackend(payload);
   } catch(e){}
@@ -607,7 +614,7 @@ function loadArchives(){
   return [];
 }
 
-function saveArchives(arr){
+async function saveArchives(arr){
   const next=(Array.isArray(arr)?arr:[])
     .map(normalizeArchiveRecord)
     .filter(Boolean)
@@ -627,7 +634,7 @@ function saveArchives(arr){
   };
 
   debugLog('initial-write');
-  if(writeJSON(ARCHIVES_KEY,next)){ storageAdapter.primaryStore.set(ARCHIVES_IDB_KEY,next).catch(()=>{}); window.__klawsArchivesCache=next; return {ok:true, kept:next.length, trimmed:0}; }
+  if(await writeJSON(ARCHIVES_KEY,next)){ storageAdapter.primaryStore.set(ARCHIVES_IDB_KEY,next).catch(()=>{}); window.__klawsArchivesCache=next; return {ok:true, kept:next.length, trimmed:0}; }
 
   if(next.length<=1){
     debugLog('initial-write-failed',{reason:'quota_global_or_non_archive'});
@@ -646,7 +653,7 @@ function saveArchives(arr){
       trimmed:true,
       trimmedCount:next.length-trimmed.length
     });
-    if(writeJSON(ARCHIVES_KEY,trimmed)){ storageAdapter.primaryStore.set(ARCHIVES_IDB_KEY,trimmed).catch(()=>{}); window.__klawsArchivesCache=trimmed;
+    if(await writeJSON(ARCHIVES_KEY,trimmed)){ storageAdapter.primaryStore.set(ARCHIVES_IDB_KEY,trimmed).catch(()=>{}); window.__klawsArchivesCache=trimmed;
       return {ok:true, kept:trimmed.length, trimmed:next.length-trimmed.length, quotaRecovered:true};
     }
   }
@@ -663,8 +670,8 @@ function loadRecycleBin(){
   recycleBin=Array.isArray(arr)?arr:[];
   storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ recycleBin=v; window.__klawsRecycleCache=v; renderArchivePanel(); } }).catch(()=>{});
 }
-function saveRecycleBin(){
-  writeJSON(RECYCLE_BIN_KEY,recycleBin); storageAdapter.primaryStore.set(RECYCLE_BIN_KEY,recycleBin).catch(()=>{}); window.__klawsRecycleCache=recycleBin;
+async function saveRecycleBin(){
+  await writeJSON(RECYCLE_BIN_KEY,recycleBin); storageAdapter.primaryStore.set(RECYCLE_BIN_KEY,recycleBin).catch(()=>{}); window.__klawsRecycleCache=recycleBin;
 }
 function normalizeNotesTaxonomy(){
   const tSet=new Set(types.map(t=>t.key));
@@ -903,11 +910,11 @@ async function ensureGoogleIdentityClient(){
 function getGoogleDriveClientId(){
   return safeStr(localStorage.getItem(GOOGLE_DRIVE_CLIENT_ID_KEY)||'').trim();
 }
-function askGoogleDriveClientId(){
+async function askGoogleDriveClientId(){
   const current=getGoogleDriveClientId();
   const next=(prompt('請輸入 Google OAuth Client ID（Web Application）',current)||'').trim();
   if(!next) return '';
-  window.KLawsStorage.governedWriteLocal(GOOGLE_DRIVE_CLIENT_ID_KEY,next,'core');
+  await window.KLawsStorage.governedWriteLocal(GOOGLE_DRIVE_CLIENT_ID_KEY,next,'core');
   return next;
 }
 async function ensureGoogleAccessToken(forcePrompt=false){
@@ -917,7 +924,7 @@ async function ensureGoogleAccessToken(forcePrompt=false){
   const ready=await ensureGoogleIdentityClient();
   if(!ready){showToast('Google SDK 載入失敗');return '';}
   let clientId=getGoogleDriveClientId();
-  if(!clientId) clientId=askGoogleDriveClientId();
+  if(!clientId) clientId=await askGoogleDriveClientId();
   if(!clientId){showToast('未設定 Google Client ID');return '';}
   const tokenClient=google.accounts.oauth2.initTokenClient({
     client_id:clientId,
