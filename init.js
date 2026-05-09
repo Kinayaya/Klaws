@@ -1,4 +1,4 @@
-const appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
+var appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
 // ==================== 初始化 ====================
   window.addEventListener('load',async ()=>{
   try{

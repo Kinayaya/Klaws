@@ -1,4 +1,4 @@
-const appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
+var appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
 // ==================== 統計 ====================
 function openStats() {
   openPathMgr();
