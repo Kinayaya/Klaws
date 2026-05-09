@@ -704,7 +704,22 @@ const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
   setMapCenterForCurrentScope(target,opt);
   mapPageStack=prevStack;
 };
-const getPayload = () => ({notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodePos,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,panelDir:getPanelDir(),rev:Number(window.__klawsDataRev)||0,updatedAt:new Date().toISOString()});
+const getPayload = (opt={}) => {
+  const {includeTransient=true}=opt||{};
+  const payload={notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,panelDir:getPanelDir(),rev:Number(window.__klawsDataRev)||0,updatedAt:new Date().toISOString()};
+  if(includeTransient){
+    payload.nodePos=nodePos;
+    payload.mapOffX=mapOffX;
+    payload.mapOffY=mapOffY;
+    payload.mapScale=mapScale;
+    payload.mapCollapsed=mapCollapsed;
+  }
+  return payload;
+};
+const persistMapCriticalState = async () => {
+  await flushDeferredSave();
+  return saveData({includeTransient:false});
+};
 const parseUpdatedAt = raw => {
   const n=Date.parse(raw||'');
   return Number.isFinite(n)?n:0;
