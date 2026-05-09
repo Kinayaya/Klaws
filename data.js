@@ -156,6 +156,61 @@ function clearLegacyLocalFallbackKeys(){
   }
 }
 
+
+const DATA_SHARD_SUFFIX='__parts_v1';
+const DATA_SHARD_KEY_PREFIX=`${SKEY}${DATA_SHARD_SUFFIX}`;
+const DATA_SHARD_KEYS={
+  notes:'notes',
+  links:'links',
+  taxonomy:'taxonomy',
+  layout:'layout',
+  uiState:'uiState',
+  mapState:'mapState',
+  calendar:'calendar',
+  level:'level'
+};
+const DATA_SHARD_GETTERS={
+  [DATA_SHARD_KEYS.notes]:payload=>({notes:payload.notes,mapAuxNodes:payload.mapAuxNodes,nid:payload.nid}),
+  [DATA_SHARD_KEYS.links]:payload=>({links:payload.links,lid:payload.lid}),
+  [DATA_SHARD_KEYS.taxonomy]:payload=>({types:payload.types,domains:payload.domains,groups:payload.groups,parts:payload.parts,typeFieldConfigs:payload.typeFieldConfigs,customFieldDefs:payload.customFieldDefs}),
+  [DATA_SHARD_KEYS.layout]:payload=>({nodePos:payload.nodePos,nodeSizes:payload.nodeSizes}),
+  [DATA_SHARD_KEYS.uiState]:payload=>({sortMode:payload.sortMode,panelDir:payload.panelDir}),
+  [DATA_SHARD_KEYS.mapState]:payload=>({mapCenterNodeId:payload.mapCenterNodeId,mapCenterNodeIds:payload.mapCenterNodeIds,mapFilter:payload.mapFilter,mapLinkedOnly:payload.mapLinkedOnly,mapDepth:payload.mapDepth,mapFocusMode:payload.mapFocusMode,mapLaneConfigs:payload.mapLaneConfigs,mapCollapsed:payload.mapCollapsed,mapSubpages:payload.mapSubpages,mapPageNotes:payload.mapPageNotes,mapPageStack:payload.mapPageStack}),
+  [DATA_SHARD_KEYS.calendar]:payload=>({calendarEvents:payload.calendarEvents,calendarSettings:payload.calendarSettings}),
+  [DATA_SHARD_KEYS.level]:payload=>({levelSystem:payload.levelSystem})
+};
+const DATA_SHARD_NAMES=Object.values(DATA_SHARD_KEYS);
+const dataShardStorageKey=name=>`${DATA_SHARD_KEY_PREFIX}::${name}`;
+const dataShardMetaKey=()=>`${DATA_SHARD_KEY_PREFIX}::meta`;
+function buildDataShardMap(payload){
+  return DATA_SHARD_NAMES.reduce((acc,name)=>{ acc[name]=DATA_SHARD_GETTERS[name](payload); return acc; },{});
+}
+async function readShardedPayload(){
+  const meta=await readJSONAsync(dataShardMetaKey(),null);
+  const shardNames=Array.isArray(meta&&meta.shards)?meta.shards.filter(name=>DATA_SHARD_GETTERS[name]):[];
+  if(!shardNames.length) return null;
+  const payload={};
+  for(const name of shardNames){
+    const part=await readJSONAsync(dataShardStorageKey(name),null);
+    if(!part||typeof part!=='object'||Array.isArray(part)) return null;
+    Object.assign(payload,part);
+  }
+  return payload;
+}
+async function writeShardedPayloadParts(payload){
+  const nextParts=buildDataShardMap(payload);
+  const prevParts=(window.__klawsLastSavedShards&&typeof window.__klawsLastSavedShards==='object')?window.__klawsLastSavedShards:{};
+  const writes=[];
+  DATA_SHARD_NAMES.forEach(name=>{
+    const nextRaw=JSON.stringify(nextParts[name]);
+    const prevRaw=JSON.stringify(prevParts[name]);
+    if(nextRaw===prevRaw) return;
+    writes.push(storageAdapter.primaryStore.set(dataShardStorageKey(name),nextParts[name]));
+  });
+  writes.push(storageAdapter.primaryStore.set(dataShardMetaKey(),{version:1,shards:DATA_SHARD_NAMES,updatedAt:new Date().toISOString()}));
+  await Promise.all(writes);
+  window.__klawsLastSavedShards=nextParts;
+}
 // ==================== 資料儲存 ====================
 function migrateLegacyGroupPartData(){
   let changed=false;
@@ -185,7 +240,12 @@ async function loadData() {
   await migrateLegacyLocalFallbackToIdb();
   clearLegacyLocalFallbackKeys();
   try {
-    let d=await readJSONAsync(SKEY,null);
+    let d=await readShardedPayload();
+    let loadedFromLegacyBlob=false;
+    if(!d){
+      d=await readJSONAsync(SKEY,null);
+      loadedFromLegacyBlob=!!d;
+    }
     if(d) {
       notes=mergeAuxNodesIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapAuxNodes)?d.mapAuxNodes:[]);
       mapAuxNodes=[];
@@ -269,6 +329,9 @@ async function loadData() {
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
       await writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}), true);
+      if(loadedFromLegacyBlob){
+        await writeShardedPayloadParts(getPayload());
+      }
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
     } else {
@@ -300,7 +363,7 @@ async function saveData() {
     const payload=getPayload();
     const nextRaw=JSON.stringify(payload);
     const saveStartedAt=performance.now();
-    storageAdapter.primaryStore.set(SKEY,payload).then(()=>{
+    writeShardedPayloadParts(payload).then(()=>{
       idbHealthDegraded=false;
       console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
     }).catch(err=>{
