@@ -644,6 +644,32 @@ function parseImportPayload(rawText){
     }
   };
 }
+
+function applySnapshotRaw(rawText){
+  const parsed=parseImportPayload(rawText);
+  if(!parsed.ok) return false;
+  const d=parsed.data.raw;
+  const importNotes=parsed.data.notes;
+  const importAuxnodes=parsed.data.auxnodes;
+  const importLinks=parsed.data.links;
+  notes=mergeAuxNodesIntoNotes(importNotes,importAuxnodes);
+  links=importLinks;
+  mapAuxNodes=[];
+  nodeSizes=d.nodeSizes||{};
+  mapCenterNodeId=d.mapCenterNodeId||null;
+  mapCenterNodeIds=(d.mapCenterNodeIds&&typeof d.mapCenterNodeIds==='object')?d.mapCenterNodeIds:{};
+  mapCollapsed=(d.mapCollapsed&&typeof d.mapCollapsed==='object')?d.mapCollapsed:{};
+  mapSubpages=(d.mapSubpages&&typeof d.mapSubpages==='object')?d.mapSubpages:{};
+  mapPageNotes=(d.mapPageNotes&&typeof d.mapPageNotes==='object')?normalizeMapPageNotes(d.mapPageNotes):{root:notes.map(n=>n.id)};
+  nid=d.nid||Math.max([...notes,...mapAuxNodes].reduce((m,n)=>Math.max(m,n.id||0),0)+1,10);
+  lid=d.lid||10;
+  notes.sort((a,b)=>b.id-a.id);
+  normalizeNoteIds(true);
+  saveData();
+  rebuildUI();
+  render();
+  return true;
+}
 function importData(file) {
   const reader=new FileReader();
   reader.onload=e=>{
@@ -661,15 +687,9 @@ function importData(file) {
         console.warn('[importData warnings]',parsed.report.warnings);
       }
       if(confirm('確定 = 完整覆蓋（取代所有現有筆記，保留現有/設定）\n取消 = 合併（只加入新筆記）')) {
-        notes=mergeAuxNodesIntoNotes(importNotes,importAuxnodes);
-        links=importLinks;
-        mapAuxNodes=[];
-        nodeSizes=d.nodeSizes||{};mapCenterNodeId=d.mapCenterNodeId||null;mapCenterNodeIds=(d.mapCenterNodeIds&&typeof d.mapCenterNodeIds==='object')?d.mapCenterNodeIds:{};mapCollapsed=(d.mapCollapsed&&typeof d.mapCollapsed==='object')?d.mapCollapsed:{};
-        mapSubpages=(d.mapSubpages&&typeof d.mapSubpages==='object')?d.mapSubpages:{};
-        mapPageNotes=(d.mapPageNotes&&typeof d.mapPageNotes==='object')?normalizeMapPageNotes(d.mapPageNotes):{root:notes.map(n=>n.id)};
-        nid=d.nid||Math.max([...notes,...mapAuxNodes].reduce((m,n)=>Math.max(m,n.id||0),0)+1,10);lid=d.lid||10;notes.sort((a,b)=>b.id-a.id);
-        normalizeNoteIds(true);
-        saveData();rebuildUI();render();showToast(`已覆蓋，共 ${notes.length} 筆筆記`);
+        const ok=applySnapshotRaw(JSON.stringify(d));
+        if(ok) showToast(`已覆蓋，共 ${notes.length} 筆筆記`);
+        else showToast('匯入失敗，請確認檔案格式');
       } else {
         const existing=new Set(notes.map(n=>n.id));let added=0;
         let maxNoteId=[...notes].reduce((m,x)=>Math.max(m,x.id||0),0);
