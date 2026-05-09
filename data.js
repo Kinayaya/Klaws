@@ -1,246 +1,37 @@
 
-function migratePathOverridesIntoNotes(){
-  if(localStorage.getItem('klaws_path_override_migrated_v1')==='1') return false;
-  const overrides=readJSON('klaws_note_paths_v1',{});
-  if(!overrides||typeof overrides!=='object'||Array.isArray(overrides)) return false;
-  let changed=false;
-  let migratedCount=0;
-  [...notes,...mapAuxNodes].forEach(n=>{
-    const key=String(n&&n.id);
-    if(!key) return;
-    const ov=typeof overrides[key]==='string'?normalizePathText(overrides[key]):'';
-    if(!ov) return;
-    if((n.path||'')!==ov){
-      n.path=ov;
-      changed=true;
-      migratedCount++;
-    }
-  });
-  if(changed){
-    window.KLawsStorage.governedRemoveLocal('klaws_note_paths_v1');
-    window.KLawsStorage.governedWriteLocal('klaws_path_override_migrated_v1','1','core');
-    showToast(`已完成舊路徑遷移：${migratedCount} 筆`);
-    console.info('[path-migration] applied overrides',{migratedCount});
-  }else{
-    window.KLawsStorage.governedWriteLocal('klaws_path_override_migrated_v1','1','core');
-  }
-  return changed;
-}
-
-function clearLegacyDomainsFromNotes(){
-  let changed=false;
-  [...notes,...mapAuxNodes].forEach(n=>{
-    const hadDomain=safeStr(n.domain).trim().length>0;
-    const hadDomains=Array.isArray(n.domains)&&n.domains.length>0;
-    if(hadDomain||hadDomains){
-      n.domain='';
-      n.domains=[];
-      changed=true;
-    }
-  });
-  if(Array.isArray(domains)&&domains.length){ domains=[]; changed=true; }
-  if(mapFilter&&typeof mapFilter==='object'&&mapFilter.sub!=='all'){ mapFilter.sub='all'; changed=true; }
-  return changed;
-}
-
-const LOCAL_FALLBACK_PREFIX='klaws_payload_backup_v1';
-const FALLBACK_META_VERSION = 1;
-const FALLBACK_META_MIGRATION_KEY = 'klaws_fallback_meta_migration_v1';
-const FALLBACK_IDB_META_KEY = 'klaws_fallback_meta_idb_v1';
-const FALLBACK_WRITE_INTERVAL_MS = 5*60*1000;
 const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
 const ARCHIVE_NOISE_EXCLUDE_KEYS = ['nodePos','mapCenterNodeId','mapCenterNodeIds','mapFilter'];
-let lastFallbackWriteAt = 0;
-let idbHealthDegraded = false;
-function fallbackStorageKey(){
-  const host=(location&&location.host)?location.host:'unknown-host';
-  return `${LOCAL_FALLBACK_PREFIX}::${host}`;
-}
-async function readFallbackPayload(){
-  const storageKey=fallbackStorageKey();
-  try{
-    const idbValue=await storageAdapter.primaryStore.get(FALLBACK_IDB_META_KEY, null);
-    if(idbValue&&typeof idbValue==='object'&&!Array.isArray(idbValue)){
-      const payload=idbValue[storageKey];
-      if(payload&&typeof payload==='object'&&!Array.isArray(payload)) return payload;
-    }
-  }catch(e){}
-  return readJSON(storageKey, null);
-}
-function buildFallbackMeta({idbFailed=false,lastSaveAt=Date.now()}={}){
-  return {
-    version:FALLBACK_META_VERSION,
-    lastSaveAt,
-    idbFailed:Boolean(idbFailed),
-    requiresManualRestore:Boolean(idbFailed)
-  };
-}
-async function writeLocalFallbackPayload(meta, force=false){
-  const now=Date.now();
-  if(!force && (now-lastFallbackWriteAt)<FALLBACK_WRITE_INTERVAL_MS && !idbHealthDegraded) return false;
-  const fallbackMeta=(meta&&typeof meta==='object'&&!Array.isArray(meta))?meta:buildFallbackMeta();
-  const storageKey=fallbackStorageKey();
-  const payloadBytes=JSON.stringify(fallbackMeta).length;
-  try{
-    const currentMap=await storageAdapter.primaryStore.get(FALLBACK_IDB_META_KEY, {});
-    const nextMap=(currentMap&&typeof currentMap==='object'&&!Array.isArray(currentMap))?{...currentMap}:{ };
-    nextMap[storageKey]=fallbackMeta;
-    await storageAdapter.primaryStore.set(FALLBACK_IDB_META_KEY,nextMap);
-    try{ await storageAdapter.fallbackStore.remove(storageKey); }catch(e){}
-    lastFallbackWriteAt=now;
-    return true;
-  }catch(e){
-    const code=e&&e.code?e.code:'IDB_FALLBACK_WRITE_FAILED';
-    console.warn('[saveData-idb-fallback-failed]',{code,key:storageKey,bytes:payloadBytes,error:e});
-    try{
-      const ok=await storageAdapter.fallbackStore.set(storageKey, fallbackMeta);
-      if(ok) lastFallbackWriteAt=now;
-      return ok;
-    }catch(localErr){
-      const localCode=localErr&&localErr.code?localErr.code:'LOCAL_FALLBACK_WRITE_THROWN';
-      console.warn('[saveData-local-fallback-failed]',{code:localCode,key:storageKey,bytes:payloadBytes,error:localErr});
-      return false;
-    }
-  }
-}
-async function clearLocalFallbackPayload(){
-  const storageKey=fallbackStorageKey();
-  try{
-    const currentMap=await storageAdapter.primaryStore.get(FALLBACK_IDB_META_KEY, {});
-    if(currentMap&&typeof currentMap==='object'&&!Array.isArray(currentMap)&&Object.prototype.hasOwnProperty.call(currentMap,storageKey)){
-      const nextMap={...currentMap};
-      delete nextMap[storageKey];
-      await storageAdapter.primaryStore.set(FALLBACK_IDB_META_KEY,nextMap);
-    }
-  }catch(e){}
-  try{
-    await storageAdapter.fallbackStore.remove(storageKey);
-  }catch(e){}
-}
+let idbHealthDegraded=false;
+
+const dataStorageApi=window.KlawsData.createDataStorageApi({
+  SKEY,
+  storageAdapter,
+  readJSON,
+  readJSONAsync,
+  location,
+  localStorage,
+  notesRef:{ get value(){ return notes; }, set value(v){ notes=v; } },
+  mapAuxNodesRef:{ get value(){ return mapAuxNodes; }, set value(v){ mapAuxNodes=v; } },
+  normalizePathText,
+  removeLocal:key=>window.KLawsStorage.governedRemoveLocal(key),
+  writeLocal:(key,val)=>window.KLawsStorage.governedWriteLocal(key,val,'core'),
+  showToast,
+  safeStr,
+  domainsRef:{ get value(){ return domains; }, set value(v){ domains=v; } },
+  mapFilterRef:{ get value(){ return mapFilter; }, set value(v){ mapFilter=v; } },
+  groupsRef:{ get value(){ return groups; }, set value(v){ groups=v; } },
+  partsRef:{ get value(){ return parts; }, set value(v){ parts=v; } }
+});
 
 
-async function migrateLegacyLocalFallbackToIdb(){
-  if(localStorage.getItem(FALLBACK_META_MIGRATION_KEY)==='1') return;
-  const storageKey=fallbackStorageKey();
-  const legacyMeta=readJSON(storageKey,null);
-  if(!legacyMeta||typeof legacyMeta!=='object'||Array.isArray(legacyMeta)){
-    window.KLawsStorage.governedWriteLocal(FALLBACK_META_MIGRATION_KEY,'1','core');
-    return;
-  }
-  try{
-    const currentMap=await storageAdapter.primaryStore.get(FALLBACK_IDB_META_KEY, {});
-    const nextMap=(currentMap&&typeof currentMap==='object'&&!Array.isArray(currentMap))?{...currentMap}:{ };
-    nextMap[storageKey]=legacyMeta;
-    await storageAdapter.primaryStore.set(FALLBACK_IDB_META_KEY,nextMap);
-    await storageAdapter.fallbackStore.remove(storageKey);
-    window.KLawsStorage.governedWriteLocal(FALLBACK_META_MIGRATION_KEY,'1','core');
-    console.info('[fallback-migration] moved local fallback metadata into indexeddb',{key:storageKey});
-  }catch(e){
-    console.warn('[fallback-migration-failed]',e);
-  }
-}
-function clearLegacyLocalFallbackKeys(){
-  if(localStorage.getItem(FALLBACK_META_MIGRATION_KEY)==='1') return;
-  try{
-    const staleKeys=[];
-    const currentKey=fallbackStorageKey();
-    for(let i=0;i<localStorage.length;i++){
-      const key=localStorage.key(i);
-      if(typeof key==='string'&&key.startsWith(`${LOCAL_FALLBACK_PREFIX}::`)&&key!==currentKey) staleKeys.push(key);
-    }
-    staleKeys.forEach(key=>window.KLawsStorage.governedRemoveLocal(key));
-    window.KLawsStorage.governedWriteLocal(FALLBACK_META_MIGRATION_KEY,'1','core');
-    if(staleKeys.length) console.info('[fallback-migration] cleared legacy local fallback keys',{count:staleKeys.length});
-  }catch(e){
-    console.warn('[fallback-migration-failed]',e);
-  }
-}
-
-
-const DATA_SHARD_SUFFIX='__parts_v1';
-const DATA_SHARD_KEY_PREFIX=`${SKEY}${DATA_SHARD_SUFFIX}`;
-const DATA_SHARD_KEYS={
-  notes:'notes',
-  links:'links',
-  taxonomy:'taxonomy',
-  layout:'layout',
-  uiState:'uiState',
-  mapState:'mapState',
-  calendar:'calendar',
-  level:'level'
-};
-const DATA_SHARD_GETTERS={
-  [DATA_SHARD_KEYS.notes]:payload=>({notes:payload.notes,mapAuxNodes:payload.mapAuxNodes,nid:payload.nid}),
-  [DATA_SHARD_KEYS.links]:payload=>({links:payload.links,lid:payload.lid}),
-  [DATA_SHARD_KEYS.taxonomy]:payload=>({types:payload.types,domains:payload.domains,groups:payload.groups,parts:payload.parts,typeFieldConfigs:payload.typeFieldConfigs,customFieldDefs:payload.customFieldDefs}),
-  [DATA_SHARD_KEYS.layout]:payload=>({nodePos:payload.nodePos,nodeSizes:payload.nodeSizes}),
-  [DATA_SHARD_KEYS.uiState]:payload=>({sortMode:payload.sortMode,panelDir:payload.panelDir}),
-  [DATA_SHARD_KEYS.mapState]:payload=>({mapCenterNodeId:payload.mapCenterNodeId,mapCenterNodeIds:payload.mapCenterNodeIds,mapFilter:payload.mapFilter,mapLinkedOnly:payload.mapLinkedOnly,mapDepth:payload.mapDepth,mapFocusMode:payload.mapFocusMode,mapLaneConfigs:payload.mapLaneConfigs,mapCollapsed:payload.mapCollapsed,mapSubpages:payload.mapSubpages,mapPageNotes:payload.mapPageNotes,mapPageStack:payload.mapPageStack}),
-  [DATA_SHARD_KEYS.calendar]:payload=>({calendarEvents:payload.calendarEvents,calendarSettings:payload.calendarSettings}),
-  [DATA_SHARD_KEYS.level]:payload=>({levelSystem:payload.levelSystem})
-};
-const DATA_SHARD_NAMES=Object.values(DATA_SHARD_KEYS);
-const dataShardStorageKey=name=>`${DATA_SHARD_KEY_PREFIX}::${name}`;
-const dataShardMetaKey=()=>`${DATA_SHARD_KEY_PREFIX}::meta`;
-function buildDataShardMap(payload){
-  return DATA_SHARD_NAMES.reduce((acc,name)=>{ acc[name]=DATA_SHARD_GETTERS[name](payload); return acc; },{});
-}
-async function readShardedPayload(){
-  const meta=await readJSONAsync(dataShardMetaKey(),null);
-  const shardNames=Array.isArray(meta&&meta.shards)?meta.shards.filter(name=>DATA_SHARD_GETTERS[name]):[];
-  if(!shardNames.length) return null;
-  const payload={};
-  for(const name of shardNames){
-    const part=await readJSONAsync(dataShardStorageKey(name),null);
-    if(!part||typeof part!=='object'||Array.isArray(part)) return null;
-    Object.assign(payload,part);
-  }
-  return payload;
-}
-async function writeShardedPayloadParts(payload){
-  const nextParts=buildDataShardMap(payload);
-  const prevParts=(window.__klawsLastSavedShards&&typeof window.__klawsLastSavedShards==='object')?window.__klawsLastSavedShards:{};
-  const writes=[];
-  DATA_SHARD_NAMES.forEach(name=>{
-    const nextRaw=JSON.stringify(nextParts[name]);
-    const prevRaw=JSON.stringify(prevParts[name]);
-    if(nextRaw===prevRaw) return;
-    writes.push(storageAdapter.primaryStore.set(dataShardStorageKey(name),nextParts[name]));
-  });
-  writes.push(storageAdapter.primaryStore.set(dataShardMetaKey(),{version:1,shards:DATA_SHARD_NAMES,updatedAt:new Date().toISOString()}));
-  await Promise.all(writes);
-  window.__klawsLastSavedShards=nextParts;
-}
 // ==================== 資料儲存 ====================
-function migrateLegacyGroupPartData(){
-  let changed=false;
-  const all=[...notes,...mapAuxNodes];
-  all.forEach(n=>{
-    const legacyCh=Array.isArray(n.groups)?n.groups.filter(Boolean):((n.group)?[n.group]:[]);
-    const legacySec=Array.isArray(n.parts)?n.parts.filter(Boolean):((n.part)?[n.part]:[]);
-    if((legacyCh.length||legacySec.length)){
-      const marker=`【舊資料】: ${legacyCh.join(', ')||'無'}；: ${legacySec.join(', ')||'無'}`;
-      const body=safeStr(n.detail||n.body||'');
-      if(!body.includes('【舊資料】')){
-        n.detail=(safeStr(n.detail).trim()?`${safeStr(n.detail).trim()}\n\n${marker}`:marker);
-        changed=true;
-      }
-    }
-    if(n.group||n.part||(Array.isArray(n.groups)&&n.groups.length)||(Array.isArray(n.parts)&&n.parts.length)){
-      n.group=''; n.part=''; n.groups=[]; n.parts=[]; changed=true;
-    }
-  });
-  if(Array.isArray(groups)&&groups.length){ groups=[]; changed=true; }
-  if(Array.isArray(parts)&&parts.length){ parts=[]; changed=true; }
-  if(mapFilter&&typeof mapFilter==='object'&&(mapFilter.group!=='all'||mapFilter.part!=='all')){ mapFilter.group='all'; mapFilter.part='all'; changed=true; }
-  return changed;
-}
+
 
 async function loadData() {
-  await migrateLegacyLocalFallbackToIdb();
-  clearLegacyLocalFallbackKeys();
+  await dataStorageApi.migrateLegacyLocalFallbackToIdb();
+  dataStorageApi.clearLegacyLocalFallbackKeys();
   try {
-    let d=await readShardedPayload();
+    let d=await dataStorageApi.readShardedPayload();
     let loadedFromLegacyBlob=false;
     if(!d){
       d=await readJSONAsync(SKEY,null);
@@ -313,9 +104,9 @@ async function loadData() {
         }
       });
       normalizeNotesTaxonomy();
-      groupPartMigrated=migrateLegacyGroupPartData();
-      domainCleared=clearLegacyDomainsFromNotes();
-      if(migratePathOverridesIntoNotes()) repaired=true;
+      groupPartMigrated=dataStorageApi.migrateLegacyGroupPartData();
+      domainCleared=dataStorageApi.clearLegacyDomainsFromNotes();
+      if(dataStorageApi.migratePathOverridesIntoNotes()) repaired=true;
       if(normalizeNoteIds(true)) repaired=true;
       if(repaired||groupMigrated||groupPartMigrated||domainCleared){
         if(groupPartMigrated){
@@ -328,9 +119,9 @@ async function loadData() {
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
-      await writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}), true);
+      await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}), true);
       if(loadedFromLegacyBlob){
-        await writeShardedPayloadParts(getPayload());
+        await dataStorageApi.writeShardedPayloadParts(getPayload());
       }
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
@@ -363,17 +154,17 @@ async function saveData() {
     const payload=getPayload();
     const nextRaw=JSON.stringify(payload);
     const saveStartedAt=performance.now();
-    writeShardedPayloadParts(payload).then(()=>{
+    dataStorageApi.writeShardedPayloadParts(payload).then(()=>{
       idbHealthDegraded=false;
       console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
     }).catch(err=>{
       idbHealthDegraded=true;
       const code=err&&err.code?err.code:(storageAdapter.isQuotaErr(err)?'QUOTA_EXCEEDED':'IDB_WRITE_FAILED');
       console.warn('[saveData-idb-failed]',{code,key:SKEY,bytes:nextRaw.length,error:err});
-      void writeLocalFallbackPayload(buildFallbackMeta({idbFailed:true}),true);
+      void dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:true}),true);
       console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
     });
-    await writeLocalFallbackPayload(buildFallbackMeta({idbFailed:false}));
+    await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}));
     lastSavedPayloadRaw=nextRaw;
     pushPayloadToBackend(payload);
   } catch(e){}
