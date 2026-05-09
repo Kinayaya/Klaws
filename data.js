@@ -249,12 +249,31 @@ async function loadData() {
 }
 function pushPayloadToBackend(payload){
   const endpoint=(localStorage.getItem(BACKEND_SYNC_ENDPOINT_KEY)||'').trim();
-  if(!endpoint) return;
+  if(!endpoint) return false;
   fetch(endpoint,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({updatedAt:new Date().toISOString(),payload})
   }).catch(err=>console.warn('[backend-sync-push-failed]',err));
+  return true;
+}
+function hasActiveGoogleDriveSession(){
+  return !!googleAccessToken&&Date.now()<googleTokenExpireAt;
+}
+async function scheduleCloudSyncAfterLocalSave(opts={}){
+  const {
+    mode='push',
+    force=false,
+    silent=true,
+    payload=null
+  }=opts||{};
+  if(mode==='pull'){
+    return await cloudSyncPullLatest({silent,force});
+  }
+  const nextPayload=(payload&&typeof payload==='object')?payload:getPayload();
+  pushPayloadToBackend(nextPayload);
+  if(!force&&!hasActiveGoogleDriveSession()) return true;
+  return await cloudSyncPushNow({silent,force,payload:nextPayload});
 }
 
 async function saveDataCritical(opt={}) {
@@ -278,7 +297,7 @@ async function saveDataCritical(opt={}) {
     idbHealthDegraded=false;
     await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}));
     lastSavedPayloadRaw=nextRaw;
-    pushPayloadToBackend(payload);
+    await scheduleCloudSyncAfterLocalSave({mode:'push',payload,silent:true});
     console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
     return {ok:true,store:'idb'};
   }catch(err){
@@ -1200,13 +1219,13 @@ async function cloudSyncPullLatest(opts={}){
   }
 }
 async function cloudSyncPushNow(opts={}){
-  const {silent=false}=opts||{};
+  const {silent=false,payload=null}=opts||{};
   try{
     logCloudSync('info','push start', { silent });
     googleSyncBusy=true;updateCloudSyncStatus();
-    const payload=getPayload();
-    payload.updatedAt=new Date().toISOString();
-    await uploadPayloadToDrive(payload);
+    const nextPayload=(payload&&typeof payload==='object')?{...payload}:getPayload();
+    nextPayload.updatedAt=new Date().toISOString();
+    await uploadPayloadToDrive(nextPayload);
     googleSyncLastError='';
     if(!silent) showToast('已上傳到 Google 雲端');
     return true;
@@ -1222,7 +1241,7 @@ async function cloudSyncPushNow(opts={}){
 async function loginGoogleDriveAndSync(){
   const token=await ensureGoogleAccessToken(false);
   if(!token) return false;
-  const pulled=await cloudSyncPullLatest({silent:true});
+  const pulled=await scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:true});
   if(pulled){
     showToast('已登入並自動載入最新雲端紀錄');
   }else{
