@@ -1,5 +1,6 @@
-(function (global) {
-  const { safeText } = window.KLawsSafeHtml;
+export const createRenderApi = (deps = {}) => {
+  const { safeText = (v) => `${v ?? ''}` } = deps;
+
   const renderTodoHtml = (todos) => {
     const list = (Array.isArray(todos) ? todos : []).filter((item) => item && item.text);
     if (!list.length) return '<span style="font-size:12px;color:#bbb">尚無待辦項目</span>';
@@ -15,7 +16,7 @@
 
   const sortedNotes = (arr, ctx) =>
     arr.slice().sort((a, b) => {
-      const { sortMode, safeStr, noteDomainText } = ctx;
+      const { sortMode, safeStr, noteDomainText, noteGroupText } = ctx;
       const ad = safeStr(a && a.date);
       const bd = safeStr(b && b.date);
       const at = safeStr(a && a.title);
@@ -37,5 +38,7 @@
                 : aty.localeCompare(bty) || at.localeCompare(bt);
     });
 
-  global.KLawsRender = { renderTodoHtml, sortedNotes };
-})(window);
+  return { renderTodoHtml, sortedNotes };
+};
+
+export const renderApi = createRenderApi();
