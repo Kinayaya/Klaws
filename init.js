@@ -9,15 +9,20 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   ensureUsageStart();
   await loadData();
   const pathSample=[...notes].slice(0,5).map(n=>({id:n.id,path:n.path||''}));
-  console.log('[loadData][path-sample]',pathSample);
-  if(pathSample.some(x=>typeof x.path!=='string')) console.warn('[loadData][path-warning] invalid path type detected');
+  if(window.__KLawsDebugRuntime&&pathSample.length){
+    window.__KLawsDebugRuntime.append('debug',[`[loadData][path-sample] ${JSON.stringify(pathSample)}`]);
+  }
+  if(pathSample.some(x=>typeof x.path!=='string')){
+    const pathSampleDetail={reason:'invalid_path_type',sample:pathSample};
+    console.error('[klaws-runtime-error] code=loadData.path-invalid detail='+JSON.stringify(pathSampleDetail));
+  }
   rebuildUI();
   const sortSelect=g('sortSelect');
   if(sortSelect){
     sortSelect.value=sortMode;
     sortSelect.addEventListener('change',()=>{sortMode=sortSelect.value;gridPage=1;render();saveData();});
-  }else{
-    console.warn('[init-missing-element] sortSelect');
+  }else if(window.__KLawsDebugRuntime){
+    window.__KLawsDebugRuntime.append('debug',['[init-missing-element] sortSelect']);
   }
   const scopeLinkedToggle=g('scopeLinkedToggle');
   if(scopeLinkedToggle){
@@ -50,8 +55,8 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
       updateNotesHomeVisibility();render();
     },250));
     sc.addEventListener('click',()=>{si.value='';if(appStateFacadeInit) appStateFacadeInit.setSearchQuery('');searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
-  }else{
-    console.warn('[init-missing-element] searchInput/searchClear',{hasSearchInput:!!si,hasSearchClear:!!sc});
+  }else if(window.__KLawsDebugRuntime){
+    window.__KLawsDebugRuntime.append('debug',[`[init-missing-element] searchInput/searchClear ${JSON.stringify({hasSearchInput:!!si,hasSearchClear:!!sc})}`]);
   }
   const compactDefault=localStorage.getItem(COMPACT_FILTER_KEY);
   applyCompactFilterMode(compactDefault===null?true:compactDefault==='1');
@@ -201,7 +206,10 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
     flushCriticalSnapshotSync();
     saveData();
     const result=await saveDataCritical();
-    if(!result||!result.ok) console.warn('[flush-before-unload-failed]',result);
+    if(!result||!result.ok){
+      const flushDetail={reason:'critical-save-failed',result:result||null};
+      console.error('[klaws-runtime-error] code=flush-before-unload.failed detail='+JSON.stringify(flushDetail));
+    }
   };
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='hidden'){
@@ -225,7 +233,7 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
       message:err&&err.message?err.message:String(err),
       stack:err&&err.stack?String(err.stack):''
     };
-    console.error('[init-load-error]',detail,err);
+    console.error('[klaws-runtime-error] code=init.load-failed detail='+JSON.stringify(detail));
   }finally{
     if(window.KlawsDataWriteGate&&typeof window.KlawsDataWriteGate.endHydration==='function'){
       await window.KlawsDataWriteGate.endHydration();
