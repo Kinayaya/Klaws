@@ -1,30 +1,22 @@
-# Global API 淘汰里程碑
+# Global API 遷移狀態（已中止）
 
-## 目標
-逐步將 `window.KLaws*` 轉為 ESM import 為主，保留過渡期相容層。
+## 結論
+此專案目前 runtime 入口為 `index.html` 內的 legacy `<script src="...">` 載入鏈，未啟用 bundler/ESM 入口。
+因此「Global API 轉 ESM」遷移計畫已中止，並回收未接入 runtime 的 ESM 草案檔案。
 
-## 目前狀態（Phase 1）
-- 已建立 ESM 模組：
+## 目前實際架構
+- 入口：`index.html` 依序載入 `render.js` / `map.js` / `calendar.js` 等 legacy 腳本。
+- 依賴方式：`config.js` 仍由 `window.KLawsRender` / `window.KLawsMap` / `window.KLawsCalendar` 取用 API。
+- 未使用檔案（已回收）：
   - `modules/calendar.js`
   - `modules/map.js`
   - `modules/render.js`
-- 已建立相容橋接：`modules/compat-global.js`，統一掛回：
-  - `window.KLawsCalendar`
-  - `window.KLawsMap`
-  - `window.KLawsRender`
-- 舊版 `calendar.js` / `map.js` / `render.js` 仍保留 global export，避免一次性破壞。
+  - `modules/compat-global.js`
 
-## 里程碑
-1. **Phase 2（內部新檔案）**
-   - 新增/重構中的內部檔案禁止新增對 `window.KLaws*` 的直接依賴。
-   - 以 ESM import 優先，必要時才由 compat bridge 讀取。
-2. **Phase 3（既有核心模組）**
-   - 將 `config.js` / `render-ui.js` 等核心檔案改為 ESM import。
-   - 保持 HTML 載入順序相容，並驗證無回歸。
-3. **Phase 4（移除 global）**
-   - 完成所有內部引用切換後，移除舊 global-only 腳本。
-   - 將 `modules/compat-global.js` 限縮為僅供外部整合或完全移除。
-
-## 禁用策略
-- 即日起：新程式碼不得新增 `window.KLaws*` 直接讀取（測試 stub 例外）。
-- 既有程式碼採遞進替換，避免一次性大改造成風險。
+## 後續原則（單一追蹤）
+- 在未切換入口為 ESM 前，不再保留未接線的 `modules/` 過渡檔。
+- 若未來重啟遷移，需以「單一路徑」執行：
+  1. 先將 `index.html` 改為 ESM 入口（或導入 bundler）。
+  2. 再把核心依賴逐步改為 import。
+  3. 最後移除 `window.KLaws*` global 匯出。
+- 禁止雙軌並存（legacy + 未接線 ESM 草案）。
