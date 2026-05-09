@@ -79,8 +79,8 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   on('archivePortableExportBtn','click',exportPortablePackage);
   on('archiveImportBtn','click',()=>g('importFile')?.click());
   on('cloudLoginBtn','click',loginGoogleDriveAndSync);
-  on('cloudPullBtn','click',()=>cloudSyncPullLatest());
-  on('cloudSyncBtn','click',()=>cloudSyncPushNow());
+  on('cloudPullBtn','click',()=>scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:false}));
+  on('cloudSyncBtn','click',()=>scheduleCloudSyncAfterLocalSave({mode:'push',force:true,silent:false}));
   on('cloudLogoutBtn','click',logoutGoogleDriveSync);
   on('tpClose','click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
   on('pathSearchInput','input',debounce(()=>{pathSearchQ=(val('pathSearchInput')||'').toLowerCase().trim();renderPathLists();},150));
