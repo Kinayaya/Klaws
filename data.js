@@ -267,6 +267,17 @@ function pushPayloadToBackend(payload){
 function hasActiveGoogleDriveSession(){
   return !!googleAccessToken&&Date.now()<googleTokenExpireAt;
 }
+function persistCloudSyncEnabled(nextEnabled){
+  cloudSyncEnabled=!!nextEnabled;
+  void window.KLawsStorage.governedWriteLocal(CLOUD_SYNC_ENABLED_KEY,cloudSyncEnabled?'1':'0','core').catch(()=>{});
+}
+
+function enterCloudSyncAuthorizationPending(reason=''){
+  googleAccessToken='';
+  googleTokenExpireAt=0;
+  googleSyncLastError=safeStr(reason||'授權已過期，請重新登入 Google 雲端').trim()||'授權已過期，請重新登入 Google 雲端';
+  updateCloudSyncStatus();
+}
 function clearCloudSyncPushRetryTimer(){
   if(!cloudSyncPushRetryTimer) return;
   clearTimeout(cloudSyncPushRetryTimer);
@@ -292,7 +303,11 @@ function triggerCloudSyncPushScheduler(payload){
 async function runCloudSyncPushScheduler(){
   if(!CLOUD_SYNC_PUSH_SCHEDULER_ENABLED||cloudSyncPushInFlight) return false;
   clearCloudSyncPushRetryTimer();
-  if(!hasActiveGoogleDriveSession()) return true;
+  if(!cloudSyncEnabled) return true;
+  if(!hasActiveGoogleDriveSession()){
+    enterCloudSyncAuthorizationPending('授權已過期，請重新登入 Google 雲端');
+    return true;
+  }
   const waitMs=Math.max(0,cloudSyncPushLastStartedAt+CLOUD_SYNC_PUSH_MIN_INTERVAL_MS-Date.now());
   if(waitMs>0){
     cloudSyncPushRetryTimer=setTimeout(()=>{ cloudSyncPushRetryTimer=null; void runCloudSyncPushScheduler(); },waitMs);
@@ -1041,10 +1056,14 @@ function updateCloudSyncStatus(extra=''){
     el.textContent='雲端同步：處理中...';
     return;
   }
-  const loggedIn=!!googleAccessToken&&Date.now()<googleTokenExpireAt;
+  const loggedIn=hasActiveGoogleDriveSession();
   const reason=safeStr(extra||googleSyncLastError||'').trim();
   const suffix=reason?`（${reason}）`:'';
-  el.textContent=loggedIn?`雲端同步：已登入${suffix}`:`雲端同步：未登入${suffix}`;
+  if(cloudSyncEnabled&&!loggedIn){
+    el.textContent=`雲端同步：待授權${suffix}`;
+    return;
+  }
+  el.textContent=loggedIn?`雲端同步：已登入${suffix}`:`雲端同步：未啟用${suffix}`;
 }
 function cloudSyncErrorText(err){
   const msg=safeStr(err&&err.message||err||'').trim();
@@ -1303,6 +1322,7 @@ async function cloudSyncPushNow(opts={}){
 async function loginGoogleDriveAndSync(){
   const token=await ensureGoogleAccessToken(false);
   if(!token) return false;
+  persistCloudSyncEnabled(true);
   const pulled=await scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:true});
   if(pulled){
     showToast('已登入並自動載入最新雲端紀錄');
@@ -1312,9 +1332,18 @@ async function loginGoogleDriveAndSync(){
   return true;
 }
 function logoutGoogleDriveSync(){
+  persistCloudSyncEnabled(false);
   googleAccessToken='';
   googleTokenExpireAt=0;
   googleSyncLastError='';
+  if(cloudSyncPushDebounceTimer){
+    clearTimeout(cloudSyncPushDebounceTimer);
+    cloudSyncPushDebounceTimer=null;
+  }
+  clearCloudSyncPushRetryTimer();
+  cloudSyncPushPendingPayload=null;
+  cloudSyncPushRetryCount=0;
+  cloudSyncPushInFlight=false;
   updateCloudSyncStatus();
   showToast('已登出 Google 雲端');
 }

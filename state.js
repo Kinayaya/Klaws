@@ -41,6 +41,7 @@ let focusTimerDragState={active:false,pointerId:null,startX:0,startY:0,originX:0
 let focusTimerPos={x:null,y:null,initialized:false};
 let headerDatetimeTimer=null;
 let googleAccessToken='', googleTokenExpireAt=0, googleSyncBusy=false, googleSyncLastError='';
+let cloudSyncEnabled=localStorage.getItem(typeof CLOUD_SYNC_ENABLED_KEY==='string'?CLOUD_SYNC_ENABLED_KEY:'klaws_cloud_sync_enabled_v1')==='1';
 const XP_BOOST_MULTIPLIER = 2.5;
 const BASE_XP_BY_DIFFICULTY = {E:12,N:22,H:36};
 let levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};

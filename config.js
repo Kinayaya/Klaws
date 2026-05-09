@@ -24,6 +24,7 @@ const FORM_TAXONOMY_PREF_KEY = 'klaws_form_taxonomy_pref_v1';
 const BACKEND_SYNC_ENDPOINT_KEY = 'klaws_backend_sync_endpoint_v1';
 const LAST_VIEW_STATE_KEY = 'klaws_last_view_state_v1';
 const GOOGLE_DRIVE_CLIENT_ID_KEY = 'klaws_google_drive_client_id_v1';
+const CLOUD_SYNC_ENABLED_KEY = 'klaws_cloud_sync_enabled_v1';
 const GOOGLE_DRIVE_SYNC_FILE_NAME = 'klaws-sync-v1.json';
 const GOOGLE_DRIVE_SYNC_MIME = 'application/json';
 const CLOUD_SYNC_PUSH_SCHEDULER_ENABLED = true;
