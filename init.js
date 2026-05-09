@@ -1,4 +1,4 @@
-var appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
+var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.appState:null;
 // ==================== 初始化 ====================
   window.addEventListener('load',async ()=>{
   try{
@@ -41,12 +41,12 @@ var appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appStat
   const si=g('searchInput'),sc=g('searchClear');
   if(si&&sc){
     si.addEventListener('input',debounce(()=>{
-      if(appStateFacade) appStateFacade.setSearchQuery(si.value);
+      if(appStateFacadeInit) appStateFacadeInit.setSearchQuery(si.value);
       searchQ=si.value;gridPage=1;sc.style.display=searchQ?'block':'none';
       if(searchQ.trim()&&isMapOpen) toggleMapView(false);
       updateNotesHomeVisibility();render();
     },250));
-    sc.addEventListener('click',()=>{si.value='';if(appStateFacade) appStateFacade.setSearchQuery('');searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
+    sc.addEventListener('click',()=>{si.value='';if(appStateFacadeInit) appStateFacadeInit.setSearchQuery('');searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
   }else{
     console.warn('[init-missing-element] searchInput/searchClear',{hasSearchInput:!!si,hasSearchClear:!!sc});
   }
@@ -181,12 +181,12 @@ var appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appStat
   },{passive:false});
   on('mapFilterGroup','change',()=>{
     const beforeAuxnodeVisibleIds=new Set(visibleNotes().filter(isAuxnodeNode).map(n=>n.id));
-    if(appStateFacade) appStateFacade.updateMapFilter({group:g('mapFilterGroup').value});
+    if(appStateFacadeInit) appStateFacadeInit.updateMapFilter({group:g('mapFilterGroup').value});
     mapFilter.group=g('mapFilterGroup').value;updateMapPagePath();buildMapFilters();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenAuxnodesByFilter(beforeAuxnodeVisibleIds);}
   });
   on('mapFilterPart','change',()=>{
     const beforeAuxnodeVisibleIds=new Set(visibleNotes().filter(isAuxnodeNode).map(n=>n.id));
-    if(appStateFacade) appStateFacade.updateMapFilter({part:g('mapFilterPart').value});
+    if(appStateFacadeInit) appStateFacadeInit.updateMapFilter({part:g('mapFilterPart').value});
     mapFilter.part=g('mapFilterPart').value;updateMapPagePath();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenAuxnodesByFilter(beforeAuxnodeVisibleIds);}
   });
   on('mapAdvancedToggleBtn','click',()=>setMapAdvanced(!mapAdvancedOpen));
