@@ -111,6 +111,9 @@ async function loadData() {
       mapLaneConfigs=(d.mapLaneConfigs&&typeof d.mapLaneConfigs==='object'&&!Array.isArray(d.mapLaneConfigs))?d.mapLaneConfigs:{};
       const rawMapCollapsed=(d.mapCollapsed&&typeof d.mapCollapsed==='object'&&!Array.isArray(d.mapCollapsed))?d.mapCollapsed:{};
       mapCollapsed=normalizeMapCollapsed(rawMapCollapsed);
+      mapOffX=Number.isFinite(d.mapOffX)?d.mapOffX:0;
+      mapOffY=Number.isFinite(d.mapOffY)?d.mapOffY:0;
+      mapScale=Number.isFinite(d.mapScale)?d.mapScale:1;
       const rawMapSubpages=(d.mapSubpages&&typeof d.mapSubpages==='object'&&!Array.isArray(d.mapSubpages))?d.mapSubpages:{};
       mapSubpages=normalizeMapSubpages(rawMapSubpages);
       const rawMapPageNotes=(d.mapPageNotes&&typeof d.mapPageNotes==='object'&&!Array.isArray(d.mapPageNotes))?d.mapPageNotes:null;
@@ -194,9 +197,10 @@ function pushPayloadToBackend(payload){
   }).catch(err=>console.warn('[backend-sync-push-failed]',err));
 }
 
-async function saveData() {
+async function saveData(opts={}) {
+  const {includeTransient=true}=opts||{};
   try {
-    const payload=getPayload();
+    const payload=getPayload({includeTransient});
     writeEmergencySnapshotSync(payload);
     const nextRaw=JSON.stringify(payload);
     const saveStartedAt=performance.now();

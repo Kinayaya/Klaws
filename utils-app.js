@@ -305,12 +305,25 @@ const togglePanelDir = () => {
   }
   showToast(next==='bottom'?'已切換為底部展開':'已切換為右側展開');
 };
-const saveDataDeferred = () => { clearTimeout(_saveTimer); _saveTimer=setTimeout(()=>{ if(JSON.stringify({notes,links}).length>4500000) showToast('⚠️ 資料接近儲存上限'); saveData(); },500); };
+const MAP_CRITICAL_PAYLOAD_KEYS=['links','mapCenterNodeId','mapCenterNodeIds','mapPageNotes','mapSubpages'];
+const MAP_TRANSIENT_PAYLOAD_KEYS=['nodePos','mapOffX','mapOffY','mapScale','mapCollapsed'];
+const getPayload = ({includeTransient=true}={}) => {
+  const payload={notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,panelDir:getPanelDir(),updatedAt:new Date().toISOString()};
+  if(includeTransient){
+    payload.nodePos=nodePos;
+    payload.mapCollapsed=mapCollapsed;
+    payload.mapOffX=mapOffX;
+    payload.mapOffY=mapOffY;
+    payload.mapScale=mapScale;
+  }
+  return payload;
+};
+const saveDataDeferred = () => { clearTimeout(_saveTimer); _saveTimer=setTimeout(()=>{ if(JSON.stringify({notes,links}).length>4500000) showToast('⚠️ 資料接近儲存上限'); saveData({includeTransient:true}); },500); };
 const flushDeferredSave = () => {
   if(!_saveTimer) return;
   clearTimeout(_saveTimer);
   _saveTimer=null;
-  saveData();
+  saveData({includeTransient:true});
 };
 const savePathChange = ({isDraft=false}={}) => {
   if(isDraft){
@@ -318,7 +331,11 @@ const savePathChange = ({isDraft=false}={}) => {
     return;
   }
   flushDeferredSave();
-  saveData();
+  saveData({includeTransient:true});
+};
+const persistMapCriticalState = async () => {
+  flushDeferredSave();
+  await saveData({includeTransient:false});
 };
 const typeByKey = k => k?(types.find(t=>t.key===k)||{key:k,label:k,color:'#888'}):{key:'',label:'無',color:'#888'};
 const subByKey = k => k?(domains.find(s=>s.key===k)||{key:k,label:k,color:'#888'}):{key:'',label:'無',color:'#888'};
@@ -682,7 +699,6 @@ const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
   setMapCenterForCurrentScope(target,opt);
   mapPageStack=prevStack;
 };
-const getPayload = () => ({notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodePos,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,panelDir:getPanelDir(),updatedAt:new Date().toISOString()});
 const parseUpdatedAt = raw => {
   const n=Date.parse(raw||'');
   return Number.isFinite(n)?n:0;

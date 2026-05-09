@@ -219,7 +219,7 @@ function enterMapSubpage(rootId){
   updateMapPagePath();
   forceLayout();
   drawMap();
-  saveData();
+  persistMapCriticalState();
   saveLastViewState();
 }
 function leaveMapSubpage(){
@@ -229,7 +229,7 @@ function leaveMapSubpage(){
   updateMapPagePath();
   forceLayout();
   drawMap();
-  saveData();
+  persistMapCriticalState();
   saveLastViewState();
   return true;
 }
@@ -570,7 +570,7 @@ function buildMapTreeIndex(visNotes){
         updateMapPagePath();
         forceLayout();
         drawMap();
-        saveData();
+        persistMapCriticalState();
         saveLastViewState();
         return;
       }
@@ -772,7 +772,7 @@ function showMapInfo(id){
   const currentCenterIds=getMapCentersFromScopes();
   const setCenterBtn=document.createElement('button');setCenterBtn.className='mp-action-btn mp-action-secondary mp-set-center';
   setCenterBtn.textContent=currentCenterIds.includes(id)?'✓ 已核心':'⭐ 設核心';
-  setCenterBtn.onclick=()=>{const added=toggleMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(added?`已新增「${n.title}」為核心點（僅此頁）`:`已移除「${n.title}」核心點（僅此頁）`);};
+  setCenterBtn.onclick=()=>{const added=toggleMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();persistMapCriticalState();closeMapPopup();showToast(added?`已新增「${n.title}」為核心點（僅此頁）`:`已移除「${n.title}」核心點（僅此頁）`);};
   const goBtn=g('mpGoto');
   const hasSubpage=hasSubpageForNode(id);
   const linkStartBtn=document.createElement('button');
@@ -792,7 +792,7 @@ function showMapInfo(id){
       return;
     }
     if(mapLinkSourceId===id) clearMapLinkSource({silent:true});
-    saveData();
+    persistMapCriticalState();
     closeMapPopup();
     drawMap();
     updateMapPagePath();
