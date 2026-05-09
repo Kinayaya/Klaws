@@ -8,6 +8,7 @@
       ...fallbackApi,
       backfillNoteUids:()=>migrations.backfillNoteUids(deps),
       migratePathOverridesIntoNotes:()=>migrations.migratePathOverridesIntoNotes(deps),
+      detectIdentityDriftRisk:()=>migrations.detectIdentityDriftRisk(deps),
       clearLegacyDomainsFromNotes:()=>migrations.clearLegacyDomainsFromNotes(deps),
       migrateLegacyGroupPartData:()=>migrations.migrateLegacyGroupPartData(deps)
     };
