@@ -402,7 +402,12 @@ const isAuxnodeNode = n => !!(n&&n.kind==='auxnode');
 const noteTags = _n => [];
 const noteHasVisibleContent = n => !!(safeStr(n.question).trim()||safeStr(n.answer).trim()||safeStr(n.application).trim()||safeStr(n.body).trim()||safeStr(n.detail).trim()||noteTags(n).length||(Array.isArray(n.todos)&&n.todos.length));
 const noteExtraFields = n => (n&&n.extraFields&&typeof n.extraFields==='object'&&!Array.isArray(n.extraFields))?n.extraFields:{};
-const getFieldDef = key => BUILTIN_FIELD_DEFS[key]||customFieldDefs[key]||{key,label:key,kind:'text',placeholder:''};
+const getFieldDef = key => {
+  const builtin=BUILTIN_FIELD_DEFS[key];
+  const custom=customFieldDefs[key];
+  if(builtin&&custom) return {...builtin,...custom,key};
+  return builtin||custom||{key,label:key,kind:'text',placeholder:''};
+};
 const getTypeFieldKeys = typeKey => {
   const base=Array.isArray(typeFieldConfigs[typeKey])&&typeFieldConfigs[typeKey].length?typeFieldConfigs[typeKey]:(DEFAULT_TYPE_FIELD_KEYS[typeKey]||DEFAULT_NORMAL_FIELD_KEYS);
   return uniq(base.filter(k=>getFieldDef(k)));

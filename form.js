@@ -132,6 +132,39 @@ function bindFormClearButtons(){
     if(btn.dataset.clearTarget==='fpath') updatePathInheritanceUI();
   });
 }
+async function copyFieldValueToClipboard(targetId){
+  const el=g(targetId);
+  if(!el){showToast('找不到欄位');return;}
+  const text=safeStr(el.value).trim();
+  if(!text){showToast('欄位目前是空的');return;}
+  try{
+    if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+    else{
+      const ta=document.createElement('textarea');
+      ta.value=text;
+      ta.setAttribute('readonly','');
+      ta.style.position='fixed';
+      ta.style.opacity='0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    showToast('已複製欄位內容');
+  }catch(_err){showToast('複製失敗，請稍後再試');}
+}
+function renameFieldLabel(typeKey,fieldKey,note){
+  const def=getFieldDef(fieldKey);
+  const nextLabel=prompt(`修改欄位名稱（key: ${fieldKey}）`,def.label||fieldKey);
+  if(nextLabel===null) return;
+  const label=nextLabel.trim();
+  if(!label){showToast('欄位名稱不能空白');return;}
+  const baseDef=def||{key:fieldKey,label:fieldKey,kind:'textarea',placeholder:''};
+  customFieldDefs[fieldKey]={...baseDef,key:fieldKey,label};
+  saveData();
+  renderDynamicFields(typeKey,note);
+  showToast('欄位名稱已更新');
+}
 
 function buildInlineLinksPanel() {
   formLinkSelections={};
@@ -223,9 +256,11 @@ function renderDynamicFields(typeKey,note=null){
     const def=getFieldDef(key);
     const isText=def.kind==='text';
     const value=note?noteFieldValueForEdit(note,key):'';
-    return `<div class="type-field-item"><div class="type-field-title"><label class="type-field-label" for="f-field-${key}">${def.label}</label><div style="display:flex;align-items:center;gap:8px;"><button class="tool-btn mini-btn clear-field-btn" data-clear-target="f-field-${key}" type="button">清空</button>${!BUILTIN_FIELD_DEFS[key]?`<button class="type-field-remove" data-remove-custom="${key}" type="button">刪除此自訂欄位</button>`:''}</div></div>${isText?`<input class="fi" id="f-field-${key}" placeholder="${def.placeholder||''}" value="${value.replace(/"/g,'&quot;')}">`:`<textarea class="ft field-textarea" id="f-field-${key}" placeholder="${def.placeholder||''}" ${key==='todos'?'style="min-height:96px;"':''}>${value}</textarea>`}</div>`;
+    return `<div class="type-field-item"><div class="type-field-title"><label class="type-field-label" for="f-field-${key}">${def.label}</label><div style="display:flex;align-items:center;gap:8px;"><button class="tool-btn mini-btn clear-field-btn" data-clear-target="f-field-${key}" type="button">清空</button><button class="tool-btn mini-btn copy-field-btn" data-copy-target="f-field-${key}" type="button">複製</button><button class="tool-btn mini-btn rename-field-btn" data-rename-field="${key}" type="button">改名</button>${!BUILTIN_FIELD_DEFS[key]?`<button class="type-field-remove" data-remove-custom="${key}" type="button">刪除此自訂欄位</button>`:''}</div></div>${isText?`<input class="fi" id="f-field-${key}" placeholder="${def.placeholder||''}" value="${value.replace(/"/g,'&quot;')}">`:`<textarea class="ft field-textarea" id="f-field-${key}" placeholder="${def.placeholder||''}" ${key==='todos'?'style="min-height:96px;"':''}>${value}</textarea>`}</div>`;
   }).join('');
   bindFormClearButtons();
+  wrap.querySelectorAll('[data-copy-target]').forEach(btn=>btn.addEventListener('click',()=>copyFieldValueToClipboard(btn.dataset.copyTarget)));
+  wrap.querySelectorAll('[data-rename-field]').forEach(btn=>btn.addEventListener('click',()=>renameFieldLabel(typeKey,btn.dataset.renameField,note)));
   wrap.querySelectorAll('[data-remove-custom]').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.removeCustom;
     const typeCfg=getTypeFieldKeys(typeKey).filter(k=>k!==key);
@@ -431,8 +466,6 @@ async function copyNoteToClipboard(targetId=openId) {
   if(!n){showToast('找不到要複製的筆記');return;}
   const text=[
     n.title||'（未命名）',
-    n.question?`Q: ${n.question}`:'',
-    n.answer?`A: ${n.answer}`:'',
     n.prompt?`Hint: ${n.prompt}`:'',
     n.application?`Application: ${n.application}`:'',
     n.body||'',
