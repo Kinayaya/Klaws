@@ -30,21 +30,7 @@
   on('selAllBtn','click',copySelectedNotes);on('selDeleteBtn','click',deleteSelected);on('selCancelBtn','click',exitMultiSel);
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
-  const setActiveViewSwitch=(view='notes')=>{
-    ['viewNotesBtn','viewCalendarBtn','viewLevelBtn','viewMapBtn','viewExamBtn'].forEach(id=>g(id)?.classList.remove('active'));
-    const targetMap={notes:'viewNotesBtn',calendar:'viewCalendarBtn',level:'viewLevelBtn',map:'viewMapBtn',exam:'viewExamBtn'};
-    g(targetMap[view]||'viewNotesBtn')?.classList.add('active');
-    const compactBtn=g('compactToggleBtn');
-    if(compactBtn) compactBtn.style.display=view==='notes'?'inline-flex':'none';
-  };
-  window.syncViewSwitchState=setActiveViewSwitch;
-  on('viewNotesBtn','click',()=>{toggleCalendarView(false);toggleLevelSystemView(false);toggleMapView(false);setActiveViewSwitch('notes');});
-  on('viewCalendarBtn','click',()=>{toggleCalendarView(true);setActiveViewSwitch('calendar');});
-  on('viewLevelBtn','click',()=>{toggleLevelSystemView(true);setActiveViewSwitch('level');});
-  on('viewMapBtn','click',()=>{toggleMapView(true);setActiveViewSwitch('map');});
-  on('viewExamBtn','click',()=>{openExamModePanel();setActiveViewSwitch('exam');});
-  on('logoSettingsBtn','click',()=>g('settingsModal')?.classList.add('open'));
-  g('settingsModal')?.addEventListener('click',e=>{ if(e.target?.id==='settingsModal') g('settingsModal')?.classList.remove('open'); });
+  const viewController=bootstrapUI();
   on('ft','change',()=>{renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null);syncFormHeaderLabels();});
   on('fti','input',syncFormHeaderLabels);
   on('typeTriggerBtn','click',()=>g('ft')?.focus());
@@ -65,10 +51,6 @@
   const compactDefault=localStorage.getItem(COMPACT_FILTER_KEY);
   applyCompactFilterMode(compactDefault===null?true:compactDefault==='1');
   on('compactToggleBtn','click',()=>applyCompactFilterMode(!document.body.classList.contains('compact-filters')));
-  on('settingsCloseBtn','click',()=>g('settingsModal')?.classList.remove('open'));
-  on('settingsManageBtn','click',()=>{g('settingsModal')?.classList.remove('open');openPathMgr();});
-  on('settingsArchiveBtn','click',()=>{g('settingsModal')?.classList.remove('open');manageArchives();});
-  on('settingsMoreBtn','click',()=>{g('settingsModal')?.classList.remove('open');g('assistToolsModal')?.classList.add('open');});
   on('reviewNowBtn','click',()=>{
     reviewMode=!reviewMode;
     reviewReveal=false;
@@ -101,7 +83,6 @@
   g('addSubBtn')?.addEventListener('click',()=>addPath('sub'));
   on('panelDirBtn','click',togglePanelDir);
   loadExams();on('examModeClose','click',()=>g('examModePanel').classList.remove('open'));
-  on('examModeEssayBtn','click',openExamPanel);
   on('examModeReviewBtn','click',()=>{
     g('examModePanel')?.classList.remove('open');
     reviewMode=true;
@@ -114,7 +95,6 @@
     render();
   });
   on('examListClose','click',()=>g('examListPanel').classList.remove('open'));
-  on('assistToolsBtn','click',()=>g('assistToolsModal')?.classList.add('open'));
   on('assistToolsCloseBtn','click',()=>g('assistToolsModal')?.classList.remove('open'));
   on('assistAiBtn','click',()=>{g('assistToolsModal')?.classList.remove('open');openAiSettings();});
   on('calendarTimerBtn','click',openFocusTimer);
@@ -125,7 +105,6 @@
   on('focusTimerResetBtn','click',resetFocusTimer);
   on('focusTimerCloseBtn','click',()=>{stopFocusTimer();g('focusTimerModal')?.classList.remove('open');});
   on('focusTimerAlertOkBtn','click',()=>g('focusTimerAlert')?.classList.remove('open'));
-  on('examAddBtn','click',()=>openExamForm());
   on('examFormClose','click',()=>{g('examAddForm').classList.remove('open');resetExamForm();openExamPanel();});on('examFCancel','click',()=>{g('examAddForm').classList.remove('open');resetExamForm();openExamPanel();});
   on('examFSave','click',()=>{const q=(g('examQInput').value||'').trim();if(!q){showToast('請輸入題目');return;}const ans=(g('examAInput').value||'').trim();const iss=(g('examIssInput').value||'').split(',').map(x=>x.trim()).filter(Boolean);const tl=parseInt(g('examTimeInput').value)||30;const sub=g('examSubSel').value||(domains[0]?domains[0].key:'all');const payload={id:Date.now(),domain:sub,question:q,answer:ans,issues:iss,timeLimit:tl};if(examEditingIndex>=0&&examList[examEditingIndex]){payload.id=examList[examEditingIndex].id||payload.id;examList[examEditingIndex]=payload;showToast('題目已更新！');}else{examList.push(payload);showToast('題目已儲存！');}saveExams();g('examAddForm').classList.remove('open');resetExamForm();openExamPanel();});
   on('examToggleAnswerBtn','click',()=>{examAnswerReveal=!examAnswerReveal;const wrap=g('examModelAnswerWrap'),btn=g('examToggleAnswerBtn');if(wrap) wrap.style.display=examAnswerReveal?'block':'none';if(btn) btn.textContent=examAnswerReveal?'隱藏答案':'顯示答案';});
@@ -198,9 +177,6 @@
     if(now-lastTouchEndTs<320) e.preventDefault();
     lastTouchEndTs=now;
   },{passive:false});
-  on('mapBackBtn','click',()=>{if(isMapOpen&&leaveMapSubpage())return;toggleMapView(false);});
-  on('mapAddNoteBtn','click',()=>{formMode='note';openForm(false);});
-  on('mapSearchInput','input',debounce(()=>{mapFilter.q=g('mapSearchInput').value;saveDataDeferred();if(isMapOpen)drawMap();},250));
   on('mapFilterGroup','change',()=>{
     const beforeAuxnodeVisibleIds=new Set(visibleNotes().filter(isAuxnodeNode).map(n=>n.id));
     mapFilter.group=g('mapFilterGroup').value;updateMapPagePath();buildMapFilters();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenAuxnodesByFilter(beforeAuxnodeVisibleIds);}
@@ -217,13 +193,10 @@
   on('mapLinkedOnlyBtn','click',()=>{mapLinkedOnly=!mapLinkedOnly;setMapLinkedOnlyBtnStyle();drawMap();saveDataDeferred();showToast(mapLinkedOnly?`顯示 ${visibleNotes().length} 個有關聯點`:'顯示全部點');});
   on('mapAutoBtn','click',()=>{const btn=g('mapAutoBtn'),orig=btn.textContent;btn.textContent='排列中...';btn.disabled=true;setTimeout(()=>{nodePos={};mapScale=1;mapOffX=mapOffY=0;forceLayout();drawMap();saveDataDeferred();btn.textContent=orig;btn.disabled=false;showToast('已自動排列（保留核心點）');},30);});
   on('mapLaneBtn','click',()=>{const panel=ensureLanePanel();if(!panel){showToast('泳道面板載入失敗');return;}if(panel.classList.contains('open'))closeLanePanel();else openLanePanel();});
-  on('calendarBackBtn','click',()=>toggleCalendarView(false));
   on('levelSystemBackBtn','click',()=>toggleLevelSystemView(false));
   on('levelEditorClose','click',closeLevelEditor);
   on('levelEditorCancel','click',closeLevelEditor);
   on('levelEditorSave','click',saveLevelEditor);
-  on('calendarPrevBtn','click',()=>{calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()-1,1);renderCalendar();});
-  on('calendarNextBtn','click',()=>{calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+1,1);renderCalendar();});
   on('calendarTodayBtn','click',()=>{calendarCursor=new Date();renderCalendar();});
   on('calendarSettingsBtn','click',()=>{g('calendarEmailsInput').value=(calendarSettings.emails||[]).join('\n');g('calendarSmtpToken').value=calendarSettings.smtpToken||'';g('calendarEmailFrom').value=calendarSettings.emailFrom||'';g('calendarSettingsModal').classList.add('open');});
   on('calendarSettingsCancel','click',()=>g('calendarSettingsModal').classList.remove('open'));
@@ -291,7 +264,7 @@
   updateNotesHomeVisibility();
   render();
   restoreLastViewState();
-  setActiveViewSwitch(currentView);
+  viewController.setActiveViewSwitch(currentView);
   }catch(err){
     const detail={
       name:err&&err.name?err.name:typeof err,
