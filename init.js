@@ -252,6 +252,7 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='hidden'){
       if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
+      flushCriticalSnapshotSync();
       saveData();
       return;
     }
@@ -259,6 +260,7 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   });
   window.addEventListener('pagehide',()=>{
     if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
+    flushCriticalSnapshotSync();
     saveData();
   });
   window.addEventListener('pageshow',()=>bindCoreButtons());
