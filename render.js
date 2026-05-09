@@ -1,8 +1,9 @@
 (function(global){
+  const { escapeHtml, safeText } = window.KLawsSafeHtml;
   const renderTodoHtml = todos => {
     const list=(Array.isArray(todos)?todos:[]).filter(t=>t&&t.text);
     if(!list.length) return '<span style="font-size:12px;color:#bbb">尚無待辦項目</span>';
-    return `<div class="todo-list">${list.map(t=>`<div class="todo-item ${t.done?'done':''}"><span class="todo-item-check">${t.done?'✅':'⬜'}</span><span class="todo-item-text">${t.text}</span></div>`).join('')}</div>`;
+    return `<div class="todo-list">${list.map(t=>`<div class="todo-item ${t.done?'done':''}"><span class="todo-item-check">${t.done?'✅':'⬜'}</span><span class="todo-item-text">${safeText(t.text)}</span></div>`).join('')}</div>`;
   };
 
   const sortedNotes = (arr, ctx) => arr.slice().sort((a,b)=>{

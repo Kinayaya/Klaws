@@ -1,7 +1,8 @@
+const { escapeHtml, safeText, safeAttr } = window.KLawsSafeHtml;
 // ==================== UI 建構 ====================
 function buildTypeRow() {
   const row=g('typeRow');
-  row.innerHTML=`<button class="tab ${cv==='all'?'on':''}" data-v="all">全部</button>`+types.map(t=>`<button class="tab ${cv===t.key?'on':''}" data-v="${t.key}" style="${cv===t.key?`background:${t.color};`:''}">${t.label}</button>`).join('');
+  row.innerHTML=`<button class="tab ${cv==='all'?'on':''}" data-v="all">全部</button>`+types.map(t=>`<button class="tab ${cv===t.key?'on':''}" data-v="${safeAttr(t.key)}" style="${cv===t.key?`background:${t.color};`:''}">${escapeHtml(t.label)}</button>`).join('');
   row.querySelectorAll('.tab[data-v]').forEach(btn=>btn.addEventListener('click',()=>{cv=btn.dataset.v;gridPage=1;buildTypeRow();render();}));
 }
 function buildSubRow() {
@@ -10,7 +11,7 @@ function buildSubRow() {
   const isAll=selectedDomains.length===0;
   row.innerHTML=`<button class="sc ${isAll?'on':''}" data-s="all">全部</button>`+domains.map(s=>{
     const active=selectedDomains.includes(s.key);
-    return `<button class="sc ${active?'on':''}" data-s="${s.key}" style="${active?`background:${s.color};color:#fff;`:''}">${s.label}</button>`;
+    return `<button class="sc ${active?'on':''}" data-s="${safeAttr(s.key)}" style="${active?`background:${s.color};color:#fff;`:''}">${escapeHtml(s.label)}</button>`;
   }).join('');
   row.querySelectorAll('.sc').forEach(btn=>btn.addEventListener('click',()=>{
     const key=btn.dataset.s;
@@ -28,7 +29,7 @@ function buildGroupRow() {
   const isAll=selectedGroups.length===0;
   row.innerHTML=available.length?`<button class="ch ${isAll?'on':''}" data-ch="all">全部</button>`+available.map(ch=>{
     const active=selectedGroups.includes(ch.key);
-    return `<button class="ch ${active?'on':''}" data-ch="${ch.key}">${ch.label}</button>`;
+    return `<button class="ch ${active?'on':''}" data-ch="${safeAttr(ch.key)}">${escapeHtml(ch.label)}</button>`;
   }).join(''):'';
   row.style.display=available.length?'flex':'none';
   row.querySelectorAll('.ch').forEach(btn=>btn.addEventListener('click',()=>{
@@ -49,7 +50,7 @@ function buildPartRow() {
   const isAll=selectedParts.length===0;
   row.innerHTML=available.length?`<button class="ch ${isAll?'on':''}" data-sec="all">全部</button>`+available.map(sec=>{
     const active=selectedParts.includes(sec.key);
-    return `<button class="ch ${active?'on':''}" data-sec="${sec.key}">${sec.label}</button>`;
+    return `<button class="ch ${active?'on':''}" data-sec="${safeAttr(sec.key)}">${escapeHtml(sec.label)}</button>`;
   }).join(''):'';
   row.style.display=available.length?'flex':'none';
   row.querySelectorAll('.ch').forEach(btn=>btn.addEventListener('click',()=>{
@@ -97,7 +98,7 @@ function syncGroupSelect(domainKeys, selected=[]) {
   const fc=g('fc'); if(!fc) return;
   const keys=Array.isArray(domainKeys)?domainKeys.filter(Boolean):(domainKeys?[domainKeys]:[]);
   const available=keys.length?groupsByDomains(keys):groups.slice();
-  fc.innerHTML=`<option value="">無</option>`+available.map(ch=>`<option value="${ch.key}">${ch.label}</option>`).join('');
+  fc.innerHTML=`<option value="">無</option>`+available.map(ch=>`<option value="${safeAttr(ch.key)}">${escapeHtml(ch.label)}</option>`).join('');
   const selectedKeys=(Array.isArray(selected)?selected.filter(Boolean):(selected?[selected]:[])).slice(0,1);
   const validSelected=selectedKeys.filter(k=>available.some(ch=>ch.key===k));
   if(validSelected.length) setSelectedValues('fc',validSelected);
@@ -111,7 +112,7 @@ function syncPartSelect(groupKeys, selected=[], domainKeys=[]){
     ? chKeys
     : (subKeys.length?groupsByDomains(subKeys).map(ch=>ch.key):groups.map(ch=>ch.key));
   const available=availableGroupKeys.length?partsByGroups(availableGroupKeys):[];
-  sec.innerHTML=`<option value="">無</option>`+available.map(item=>`<option value="${item.key}">${item.label}</option>`).join('');
+  sec.innerHTML=`<option value="">無</option>`+available.map(item=>`<option value="${safeAttr(item.key)}">${escapeHtml(item.label)}</option>`).join('');
   const selectedKeys=(Array.isArray(selected)?selected.filter(Boolean):(selected?[selected]:[])).slice(0,1);
   const validSelected=selectedKeys.filter(k=>available.some(item=>item.key===k));
   if(validSelected.length) setSelectedValues('fsec',validSelected);
@@ -119,9 +120,9 @@ function syncPartSelect(groupKeys, selected=[], domainKeys=[]){
 }
 function buildFormSelects() {
   const typeSelect=g('ft');
-  if(typeSelect) typeSelect.innerHTML=types.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');
+  if(typeSelect) typeSelect.innerHTML=types.map(t=>`<option value="${safeAttr(t.key)}">${escapeHtml(t.label)}</option>`).join('');
   const domainSelect=g('fs2');
-  if(domainSelect) domainSelect.innerHTML=`<option value="">無</option>`+domains.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+  if(domainSelect) domainSelect.innerHTML=`<option value="">無</option>`+domains.map(s=>`<option value="${safeAttr(s.key)}">${escapeHtml(s.label)}</option>`).join('');
   syncGroupSelect(selectedValues('fs2'));
   syncPartSelect(selectedValues('fc'),[],selectedValues('fs2'));
 }
@@ -205,12 +206,12 @@ function render() {
   grid.innerHTML=pgF.map(n=>{
     const isReminder=!!n.__isReminder;
     const tp=isReminder?{label:'提醒',color:'#b91c1c'}:typeByKey(n.type),subs=isReminder?[]:noteDomains(n),chs=isReminder?[]:noteGroups(n),secs=isReminder?[]:noteParts(n);
-    const subChips=subs.map(sk=>{const sb2=subByKey(sk);return `<span class="chip" style="background:${lightC(sb2.color)};color:${darkC(sb2.color)}">${sb2.label}</span>`;}).join('');
+    const subChips=subs.map(sk=>{const sb2=subByKey(sk);return `<span class="chip" style="background:${lightC(sb2.color)};color:${darkC(sb2.color)}">${escapeHtml(sb2.label)}</span>`;}).join('');
     const noteActionChips=isReminder?'':`<span class="chip card-action-chip" data-action="duplicate">建立副本</span><span class="chip card-action-chip" data-action="copy">複製內容</span><span class="chip card-action-chip" data-action="delete">刪除</span>`;
     const linkedChip=(shouldExpand&&!seedIds.has(n.id))?'<span class="chip" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459">跨科關聯</span>':'';
     const hasContent=isReminder?!!safeStr(n.body):noteHasVisibleContent(n);
     const previewText=reviewMode?(n.prompt||n.question||'（尚未填寫問題）'):(n.question||n.body);
-    return `<div class="card ${hasContent?'':'card-empty-content'} ${isReminder?'calendar-reminder-card':''}" data-id="${n.id}" data-reminder-id="${isReminder?n.eventId:''}" style="--type-color:${tp.color}"><button class="sel-check" type="button" aria-label="勾選筆記"></button><div class="ctop"><span class="ctag">${tp.label}</span><div class="ctitle-inline">${hl(n.title,q)}</div></div>${hasContent?`<div class="cbody">${escapeHtml(previewText)}</div>`:''}<div class="cfoot">${subChips}${linkedChip}${noteActionChips}</div></div>`;
+    return `<div class="card ${hasContent?'':'card-empty-content'} ${isReminder?'calendar-reminder-card':''}" data-id="${safeAttr(n.id)}" data-reminder-id="${isReminder?n.eventId:''}" style="--type-color:${tp.color}"><button class="sel-check" type="button" aria-label="勾選筆記"></button><div class="ctop"><span class="ctag">${escapeHtml(tp.label)}</span><div class="ctitle-inline">${hl(n.title,q)}</div></div>${hasContent?`<div class="cbody">${safeText(previewText)}</div>`:''}<div class="cfoot">${subChips}${linkedChip}${noteActionChips}</div></div>`;
   }).join('');
   grid.querySelectorAll('.card').forEach(c=>{
     const rid=c.dataset.reminderId?parseInt(c.dataset.reminderId,10):0;
@@ -284,12 +285,12 @@ function findMapNodesByKeyword(keyword,excludeId){
   const q=safeStr(keyword).replace(/^@/,'').trim().toLowerCase();
   if(!q) return [];
   const blocked=Number(excludeId);
-  return [...notes,...mapAuxNodes].filter(n=>n.id!==blocked&&`${n.title} ${noteDomainText(n)} ${isAuxnodeNode(n)?'':typeByKey(n.type).label}`.toLowerCase().includes(q)).slice(0,18);
+  return [...notes,...mapAuxNodes].filter(n=>n.id!==blocked&&`${escapeHtml(n.title)} ${noteDomainText(n)} ${isAuxnodeNode(n)?'':typeByKey(n.type).label}`.toLowerCase().includes(q)).slice(0,18);
 }
 function mapPageRootOptions(){
   const subpages=[...notes,...mapAuxNodes]
     .filter(n=>hasSubpageForNode(n.id))
-    .map(n=>({id:n.id,title:n.title||`點#${n.id}`}));
+    .map(n=>({id:n.id,title:n.title||`點#${safeAttr(n.id)}`}));
   return [{id:'root',title:'主頁'},...subpages];
 }
 function ensureMapSubpageRoot(rootId){
@@ -319,7 +320,7 @@ function renderDetailQuickLinkSearch(){
   const existingIds=new Set(links.filter(l=>l.from===openId||l.to===openId).map(l=>l.from===openId?l.to:l.from));
   const pool=findMapNodesByKeyword(q,openId).filter(n=>!existingIds.has(n.id)&&(!isAuxnodeNode(n)||isNodeInCurrentMapPage(n.id)));
   if(!pool.length){root.innerHTML='<div class="dp-link-empty">找不到可關聯的筆記</div>';return;}
-  root.innerHTML=pool.map(n=>`<div class="fl-result-item quick-add" data-quick-link-id="${n.id}"><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`).join('');
+  root.innerHTML=pool.map(n=>`<div class="fl-result-item quick-add" data-quick-link-id="${safeAttr(n.id)}"><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`).join('');
   root.querySelectorAll('[data-quick-link-id]').forEach(row=>row.addEventListener('click',()=>{
     const targetId=parseInt(row.dataset.quickLinkId,10);
     if(!openId||!targetId) return;
@@ -341,7 +342,7 @@ function renderMapPopupQuickLinkSearch(sourceId=null){
   const existingIds=new Set(links.filter(l=>l.from===srcId||l.to===srcId).map(l=>l.from===srcId?l.to:l.from));
   const pool=findMapNodesByKeyword(q,srcId).filter(n=>!existingIds.has(n.id)&&!isAuxnodeNode(n)&&isNodeInCurrentMapPage(n.id));
   if(!pool.length){root.innerHTML='<div class="dp-link-empty">找不到可關聯的筆記</div>';return;}
-  root.innerHTML=pool.map(n=>`<div class="fl-result-item quick-add" data-mp-quick-link-id="${n.id}"><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`).join('');
+  root.innerHTML=pool.map(n=>`<div class="fl-result-item quick-add" data-mp-quick-link-id="${safeAttr(n.id)}"><span class="fl-result-title">${escapeHtml(n.title)}</span><button class="tool-btn" type="button">+ 關聯</button></div>`).join('');
   root.querySelectorAll('[data-mp-quick-link-id]').forEach(row=>row.addEventListener('click',()=>{
     const targetId=parseInt(row.dataset.mpQuickLinkId,10);
     if(!srcId||!targetId) return;
@@ -474,7 +475,7 @@ function openNote(id) {
     g('dp-detail').style.display=reveal?'block':'none';
     if(!reveal) g('dp-detail').innerHTML='（先回想，再按「顯示答案」）';
     todoLabel.style.display='none';todoWrap.style.display='block';
-    todoWrap.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="tool-btn" id="reviewRevealBtn">${reveal?'已顯示答案':'顯示答案'}</button><button class="tool-btn" id="reviewKnewBtn" style="background:#EAF3DE;color:#2F6B1B;border-color:#97C459;">✅ 我記得</button><button class="tool-btn" id="reviewForgotBtn" style="background:#FFF1F2;color:#B42318;border-color:#F5B8BF;">❌ 我忘了</button></div><div style="margin-top:8px;font-size:12px;color:#666;">Application：${escapeHtml(n.application||'（請補上真實情境）')}</div>`;
+    todoWrap.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="tool-btn" id="reviewRevealBtn">${reveal?'已顯示答案':'顯示答案'}</button><button class="tool-btn" id="reviewKnewBtn" style="background:#EAF3DE;color:#2F6B1B;border-color:#97C459;">✅ 我記得</button><button class="tool-btn" id="reviewForgotBtn" style="background:#FFF1F2;color:#B42318;border-color:#F5B8BF;">❌ 我忘了</button></div><div style="margin-top:8px;font-size:12px;color:#666;">Application：${safeText(n.application||'（請補上真實情境）')}</div>`;
     g('reviewRevealBtn')?.addEventListener('click',()=>{reviewReveal=true;openNote(id);});
     g('reviewKnewBtn')?.addEventListener('click',()=>{applyReviewResult(id,'knew');reviewReveal=false;showToast('已安排較長複習間隔');render();});
     g('reviewForgotBtn')?.addEventListener('click',()=>{applyReviewResult(id,'forgot');reviewReveal=false;showToast('已安排短期複習');render();});
