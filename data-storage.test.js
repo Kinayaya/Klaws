@@ -26,3 +26,13 @@ test('shard checksum mismatch returns null', async ()=>{
   const out=await api.readShardedPayload();
   assert.equal(out,null);
 });
+
+
+test('emergency snapshot hooks exist for sync flush and merge recovery', ()=>{
+  const dataJs=require('node:fs').readFileSync('./data.js','utf8');
+  const initJs=require('node:fs').readFileSync('./init.js','utf8');
+  assert.match(dataJs,/const EMERGENCY_SNAPSHOT_KEY='klaws_emergency_snapshot_v1';/);
+  assert.match(dataJs,/writeEmergencySnapshotSync\(payload\);/);
+  assert.match(dataJs,/mergeEmergencyPathSnapshot\(d,emergencySnapshot\)/);
+  assert.match(initJs,/flushCriticalSnapshotSync\(\);\s*saveData\(\);/);
+});

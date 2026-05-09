@@ -24,6 +24,48 @@ const dataStorageApi=window.KlawsData.createDataStorageApi({
 });
 
 
+const EMERGENCY_SNAPSHOT_KEY='klaws_emergency_snapshot_v1';
+const EMERGENCY_SNAPSHOT_VERSION=1;
+
+function buildEmergencySnapshot(payload){
+  const nowIso=new Date().toISOString();
+  const src=payload&&typeof payload==='object'?payload:{};
+  return {
+    version:EMERGENCY_SNAPSHOT_VERSION,
+    snapshotAt:nowIso,
+    payloadUpdatedAt:typeof src.updatedAt==='string'?src.updatedAt:nowIso,
+    notes:Array.isArray(src.notes)?src.notes.map(n=>({id:n.id,path:safeStr(n.path)})):[],
+    mapAuxNodes:Array.isArray(src.mapAuxNodes)?src.mapAuxNodes.map(n=>({id:n.id,path:safeStr(n.path)})):[]
+  };
+}
+function writeEmergencySnapshotSync(payload){
+  try{ localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(buildEmergencySnapshot(payload))); }catch(e){}
+}
+function mergeEmergencyPathSnapshot(payload,snapshot){
+  const base=(payload&&typeof payload==='object')?payload:{};
+  if(!snapshot||snapshot.version!==EMERGENCY_SNAPSHOT_VERSION) return {payload:base,applied:false};
+  const snapshotTs=Date.parse(snapshot.snapshotAt||snapshot.payloadUpdatedAt||'');
+  const payloadTs=Date.parse(base.updatedAt||'');
+  if(Number.isFinite(payloadTs)&&Number.isFinite(snapshotTs)&&snapshotTs<=payloadTs) return {payload:base,applied:false};
+  const applyPaths=(list,snaps)=>{
+    if(!Array.isArray(list)||!Array.isArray(snaps)||!snaps.length) return list;
+    const byId=new Map(snaps.map(item=>[item.id,safeStr(item.path)]));
+    return list.map(item=>{
+      if(!byId.has(item.id)) return item;
+      const nextPath=byId.get(item.id);
+      return safeStr(item.path)===nextPath?item:{...item,path:nextPath};
+    });
+  };
+  return {
+    payload:{...base,notes:applyPaths(Array.isArray(base.notes)?base.notes:[],snapshot.notes),mapAuxNodes:applyPaths(Array.isArray(base.mapAuxNodes)?base.mapAuxNodes:[],snapshot.mapAuxNodes),updatedAt:snapshot.payloadUpdatedAt||snapshot.snapshotAt||base.updatedAt},
+    applied:true
+  };
+}
+function flushCriticalSnapshotSync(){
+  writeEmergencySnapshotSync(getPayload());
+}
+
+
 // ==================== 資料儲存 ====================
 
 
@@ -38,6 +80,9 @@ async function loadData() {
       loadedFromLegacyBlob=!!d;
     }
     if(d) {
+      const emergencySnapshot=readJSON(EMERGENCY_SNAPSHOT_KEY,null);
+      const snapshotMerge=mergeEmergencyPathSnapshot(d,emergencySnapshot);
+      if(snapshotMerge.applied) d=snapshotMerge.payload;
       notes=mergeAuxNodesIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapAuxNodes)?d.mapAuxNodes:[]);
       mapAuxNodes=[];
       links=Array.isArray(d.links)?d.links:DEFAULTS.links.slice();
@@ -152,6 +197,7 @@ function pushPayloadToBackend(payload){
 async function saveData() {
   try {
     const payload=getPayload();
+    writeEmergencySnapshotSync(payload);
     const nextRaw=JSON.stringify(payload);
     const saveStartedAt=performance.now();
     dataStorageApi.writeShardedPayloadParts(payload).then(()=>{
