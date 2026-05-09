@@ -2,6 +2,8 @@
   const DB_NAME = 'klaws_storage_db';
   const DB_VERSION = 1;
   const STORE_NAME = 'kv';
+  const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
+  const RECYCLE_BIN_KEY = 'klaws_recycle_bin_v1';
 
   let dbPromise=null;
   const normalizeIdbError = err => err instanceof Error ? err : new Error(err==null?'indexedDB request failed':String(err));
@@ -104,20 +106,55 @@
     }));
     return {deleted,count:deleted.length};
   };
+  const cleanupRebuildableData = async () => {
+    const before=await estimateUsage();
+    const cacheResult=await cleanupRebuildableCaches();
+    let recycleCount=0;
+    let archiveCount=0;
+    try{
+      const recycleData=await idbGet(RECYCLE_BIN_KEY);
+      if(Array.isArray(recycleData)) recycleCount=recycleData.length;
+    }catch(e){}
+    try{
+      const archiveData=await idbGet(ARCHIVES_IDB_KEY);
+      if(Array.isArray(archiveData)) archiveCount=archiveData.length;
+    }catch(e){}
+    await Promise.allSettled([idbSet(RECYCLE_BIN_KEY,[]),idbSet(ARCHIVES_IDB_KEY,[])]);
+    try{ localStorage.removeItem(RECYCLE_BIN_KEY); }catch(e){}
+    try{ localStorage.removeItem(ARCHIVES_IDB_KEY); }catch(e){}
+    if(global){
+      global.__klawsRecycleCache=[];
+      global.__klawsArchivesCache=[];
+      if(Array.isArray(global.recycleBin)) global.recycleBin.length=0;
+    }
+    const after=await estimateUsage();
+    console.info('[storage-cleanup-rebuildable-data]',{
+      cacheCount:cacheResult.count,
+      recycleRemoved:recycleCount,
+      archivesRemoved:archiveCount,
+      usageBefore:before.usage,
+      usageAfter:after.usage,
+      quota:after.quota
+    });
+    return {cache:cacheResult,recycleRemoved:recycleCount,archivesRemoved:archiveCount,before,after};
+  };
   const enforceWritePolicy = async kind => {
     const usage=await estimateUsage();
-    if(kind==='core') return {allow:true,usage};
+    if(kind==='core'&&usage.ratio>=0.95){
+      await cleanupRebuildableData();
+      return {allow:true,usage:await estimateUsage(),cleaned:true};
+    }
     if(kind==='rebuildable'&&usage.ratio>=0.95){
-      await cleanupRebuildableCaches();
-      return {allow:false,usage,code:'REBUILDABLE_BLOCKED'};
+      await cleanupRebuildableData();
+      return {allow:false,usage:await estimateUsage(),code:'REBUILDABLE_BLOCKED'};
     }
     if(kind==='ephemeral'&&usage.ratio>=0.9) return {allow:false,usage,code:'EPHEMERAL_BLOCKED'};
     return {allow:true,usage};
   };
   const makeStorageError=(code,message,meta={})=>({name:'StorageGovernedError',code,message,meta});
   const handleQuotaExceeded = async ctx => {
-    if(ctx.kind!=='core') await cleanupRebuildableCaches();
-    return makeStorageError('QUOTA_EXCEEDED','儲存空間不足，請清理快取後再試。',ctx);
+    const cleanup=await cleanupRebuildableData();
+    return makeStorageError('QUOTA_EXCEEDED','儲存空間不足，已嘗試清理可重建資料後仍失敗。',Object.assign({},ctx,{cleanup}));
   };
   const governedWrite = async ({kind='core',store='localStorage',key,value,serializer=null}) => {
     const policy=await enforceWritePolicy(kind);
@@ -133,7 +170,23 @@
       }
       return {ok:true};
     }catch(err){
-      if(isQuotaErr(err)) return {ok:false,error:await handleQuotaExceeded({kind,store,key,cause:err}),hint:'quota_exceeded'};
+      if(isQuotaErr(err)){
+        if(kind==='core'){
+          const quotaErr=await handleQuotaExceeded({kind,store,key,cause:err});
+          try{
+            if(store==='indexedDB'){
+              await idbSet(key,value);
+            }else if(store==='localStorage'){
+              const payload=serializer?serializer(value):value;
+              localStorage.setItem(key,payload);
+            }
+            return {ok:true,retried:true};
+          }catch(retryErr){
+            return {ok:false,error:makeStorageError('QUOTA_EXCEEDED','儲存空間不足，已清理後重試仍失敗。',{kind,store,key,cause:retryErr,previous:quotaErr.meta}),hint:'quota_exceeded'};
+          }
+        }
+        return {ok:false,error:await handleQuotaExceeded({kind,store,key,cause:err}),hint:'quota_exceeded'};
+      }
       return {ok:false,error:makeStorageError('WRITE_FAILED','儲存失敗，請稍後再試。',{kind,store,key,cause:err}),hint:'write_failed'};
     }
   };
@@ -164,5 +217,5 @@
     return { primaryStore, fallbackStore, snapshotStore, isQuotaErr };
   };
 
-  global.KLawsStorage = { readJSON, writeJSON, readJSONAsync, writeJSONAsync, createStoreAdapter, estimateUsage, getStorageHealth, cleanupRebuildableCaches, enforceWritePolicy, handleQuotaExceeded, governedWrite, governedWriteLocal, governedRemoveLocal };
+  global.KLawsStorage = { readJSON, writeJSON, readJSONAsync, writeJSONAsync, createStoreAdapter, estimateUsage, getStorageHealth, cleanupRebuildableCaches, cleanupRebuildableData, enforceWritePolicy, handleQuotaExceeded, governedWrite, governedWriteLocal, governedRemoveLocal };
 })(window);
