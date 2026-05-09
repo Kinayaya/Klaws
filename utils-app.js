@@ -45,6 +45,13 @@ window.addEventListener('error',evt=>{
 window.addEventListener('unhandledrejection',evt=>{
   if(debugRuntime) debugRuntime.reportError('window.unhandledrejection',evt.reason||new Error('Unhandled rejection'));
 });
+let hasShownSaveFailedToast=false;
+window.addEventListener('klaws:save-failed',()=>{
+  if(hasShownSaveFailedToast) return;
+  hasShownSaveFailedToast=true;
+  showToast('儲存失敗，請稍後重試');
+  setTimeout(()=>{ hasShownSaveFailedToast=false; },5000);
+});
 
 function loadFormTaxonomyPref(){
   try{

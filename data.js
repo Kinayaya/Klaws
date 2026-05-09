@@ -65,7 +65,11 @@ function buildEmergencySnapshot(payload){
   };
 }
 function writeEmergencySnapshotSync(payload){
-  try{ localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(buildEmergencySnapshot(payload))); }catch(e){}
+  try{
+    localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(buildEmergencySnapshot(payload)));
+  }catch(e){
+    console.error('[emergency-snapshot-write-failed]',e);
+  }
 }
 function mergeEmergencyPathSnapshot(payload,snapshot){
   const base=(payload&&typeof payload==='object')?payload:{};
@@ -243,7 +247,7 @@ async function saveDataCritical() {
     lastSavedPayloadRaw=nextRaw;
     pushPayloadToBackend(payload);
     console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
-    return {ok:true};
+    return {ok:true,store:'idb'};
   }catch(err){
     idbHealthDegraded=true;
     const code=err&&err.code?err.code:(storageAdapter.isQuotaErr(err)?'QUOTA_EXCEEDED':'IDB_WRITE_FAILED');
@@ -254,26 +258,46 @@ async function saveDataCritical() {
       console.warn('[saveData-fallback-failed]',fallbackErr);
     }
     console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
-    return {ok:false,error:err,code};
+    const result={ok:false,store:'local',error:err,code};
+    try{
+      window.dispatchEvent(new CustomEvent('klaws:save-failed',{detail:result}));
+    }catch(dispatchErr){
+      console.error('[saveData-failed-event-dispatch-error]',dispatchErr);
+    }
+    return result;
   }
 }
 
 async function saveData() {
   if(dataHydrationInProgress){
     queuedSaveAfterHydration=true;
-    return {ok:true,queued:true};
+    return {ok:true,queued:true,store:'none'};
   }
   saveChain=saveChain.then(async()=>{
     try {
       return await saveDataCritical();
     } catch(e){
-      return {ok:false,error:e,code:'SAVE_UNKNOWN_ERROR'};
+      const result={ok:false,store:'none',error:e,code:'SAVE_UNKNOWN_ERROR'};
+      console.error('[saveData-unknown-error]',e);
+      try{
+        window.dispatchEvent(new CustomEvent('klaws:save-failed',{detail:result}));
+      }catch(dispatchErr){
+        console.error('[saveData-failed-event-dispatch-error]',dispatchErr);
+      }
+      return result;
     }
   });
   try {
     return await saveChain;
   } catch(e){
-    return {ok:false,error:e,code:'SAVE_CHAIN_ERROR'};
+    const result={ok:false,store:'none',error:e,code:'SAVE_CHAIN_ERROR'};
+    console.error('[saveData-chain-error]',e);
+    try{
+      window.dispatchEvent(new CustomEvent('klaws:save-failed',{detail:result}));
+    }catch(dispatchErr){
+      console.error('[saveData-failed-event-dispatch-error]',dispatchErr);
+    }
+    return result;
   }
 }
 // ==================== 匯入/匯出 ====================
