@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { formatErrorDetail, createDebugRuntime, bindDebugToggle } = require('./debug-tool.js');
+const { formatErrorDetail, createDebugRuntime, bindDebugToggle, shouldIgnoreRuntimeError } = require('./debug-tool.js');
 
 test('formatErrorDetail includes error name/message and stack summary', ()=>{
   const err=new Error('btn failed');
@@ -52,4 +52,12 @@ test('formatErrorDetail handles non-Error circular payload safely', ()=>{
   payload.self=payload;
   const txt=formatErrorDetail(payload,'init-load-error');
   assert.match(txt,/\[init-load-error\] Error:/);
+});
+
+test('shouldIgnoreRuntimeError filters known eruda init warning', ()=>{
+  assert.equal(shouldIgnoreRuntimeError({message:'[Eruda] Please call "eruda.init()" first'}),true);
+});
+
+test('shouldIgnoreRuntimeError filters cross-origin masked script error noise', ()=>{
+  assert.equal(shouldIgnoreRuntimeError({message:'Script error.',filename:'webkit-masked-url://hidden/:27'}),true);
 });

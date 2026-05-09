@@ -40,9 +40,14 @@ function showActionToast(msg, undoFn=null){
 }
 
 window.addEventListener('error',evt=>{
+  if(window.KLawsDebug&&typeof window.KLawsDebug.shouldIgnoreRuntimeError==='function'&&window.KLawsDebug.shouldIgnoreRuntimeError({
+    message:evt.message,
+    filename:evt.filename
+  })) return;
   if(debugRuntime) debugRuntime.reportError('window.error',evt.error||new Error(evt.message||'Unknown window error'));
 });
 window.addEventListener('unhandledrejection',evt=>{
+  if(window.KLawsDebug&&typeof window.KLawsDebug.shouldIgnoreRuntimeError==='function'&&window.KLawsDebug.shouldIgnoreRuntimeError(evt.reason)) return;
   if(debugRuntime) debugRuntime.reportError('window.unhandledrejection',evt.reason||new Error('Unhandled rejection'));
 });
 let hasShownSaveFailedToast=false;
