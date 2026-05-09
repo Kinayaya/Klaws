@@ -60,7 +60,15 @@
     return true;
   }
 
-  const api={ normalizeStack, formatErrorDetail, createDebugRuntime, bindDebugToggle };
+  function shouldIgnoreRuntimeError(errorLike){
+    const raw=errorLike&&typeof errorLike==='object'
+      ? `${errorLike.message||''} ${errorLike.reason||''} ${errorLike.filename||''} ${errorLike.source||''}`
+      : String(errorLike||'');
+    const text=String(raw).toLowerCase();
+    return text.includes('eruda.init()') || (text.includes('script error')&&text.includes('webkit-masked-url://hidden/'));
+  }
+
+  const api={ normalizeStack, formatErrorDetail, createDebugRuntime, bindDebugToggle, shouldIgnoreRuntimeError };
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   if(global) global.KLawsDebug=api;
 })(typeof window!=='undefined'?window:globalThis);
