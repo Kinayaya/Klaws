@@ -61,3 +61,57 @@ const TASK_REPEAT_OPTIONS=[
 function mergeAuxNodesIntoNotes(baseNotes=[], auxNodeList=[]){
   return KLawsCore.mergeAuxNodesIntoNotes(baseNotes, auxNodeList, {normalizeNoteSchema, safeStr});
 }
+
+
+function createAppState(options={}){
+  const debug=!!options.debug;
+  const logger=typeof options.logger==='function'?options.logger:console.log.bind(console);
+  const snapshot=()=>({
+    currentView,
+    isMapOpen,
+    mapFilter:{...mapFilter},
+    searchQ,
+    gridPage
+  });
+  const logTransition=(action,before,after,payload)=>{
+    if(!debug) return;
+    logger('[app-state]',action,{before,after,payload});
+  };
+  const setView=(view,{mapOpen}={})=>{
+    const before=snapshot();
+    currentView=view;
+    if(typeof mapOpen==='boolean') isMapOpen=mapOpen;
+    logTransition('setView',before,snapshot(),{view,mapOpen});
+  };
+  const setSearchQuery=(q)=>{
+    const before=snapshot();
+    searchQ=safeStr(q);
+    gridPage=1;
+    logTransition('setSearchQuery',before,snapshot(),{q:searchQ});
+  };
+  const updateMapFilter=(patch={})=>{
+    const before=snapshot();
+    const next={...mapFilter,...patch};
+    mapFilter=next;
+    logTransition('updateMapFilter',before,snapshot(),{patch});
+  };
+  return {
+    get currentView(){ return currentView; },
+    get isMapOpen(){ return isMapOpen; },
+    get mapFilter(){ return mapFilter; },
+    get searchQ(){ return searchQ; },
+    get gridPage(){ return gridPage; },
+    setView,
+    setSearchQuery,
+    updateMapFilter
+  };
+}
+
+const appState=createAppState({debug:localStorage.getItem('klaws_debug_state')==='1'});
+if(typeof window!=='undefined'){
+  window.createAppState=createAppState;
+  window.appState=appState;
+}
+if(typeof module!=='undefined'&&module.exports){
+  module.exports={createAppState};
+}

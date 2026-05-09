@@ -1,3 +1,4 @@
+const appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
 // ==================== 統計 ====================
 function openStats() {
   openPathMgr();
@@ -5,6 +6,7 @@ function openStats() {
 }
 
 function toggleCalendarView(open){
+  if(appStateFacade) appStateFacade.setView(open?'calendar':'notes');
   currentView=open?'calendar':'notes';
   g('notesView').style.display=open?'none':(searchQ.trim()?'block':'none');
   g('mapView').classList.remove('open');
@@ -17,6 +19,7 @@ function toggleCalendarView(open){
   saveLastViewState();
 }
 function toggleLevelSystemView(open){
+  if(appStateFacade) appStateFacade.setView(open?'level':'notes',{mapOpen:false});
   currentView=open?'level':'notes';
   isMapOpen=false;
   g('notesView').style.display=open?'none':(searchQ.trim()?'block':'none');
