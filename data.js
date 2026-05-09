@@ -2,6 +2,32 @@
 const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
 const ARCHIVE_NOISE_EXCLUDE_KEYS = ['nodePos','mapCenterNodeId','mapCenterNodeIds','mapFilter'];
 let idbHealthDegraded=false;
+let dataHydrationInProgress=false;
+let queuedSaveAfterHydration=false;
+let lastPersistedRev=0;
+let saveChain=Promise.resolve();
+const parseRev=v=>Number.isFinite(Number(v))?Number(v):0;
+const bumpRevision=(minRev=0)=>{
+  const next=Math.max(Date.now(),parseRev(window.__klawsDataRev)+1,parseRev(lastPersistedRev)+1,parseRev(minRev));
+  window.__klawsDataRev=next;
+  return next;
+};
+const withRevision=(payload,{preserve=false,minRev=0}={})=>{
+  const base=(payload&&typeof payload==='object')?payload:{};
+  const existingRev=parseRev(base.rev);
+  const rev=(preserve&&existingRev)?Math.max(existingRev,minRev):bumpRevision(minRev);
+  if(rev>lastPersistedRev) lastPersistedRev=rev;
+  return {...base,rev,updatedAt:new Date().toISOString()};
+};
+window.KlawsDataWriteGate={
+  beginHydration(){ dataHydrationInProgress=true; },
+  async endHydration(){
+    dataHydrationInProgress=false;
+    if(!queuedSaveAfterHydration) return;
+    queuedSaveAfterHydration=false;
+    await saveData();
+  }
+};
 
 const dataStorageApi=window.KlawsData.createDataStorageApi({
   SKEY,
@@ -83,6 +109,11 @@ async function loadData() {
       const emergencySnapshot=readJSON(EMERGENCY_SNAPSHOT_KEY,null);
       const snapshotMerge=mergeEmergencyPathSnapshot(d,emergencySnapshot);
       if(snapshotMerge.applied) d=snapshotMerge.payload;
+      const loadedRev=Math.max(parseRev(d&&d.rev),Date.parse(d&&d.updatedAt)||0);
+      if(loadedRev){
+        window.__klawsDataRev=loadedRev;
+        lastPersistedRev=loadedRev;
+      }
       notes=mergeAuxNodesIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapAuxNodes)?d.mapAuxNodes:[]);
       mapAuxNodes=[];
       links=Array.isArray(d.links)?d.links:DEFAULTS.links.slice();
@@ -166,7 +197,7 @@ async function loadData() {
       lastSavedPayloadRaw=JSON.stringify(getPayload());
       await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}), true);
       if(loadedFromLegacyBlob){
-        await dataStorageApi.writeShardedPayloadParts(getPayload());
+        await dataStorageApi.writeShardedPayloadParts(withRevision(getPayload()));
       }
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
@@ -195,12 +226,18 @@ function pushPayloadToBackend(payload){
 }
 
 async function saveDataCritical() {
-  const payload=getPayload();
+  let payload=withRevision(getPayload());
   writeEmergencySnapshotSync(payload);
   const nextRaw=JSON.stringify(payload);
   const saveStartedAt=performance.now();
   try{
-    await dataStorageApi.writeShardedPayloadParts(payload);
+    const meta=typeof dataStorageApi.readShardedMeta==='function'?await dataStorageApi.readShardedMeta():null;
+    const persistedRev=parseRev(meta&&meta.rev);
+    if(persistedRev&&payload.rev<=persistedRev){
+      payload=withRevision(payload,{minRev:persistedRev+1});
+    }
+    await dataStorageApi.writeShardedPayloadParts(payload,{compareAndSet:true});
+    lastPersistedRev=Math.max(lastPersistedRev,parseRev(payload.rev));
     idbHealthDegraded=false;
     await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}));
     lastSavedPayloadRaw=nextRaw;
@@ -222,10 +259,21 @@ async function saveDataCritical() {
 }
 
 async function saveData() {
+  if(dataHydrationInProgress){
+    queuedSaveAfterHydration=true;
+    return {ok:true,queued:true};
+  }
+  saveChain=saveChain.then(async()=>{
+    try {
+      return await saveDataCritical();
+    } catch(e){
+      return {ok:false,error:e,code:'SAVE_UNKNOWN_ERROR'};
+    }
+  });
   try {
-    return await saveDataCritical();
+    return await saveChain;
   } catch(e){
-    return {ok:false,error:e,code:'SAVE_UNKNOWN_ERROR'};
+    return {ok:false,error:e,code:'SAVE_CHAIN_ERROR'};
   }
 }
 // ==================== 匯入/匯出 ====================
