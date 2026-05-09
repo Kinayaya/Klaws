@@ -59,8 +59,22 @@ const TASK_REPEAT_OPTIONS=[
   {key:'monthly',label:'每月'},
   {key:'yearly',label:'每年'}
 ];
-function mergeAuxNodesIntoNotes(baseNotes=[], auxNodeList=[]){
-  return KLawsCore.mergeAuxNodesIntoNotes(baseNotes, auxNodeList, {normalizeNoteSchema, safeStr});
+let klawsCoreBridge=null;
+function resolveKLawsCore(explicitCore){
+  if(explicitCore&&typeof explicitCore.mergeAuxNodesIntoNotes==='function') return explicitCore;
+  if(klawsCoreBridge&&typeof klawsCoreBridge.mergeAuxNodesIntoNotes==='function') return klawsCoreBridge;
+  const globalCore=typeof globalThis!=='undefined'?globalThis.KLawsCore:null;
+  if(globalCore&&typeof globalCore.mergeAuxNodesIntoNotes==='function') return globalCore;
+  throw new Error('KLawsCore bridge missing: inject via setKLawsCoreBridge or mergeAuxNodesIntoNotes(...,{klawsCore})');
+}
+
+function setKLawsCoreBridge(core){
+  klawsCoreBridge=core;
+}
+
+function mergeAuxNodesIntoNotes(baseNotes=[], auxNodeList=[],options={}){
+  const core=resolveKLawsCore(options.klawsCore);
+  return core.mergeAuxNodesIntoNotes(baseNotes, auxNodeList, {normalizeNoteSchema, safeStr});
 }
 
 
@@ -110,9 +124,8 @@ function createAppState(options={}){
 
 const appState=createAppState({debug:localStorage.getItem('klaws_debug_state')==='1'});
 if(typeof window!=='undefined'){
-  window.createAppState=createAppState;
   window.appState=appState;
 }
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={createAppState};
+  module.exports={createAppState,setKLawsCoreBridge,mergeAuxNodesIntoNotes};
 }
