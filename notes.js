@@ -24,7 +24,7 @@ async function copySelectedNotes(){
   if(!ids.length){showToast('請先選擇筆記');return;}
   const text=ids.map(id=>{
     const n=noteById(id);
-    return n?`${n.title}\nQ: ${n.question||''}\nA: ${n.answer||''}\nApplication: ${n.application||''}\n${n.body||''}\n${n.detail||''}`:'';
+    return n?`${n.title}\nApplication: ${n.application||''}\n${n.body||''}\n${n.detail||''}`:'';
   }).filter(Boolean).join('\n\n----------------\n\n');
   try{
     await navigator.clipboard.writeText(text);
