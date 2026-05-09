@@ -29,14 +29,28 @@
       }
       return payload;
     }
-    async function writeShardedPayloadParts(payload){
+    const parseRev=v=>Number.isFinite(Number(v))?Number(v):0;
+    async function readShardedMeta(){
+      return await readJSONAsync(metaKey(),null);
+    }
+    async function writeShardedPayloadParts(payload,options={}){
+      const incomingRev=parseRev(payload&&payload.rev);
+      const meta=await readShardedMeta();
+      const currentRev=parseRev(meta&&meta.rev);
+      if(options.compareAndSet!==false&&currentRev&&incomingRev&&incomingRev<=currentRev){
+        const err=new Error('REVISION_CONFLICT');
+        err.code='REVISION_CONFLICT';
+        err.currentRev=currentRev;
+        err.incomingRev=incomingRev;
+        throw err;
+      }
       const next=buildMap(payload); const prev=(global.__klawsLastSavedShards&&typeof global.__klawsLastSavedShards==='object')?global.__klawsLastSavedShards:{};
       const writes=[]; const checksumByShard={};
       names.forEach(n=>{ const raw=JSON.stringify(next[n]); checksumByShard[n]=checksum(raw); if(raw===JSON.stringify(prev[n])) return; writes.push(storageAdapter.primaryStore.set(key(n),next[n])); });
-      writes.push(storageAdapter.primaryStore.set(metaKey(),{version:2,shards:names,checksumByShard,updatedAt:new Date().toISOString()}));
+      writes.push(storageAdapter.primaryStore.set(metaKey(),{version:2,shards:names,checksumByShard,updatedAt:new Date().toISOString(),rev:incomingRev||Date.now()}));
       await Promise.all(writes); global.__klawsLastSavedShards=next;
     }
-    return { readShardedPayload, writeShardedPayloadParts };
+    return { readShardedPayload, writeShardedPayloadParts, readShardedMeta };
   }
   const api={ createShardStorageApi };
   if(typeof module!=='undefined'&&module.exports) module.exports=api;

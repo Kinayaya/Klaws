@@ -2,6 +2,9 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
 // ==================== 初始化 ====================
   window.addEventListener('load',async ()=>{
   try{
+  if(window.KlawsDataWriteGate&&typeof window.KlawsDataWriteGate.beginHydration==='function'){
+    window.KlawsDataWriteGate.beginHydration();
+  }
   detachSidePanelsFromNotesView();
   ensureUsageStart();
   await loadData();
@@ -280,5 +283,9 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
       stack:err&&err.stack?String(err.stack):''
     };
     console.error('[init-load-error]',detail,err);
+  }finally{
+    if(window.KlawsDataWriteGate&&typeof window.KlawsDataWriteGate.endHydration==='function'){
+      await window.KlawsDataWriteGate.endHydration();
+    }
   }
 });
