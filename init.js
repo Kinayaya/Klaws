@@ -200,16 +200,20 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   canvas.addEventListener('touchstart',e=>{if(e.touches.length===2){const d=e.touches[0].clientX-e.touches[1].clientX,dd=e.touches[0].clientY-e.touches[1].clientY;pinchDist=Math.sqrt(d*d+dd*dd);}},{passive:true});
   canvas.addEventListener('touchmove',e=>{if(e.touches.length===2&&pinchDist){e.preventDefault();const d=e.touches[0].clientX-e.touches[1].clientX,dd=e.touches[0].clientY-e.touches[1].clientY,nd=Math.sqrt(d*d+dd*dd);setZoom();pinchDist=nd;}},{passive:false});
   window.addEventListener('resize',()=>scheduleMapRedraw(100));window.addEventListener('orientationchange',()=>scheduleMapRedraw(120));
+  let flushBeforeUnloadInFlight=null;
   const flushAndPersistBeforeUnload=async()=>{
-    if(typeof flushNoteDraftSnapshot==='function') flushNoteDraftSnapshot();
-    await flushDeferredSave();
-    flushCriticalSnapshotSync();
-    saveData();
-    const result=await saveDataCritical();
-    if(!result||!result.ok){
-      const flushDetail={reason:'critical-save-failed',result:result||null};
-      console.error('[klaws-runtime-error] code=flush-before-unload.failed detail='+JSON.stringify(flushDetail));
-    }
+    if(flushBeforeUnloadInFlight) return flushBeforeUnloadInFlight;
+    flushBeforeUnloadInFlight=(async()=>{
+      if(typeof flushNoteDraftSnapshot==='function') await flushNoteDraftSnapshot();
+      flushCriticalSnapshotSync();
+      const result=await saveDataCritical({includeTransient:false});
+      if(!result||!result.ok){
+        const flushDetail={reason:'critical-save-failed',result:result||null};
+        console.error('[klaws-runtime-error] code=flush-before-unload.failed detail='+JSON.stringify(flushDetail));
+      }
+      return result;
+    })().finally(()=>{ flushBeforeUnloadInFlight=null; });
+    return flushBeforeUnloadInFlight;
   };
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='hidden'){

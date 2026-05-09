@@ -15,6 +15,18 @@ let cloudSyncPushLastStartedAt=0;
 let cloudSyncPushRetryCount=0;
 let cloudSyncPushRetryTimer=null;
 let cloudSyncPushPendingPayload=null;
+let lastSavedPayloadRaw='';
+let lastSavedContentPayloadRaw='';
+let saveStatus={state:'idle',lastSuccessAt:0};
+function buildContentPayload(){
+  return {notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,rev:Number(window.__klawsDataRev)||0};
+}
+function buildUiPayload(includeTransient=true){
+  const ui={nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),panelDir:getPanelDir()};
+  if(includeTransient){ ui.nodePos=nodePos;ui.mapOffX=mapOffX;ui.mapOffY=mapOffY;ui.mapScale=mapScale;ui.mapCollapsed=mapCollapsed; }
+  return ui;
+}
+
 let googleSyncLastPushAtIso=safeStr(localStorage.getItem('klaws_cloud_last_push_at')||'').trim();
 
 const parseRev=v=>Number.isFinite(Number(v))?Number(v):0;
@@ -362,6 +374,7 @@ async function saveDataCritical(opt={}) {
     return {ok:false,store:'none',code:'IDENTITY_DRIFT_RISK',issues:invariant.issues};
   }
   let payload=withRevision(getPayload({includeTransient}));
+  const nextContentRaw=JSON.stringify(buildContentPayload());
   writeEmergencySnapshotSync(payload);
   const nextRaw=JSON.stringify(payload);
   const saveStartedAt=performance.now();
@@ -376,6 +389,8 @@ async function saveDataCritical(opt={}) {
     idbHealthDegraded=false;
     await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}));
     lastSavedPayloadRaw=nextRaw;
+    lastSavedContentPayloadRaw=nextContentRaw;
+    saveStatus={state:'saved',lastSuccessAt:Date.now()};
     await scheduleCloudSyncAfterLocalSave({mode:'push',payload,silent:true});
     console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
     return {ok:true,store:'idb'};
@@ -389,6 +404,7 @@ async function saveDataCritical(opt={}) {
       console.warn('[saveData-fallback-failed]',fallbackErr);
     }
     console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
+    saveStatus={state:'failed',lastSuccessAt:saveStatus.lastSuccessAt};
     const result={ok:false,store:'local',error:err,code};
     try{
       window.dispatchEvent(new CustomEvent('klaws:save-failed',{detail:result}));
@@ -404,8 +420,13 @@ async function saveData(opt={}) {
     queuedSaveAfterHydration=true;
     return {ok:true,queued:true,store:'none'};
   }
+  saveStatus={state:'saving',lastSuccessAt:saveStatus.lastSuccessAt};
   saveChain=saveChain.then(async()=>{
     try {
+      if(opt&&opt.contentOnly===true){
+        const contentRaw=JSON.stringify(buildContentPayload());
+        if(contentRaw===lastSavedContentPayloadRaw) return {ok:true,skipped:true,store:'none'};
+      }
       return await saveDataCritical(opt);
     } catch(e){
       const result={ok:false,store:'none',error:e,code:'SAVE_UNKNOWN_ERROR'};

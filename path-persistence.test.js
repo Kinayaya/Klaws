@@ -7,14 +7,14 @@ const formJs = fs.readFileSync('./form.js','utf8');
 const mapJs = fs.readFileSync('./map-logic.js','utf8');
 
 test('path structural changes use immediate persistence helper', ()=>{
-  assert.match(utilsJs,/const savePathChange = \(\{isDraft=false\}=\{\}\) => \{/);
-  assert.match(utilsJs,/if\(isDraft\)\{\s*saveDataDeferred\(\);/);
+  assert.match(utilsJs,/const savePathChange = \(\{mode='final'\}=\{\}\) => \{/);
+  assert.match(utilsJs,/if\(mode==='draft'\)\{\s*queueDraftImmediateSave\(\);/);
   assert.match(utilsJs,/flushDeferredSave\(\);\s*saveData\(\);/);
 });
 
 test('form path draft updates are deferred and provide flush snapshot hook', ()=>{
-  assert.match(formJs,/savePathChange\(\{isDraft:true\}\);/);
-  assert.match(formJs,/function flushNoteDraftSnapshot\(\)\{/);
+  assert.match(formJs,/savePathChange\(\{mode:'draft'\}\);/);
+  assert.match(formJs,/async function flushNoteDraftSnapshot\(\)\{/);
   assert.match(formJs,/pathInput\.oninput=\(\)=>\{updatePathInheritanceUI\(\);saveNoteDraftFromForm\(\);\};/);
 });
 
