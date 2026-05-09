@@ -9,6 +9,13 @@ let dataHydrationInProgress=false;
 let queuedSaveAfterHydration=false;
 let lastPersistedRev=0;
 let saveChain=Promise.resolve();
+let cloudSyncPushDebounceTimer=null;
+let cloudSyncPushInFlight=false;
+let cloudSyncPushLastStartedAt=0;
+let cloudSyncPushRetryCount=0;
+let cloudSyncPushRetryTimer=null;
+let cloudSyncPushPendingPayload=null;
+
 const parseRev=v=>Number.isFinite(Number(v))?Number(v):0;
 const bumpRevision=(minRev=0)=>{
   const next=Math.max(Date.now(),parseRev(window.__klawsDataRev)+1,parseRev(lastPersistedRev)+1,parseRev(minRev));
@@ -260,6 +267,58 @@ function pushPayloadToBackend(payload){
 function hasActiveGoogleDriveSession(){
   return !!googleAccessToken&&Date.now()<googleTokenExpireAt;
 }
+function clearCloudSyncPushRetryTimer(){
+  if(!cloudSyncPushRetryTimer) return;
+  clearTimeout(cloudSyncPushRetryTimer);
+  cloudSyncPushRetryTimer=null;
+}
+
+function computeCloudSyncPushRetryDelayMs(retryCount){
+  const safeRetry=Math.max(0,Number(retryCount)||0);
+  const nextDelay=CLOUD_SYNC_PUSH_RETRY_BASE_MS*(2**safeRetry);
+  return Math.min(CLOUD_SYNC_PUSH_RETRY_MAX_DELAY_MS,nextDelay);
+}
+
+function triggerCloudSyncPushScheduler(payload){
+  if(!CLOUD_SYNC_PUSH_SCHEDULER_ENABLED) return;
+  cloudSyncPushPendingPayload=(payload&&typeof payload==='object')?payload:getPayload();
+  if(cloudSyncPushDebounceTimer) clearTimeout(cloudSyncPushDebounceTimer);
+  cloudSyncPushDebounceTimer=setTimeout(()=>{
+    cloudSyncPushDebounceTimer=null;
+    void runCloudSyncPushScheduler();
+  },Math.max(0,Number(CLOUD_SYNC_PUSH_DEBOUNCE_MS)||0));
+}
+
+async function runCloudSyncPushScheduler(){
+  if(!CLOUD_SYNC_PUSH_SCHEDULER_ENABLED||cloudSyncPushInFlight) return false;
+  clearCloudSyncPushRetryTimer();
+  if(!hasActiveGoogleDriveSession()) return true;
+  const waitMs=Math.max(0,cloudSyncPushLastStartedAt+CLOUD_SYNC_PUSH_MIN_INTERVAL_MS-Date.now());
+  if(waitMs>0){
+    cloudSyncPushRetryTimer=setTimeout(()=>{ cloudSyncPushRetryTimer=null; void runCloudSyncPushScheduler(); },waitMs);
+    return false;
+  }
+  cloudSyncPushInFlight=true;
+  cloudSyncPushLastStartedAt=Date.now();
+  const payload=(cloudSyncPushPendingPayload&&typeof cloudSyncPushPendingPayload==='object')?cloudSyncPushPendingPayload:getPayload();
+  try{
+    await cloudSyncPushNow({silent:true,payload});
+    cloudSyncPushRetryCount=0;
+    return true;
+  }catch(err){
+    cloudSyncPushRetryCount+=1;
+    if(cloudSyncPushRetryCount<=CLOUD_SYNC_PUSH_RETRY_MAX){
+      const retryDelayMs=computeCloudSyncPushRetryDelayMs(cloudSyncPushRetryCount-1);
+      cloudSyncPushRetryTimer=setTimeout(()=>{ cloudSyncPushRetryTimer=null; void runCloudSyncPushScheduler(); },retryDelayMs);
+    }else{
+      cloudSyncPushRetryCount=0;
+    }
+    return false;
+  }finally{
+    cloudSyncPushInFlight=false;
+  }
+}
+
 async function scheduleCloudSyncAfterLocalSave(opts={}){
   const {
     mode='push',
@@ -272,8 +331,11 @@ async function scheduleCloudSyncAfterLocalSave(opts={}){
   }
   const nextPayload=(payload&&typeof payload==='object')?payload:getPayload();
   pushPayloadToBackend(nextPayload);
-  if(!force&&!hasActiveGoogleDriveSession()) return true;
-  return await cloudSyncPushNow({silent,force,payload:nextPayload});
+  if(force){
+    return await cloudSyncPushNow({silent,force,payload:nextPayload});
+  }
+  triggerCloudSyncPushScheduler(nextPayload);
+  return true;
 }
 
 async function saveDataCritical(opt={}) {
