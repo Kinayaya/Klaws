@@ -15,6 +15,7 @@ let cloudSyncPushLastStartedAt=0;
 let cloudSyncPushRetryCount=0;
 let cloudSyncPushRetryTimer=null;
 let cloudSyncPushPendingPayload=null;
+let googleSyncLastPushAtIso=safeStr(localStorage.getItem('klaws_cloud_last_push_at')||'').trim();
 
 const parseRev=v=>Number.isFinite(Number(v))?Number(v):0;
 const bumpRevision=(minRev=0)=>{
@@ -1052,18 +1053,19 @@ function renderArchivePanel(){
 function updateCloudSyncStatus(extra=''){
   const el=g('cloudSyncStatus');
   if(!el) return;
+  const backendEndpoint=safeStr(localStorage.getItem(BACKEND_SYNC_ENDPOINT_KEY)||'').trim();
+  const backendStatus=backendEndpoint?'已設定 endpoint':'未設定 endpoint';
+  const syncModeLabel=cloudSyncEnabled?'已啟用自動同步':'目前僅手動同步';
+  const pushAtLabel=googleSyncLastPushAtIso?new Date(googleSyncLastPushAtIso).toLocaleString('zh-TW'):'尚未上傳';
   if(googleSyncBusy){
-    el.textContent='雲端同步：處理中...';
+    el.innerHTML=`Google Drive：處理中…｜最後 push：${pushAtLabel}<br>Backend mirror：${backendStatus}｜${syncModeLabel}`;
     return;
   }
   const loggedIn=hasActiveGoogleDriveSession();
   const reason=safeStr(extra||googleSyncLastError||'').trim();
-  const suffix=reason?`（${reason}）`:'';
-  if(cloudSyncEnabled&&!loggedIn){
-    el.textContent=`雲端同步：待授權${suffix}`;
-    return;
-  }
-  el.textContent=loggedIn?`雲端同步：已登入${suffix}`:`雲端同步：未啟用${suffix}`;
+  const loginLabel=cloudSyncEnabled&&!loggedIn?'待授權':(loggedIn?'已登入':'未登入');
+  const errLabel=reason?`｜錯誤：${reason}`:'';
+  el.innerHTML=`Google Drive：${loginLabel}｜最後 push：${pushAtLabel}${errLabel}<br>Backend mirror：${backendStatus}｜${syncModeLabel}`;
 }
 function cloudSyncErrorText(err){
   const msg=safeStr(err&&err.message||err||'').trim();
@@ -1308,6 +1310,8 @@ async function cloudSyncPushNow(opts={}){
     nextPayload.updatedAt=new Date().toISOString();
     await uploadPayloadToDrive(nextPayload);
     googleSyncLastError='';
+    googleSyncLastPushAtIso=nextPayload.updatedAt;
+    void window.KLawsStorage.governedWriteLocal('klaws_cloud_last_push_at',googleSyncLastPushAtIso,'core').catch(()=>{});
     if(!silent) showToast('已上傳到 Google 雲端');
     return true;
   }catch(e){
