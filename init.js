@@ -251,6 +251,7 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   window.addEventListener('resize',()=>scheduleMapRedraw(100));window.addEventListener('orientationchange',()=>scheduleMapRedraw(120));
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='hidden'){
+      if(typeof flushNoteDraftSnapshot==='function') flushNoteDraftSnapshot();
       if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
       flushCriticalSnapshotSync();
       saveData();
@@ -259,6 +260,7 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
     scheduleMapRedraw(100);
   });
   window.addEventListener('pagehide',()=>{
+    if(typeof flushNoteDraftSnapshot==='function') flushNoteDraftSnapshot();
     if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
     flushCriticalSnapshotSync();
     saveData();

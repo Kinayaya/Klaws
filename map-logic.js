@@ -476,6 +476,15 @@ function deletePathForNotes(targetPath){
   });
   return changed;
 }
+function persistPathStructureChange(changed,successMsg){
+  if(!changed){showToast('沒有筆記需要更新');return false;}
+  savePathChange();
+  saveLastViewState();
+  drawMap();
+  if(successMsg) showToast(successMsg(changed));
+  return true;
+}
+
 function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
   const filterQ=safeStr(mapTreeFilterQ||'').trim().toLowerCase();
@@ -579,18 +588,11 @@ function buildMapTreeIndex(visNotes){
       if(next==='/delete'){
         if(!confirm(`確定刪除路徑「${path}」？\n此路徑下筆記會移除該路徑前綴。`)) return;
         const changed=deletePathForNotes(path);
-        saveData();
-        saveLastViewState();
-        drawMap();
-        showToast(changed?`已刪除路徑，更新 ${changed} 筆筆記`:'已刪除路徑');
+        persistPathStructureChange(changed,count=>`已刪除路徑，更新 ${count} 筆筆記`);
         return;
       }
       const changed=replacePathPrefixForNotes(path,next);
-      if(!changed){showToast('沒有筆記需要更新');return;}
-      saveData();
-      saveLastViewState();
-      drawMap();
-      showToast(`路徑已更新，共 ${changed} 筆`);
+      persistPathStructureChange(changed,count=>`路徑已更新，共 ${count} 筆`);
     });
   });
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
