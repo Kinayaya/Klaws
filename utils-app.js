@@ -373,9 +373,18 @@ const flushDeferredSave = async () => {
   if(_saveDeferredPromise) return _saveDeferredPromise;
   return null;
 };
-const savePathChange = ({isDraft=false}={}) => {
-  if(isDraft){
-    saveDataDeferred();
+const DRAFT_SAVE_THROTTLE_MS = 100;
+let _draftSaveTimer = null;
+const queueDraftImmediateSave = () => {
+  if(_draftSaveTimer) return;
+  _draftSaveTimer=setTimeout(()=>{
+    _draftSaveTimer=null;
+    saveData({includeTransient:false});
+  },DRAFT_SAVE_THROTTLE_MS);
+};
+const savePathChange = ({mode='final'}={}) => {
+  if(mode==='draft'){
+    queueDraftImmediateSave();
     return;
   }
   flushDeferredSave();

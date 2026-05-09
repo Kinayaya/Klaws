@@ -421,12 +421,12 @@ function saveNoteDraftFromForm(){
   const effectiveDomain=selectedSubs[0]||fallbackDomain;
   const normalizedSubs=effectiveDomain?[effectiveDomain]:[];
   Object.assign(target,normalizeNoteSchema({...target,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields}));
-  savePathChange({isDraft:true});
+  savePathChange({mode:'draft'});
 }
-function flushNoteDraftSnapshot(){
+async function flushNoteDraftSnapshot(){
   if(!(editMode&&openId)) return;
   saveNoteDraftFromForm();
-  flushDeferredSave();
+  await flushDeferredSave();
 }
 
 function duplicateNote(targetId=openId) {
