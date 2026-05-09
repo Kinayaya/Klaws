@@ -29,11 +29,31 @@
       }
       return payload;
     }
-    async function writeShardedPayloadParts(payload){
+    async function writeShardedPayloadParts(payload,options={}){
+      const expectedRev=Number.isFinite(options.expectedRev)?options.expectedRev:null;
+      const incomingRev=Number.isFinite(payload&&payload.rev)?payload.rev:null;
+      if(expectedRev!==null||incomingRev!==null){
+        const currentMeta=await readJSONAsync(metaKey(),null);
+        const currentRev=Number.isFinite(currentMeta&&currentMeta.rev)?currentMeta.rev:null;
+        if(expectedRev!==null&&currentRev!==null&&currentRev!==expectedRev){
+          const err=new Error('Shard payload compare-and-set failed (expected rev mismatch)');
+          err.code='REV_MISMATCH';
+          err.currentRev=currentRev;
+          err.expectedRev=expectedRev;
+          throw err;
+        }
+        if(incomingRev!==null&&currentRev!==null&&incomingRev<currentRev){
+          const err=new Error('Shard payload compare-and-set failed (stale rev)');
+          err.code='REV_STALE';
+          err.currentRev=currentRev;
+          err.incomingRev=incomingRev;
+          throw err;
+        }
+      }
       const next=buildMap(payload); const prev=(global.__klawsLastSavedShards&&typeof global.__klawsLastSavedShards==='object')?global.__klawsLastSavedShards:{};
       const writes=[]; const checksumByShard={};
       names.forEach(n=>{ const raw=JSON.stringify(next[n]); checksumByShard[n]=checksum(raw); if(raw===JSON.stringify(prev[n])) return; writes.push(storageAdapter.primaryStore.set(key(n),next[n])); });
-      writes.push(storageAdapter.primaryStore.set(metaKey(),{version:2,shards:names,checksumByShard,updatedAt:new Date().toISOString()}));
+      writes.push(storageAdapter.primaryStore.set(metaKey(),{version:2,shards:names,checksumByShard,updatedAt:new Date().toISOString(),rev:incomingRev}));
       await Promise.all(writes); global.__klawsLastSavedShards=next;
     }
     return { readShardedPayload, writeShardedPayloadParts };

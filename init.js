@@ -2,9 +2,11 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
 // ==================== 初始化 ====================
   window.addEventListener('load',async ()=>{
   try{
+  if(typeof window.__setHydrationReady==='function') window.__setHydrationReady(false);
   detachSidePanelsFromNotesView();
   ensureUsageStart();
   await loadData();
+  if(typeof window.__setHydrationReady==='function') window.__setHydrationReady(true);
   const pathSample=[...notes].slice(0,5).map(n=>({id:n.id,path:n.path||''}));
   console.log('[loadData][path-sample]',pathSample);
   if(pathSample.some(x=>typeof x.path!=='string')) console.warn('[loadData][path-warning] invalid path type detected');
@@ -274,6 +276,7 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   restoreLastViewState();
   viewController.setActiveViewSwitch(currentView);
   }catch(err){
+    if(typeof window.__setHydrationReady==='function') window.__setHydrationReady(true);
     const detail={
       name:err&&err.name?err.name:typeof err,
       message:err&&err.message?err.message:String(err),

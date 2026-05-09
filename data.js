@@ -2,6 +2,31 @@
 const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
 const ARCHIVE_NOISE_EXCLUDE_KEYS = ['nodePos','mapCenterNodeId','mapCenterNodeIds','mapFilter'];
 let idbHealthDegraded=false;
+let payloadRevCounter=0;
+let lastLoadedPayloadRev=0;
+let hydrationReady=true;
+let queuedSaveRequested=false;
+
+function resolvePayloadRev(payload){
+  const nextRev=Number.isFinite(payload&&payload.rev)?payload.rev:0;
+  payloadRevCounter=Math.max(payloadRevCounter,nextRev);
+  return payloadRevCounter;
+}
+function createVersionedPayload(){
+  const payload=getPayload();
+  payloadRevCounter=Math.max(payloadRevCounter,lastLoadedPayloadRev)+1;
+  payload.rev=payloadRevCounter;
+  payload.updatedAt=new Date().toISOString();
+  return payload;
+}
+function markHydrationReady(ready){
+  hydrationReady=!!ready;
+  if(hydrationReady&&queuedSaveRequested){
+    queuedSaveRequested=false;
+    saveData();
+  }
+}
+if(typeof window!=='undefined') window.__setHydrationReady=markHydrationReady;
 
 const dataStorageApi=window.KlawsData.createDataStorageApi({
   SKEY,
@@ -159,14 +184,18 @@ async function loadData() {
           showToast(`已棄用，請使用路徑（已轉換 ${migratedNotes} 筆）`);
           console.info('[group-part-migration]',{migratedNotes});
         }
-        saveData();
+        saveData({expectedPrevRev:resolvePayloadRev(d)});
       }
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
       await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}), true);
+      lastLoadedPayloadRev=resolvePayloadRev(d);
       if(loadedFromLegacyBlob){
-        await dataStorageApi.writeShardedPayloadParts(getPayload());
+        const bootPayload=getPayload();
+        bootPayload.rev=lastLoadedPayloadRev;
+        if(typeof bootPayload.updatedAt!=='string') bootPayload.updatedAt=new Date().toISOString();
+        await dataStorageApi.writeShardedPayloadParts(bootPayload,{expectedRev:lastLoadedPayloadRev});
       }
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
@@ -194,14 +223,20 @@ function pushPayloadToBackend(payload){
   }).catch(err=>console.warn('[backend-sync-push-failed]',err));
 }
 
-async function saveData() {
+async function saveData(options={}) {
   try {
-    const payload=getPayload();
+    if(!hydrationReady){
+      queuedSaveRequested=true;
+      return;
+    }
+    const expectedPrevRev=Number.isFinite(options.expectedPrevRev)?options.expectedPrevRev:lastLoadedPayloadRev;
+    const payload=createVersionedPayload();
     writeEmergencySnapshotSync(payload);
     const nextRaw=JSON.stringify(payload);
     const saveStartedAt=performance.now();
-    dataStorageApi.writeShardedPayloadParts(payload).then(()=>{
+    dataStorageApi.writeShardedPayloadParts(payload,{expectedRev:expectedPrevRev}).then(()=>{
       idbHealthDegraded=false;
+      lastLoadedPayloadRev=payload.rev;
       console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
     }).catch(err=>{
       idbHealthDegraded=true;
