@@ -507,7 +507,8 @@ function buildMapTreeIndex(visNotes){
     ensurePath(pathSegs).notes.push(n);
   });
   const countNode=node=>node.notes.length+Object.values(node.items).reduce((sum,ch)=>sum+countNode(ch),0);
-  const selectedPath=isPathPageKey(mapCurrentPageRoot())?safeStr(pathFromPageKey(mapCurrentPageRoot())):'';
+  const currentPageRoot=currentSubpageRootId();
+  const selectedPath=isPathPageKey(currentPageRoot)?safeStr(pathFromPageKey(currentPageRoot)):'';
   const renderNode=(node,depth=0,parentPath='')=>{
     const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
     const icon=getLevelIcon(depth);
