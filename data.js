@@ -15,7 +15,6 @@ let cloudSyncPushLastStartedAt=0;
 let cloudSyncPushRetryCount=0;
 let cloudSyncPushRetryTimer=null;
 let cloudSyncPushPendingPayload=null;
-let lastSavedPayloadRaw='';
 let lastSavedContentPayloadRaw='';
 let saveStatus={state:'idle',lastSuccessAt:0};
 function buildContentPayload(){
