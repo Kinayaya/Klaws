@@ -87,7 +87,7 @@ function openForm(isEdit) {
   buildInlineLinksPanel();
   const inheritToggle=g('fpathInheritToggle'),pathInput=g('fpath');
   if(inheritToggle) inheritToggle.onchange=updatePathInheritanceUI;
-  if(pathInput) pathInput.oninput=updatePathInheritanceUI;
+  if(pathInput) pathInput.oninput=()=>{updatePathInheritanceUI();saveNoteDraftFromForm();};
   updatePathInheritanceUI();
   g('fp').classList.add('open');['dp','tp'].forEach(p=>g(p).classList.remove('open'));
   syncSidePanelState();
@@ -343,7 +343,7 @@ function saveNote() {
         Object.assign(target,{type:typeKey,domain:primaryDomain,domains:[...normalizedSubs],group:'',groups:[],part:'',parts:[]});
       });
     }
-    saveData();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
+    savePathChange();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     setTimeout(()=>openNote(openId),150);
   } else {
     const d=new Date(),dt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -364,7 +364,7 @@ function saveNote() {
     }
     openId=created.id;
     const mentionAdded=autoLinkMentionsForNote(created);
-    saveData();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
+    savePathChange();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     if(isMapOpen) setTimeout(()=>openNote(created.id),120);
     else setTimeout(()=>{window.scrollTo(0,0);setTimeout(()=>openNote(notes[0].id),300);},100);
   }
@@ -383,8 +383,14 @@ function saveNoteDraftFromForm(){
   const effectiveDomain=selectedSubs[0]||fallbackDomain;
   const normalizedSubs=effectiveDomain?[effectiveDomain]:[];
   Object.assign(target,normalizeNoteSchema({...target,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields}));
-  saveDataDeferred();
+  savePathChange({isDraft:true});
 }
+function flushNoteDraftSnapshot(){
+  if(!(editMode&&openId)) return;
+  saveNoteDraftFromForm();
+  flushDeferredSave();
+}
+
 function duplicateNote(targetId=openId) {
   if(!targetId){showToast('請先開啟要複製的筆記');return;}
   const src=noteById(targetId);
