@@ -129,7 +129,8 @@ async function loadData() {
       domains=Array.isArray(d.domains)?d.domains:DEFAULTS.domains.slice();
       groups=Array.isArray(d.groups)?d.groups:DEFAULTS.groups.slice();
       parts=Array.isArray(d.parts)?d.parts:DEFAULTS.parts.slice();
-      nodePos=(d.nodePos&&typeof d.nodePos==='object'&&!Array.isArray(d.nodePos))?d.nodePos:{};
+      const hasTransientNodePos=d.nodePos&&typeof d.nodePos==='object'&&!Array.isArray(d.nodePos);
+      nodePos=hasTransientNodePos?d.nodePos:{};
       nodeSizes=(d.nodeSizes&&typeof d.nodeSizes==='object'&&!Array.isArray(d.nodeSizes))?d.nodeSizes:{};
       if(d.sortMode) sortMode=d.sortMode;
       mapCenterNodeId=d.mapCenterNodeId||null;
@@ -188,6 +189,8 @@ async function loadData() {
       domainCleared=dataStorageApi.clearLegacyDomainsFromNotes();
       if(dataStorageApi.migratePathOverridesIntoNotes()) repaired=true;
       if(normalizeNoteIds(true)) repaired=true;
+      const missingTransientLayout=!hasTransientNodePos||typeof d.mapScale!=='number'||typeof d.mapOffX!=='number'||typeof d.mapOffY!=='number';
+      if(missingTransientLayout) nodePos={};
       if(repaired||groupMigrated||groupPartMigrated||domainCleared){
         if(groupPartMigrated){
           const migratedNotes=[...notes,...mapAuxNodes].filter(n=>safeStr(n.detail).includes('【舊資料】')).length;
@@ -229,8 +232,9 @@ function pushPayloadToBackend(payload){
   }).catch(err=>console.warn('[backend-sync-push-failed]',err));
 }
 
-async function saveDataCritical() {
-  let payload=withRevision(getPayload());
+async function saveDataCritical(opt={}) {
+  const {includeTransient=true}=opt||{};
+  let payload=withRevision(getPayload({includeTransient}));
   writeEmergencySnapshotSync(payload);
   const nextRaw=JSON.stringify(payload);
   const saveStartedAt=performance.now();
@@ -268,14 +272,14 @@ async function saveDataCritical() {
   }
 }
 
-async function saveData() {
+async function saveData(opt={}) {
   if(dataHydrationInProgress){
     queuedSaveAfterHydration=true;
     return {ok:true,queued:true,store:'none'};
   }
   saveChain=saveChain.then(async()=>{
     try {
-      return await saveDataCritical();
+      return await saveDataCritical(opt);
     } catch(e){
       const result={ok:false,store:'none',error:e,code:'SAVE_UNKNOWN_ERROR'};
       console.error('[saveData-unknown-error]',e);

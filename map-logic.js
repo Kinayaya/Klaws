@@ -219,7 +219,7 @@ function enterMapSubpage(rootId){
   updateMapPagePath();
   forceLayout();
   drawMap();
-  saveData();
+  persistMapCriticalState();
   saveLastViewState();
 }
 function leaveMapSubpage(){
@@ -229,7 +229,7 @@ function leaveMapSubpage(){
   updateMapPagePath();
   forceLayout();
   drawMap();
-  saveData();
+  persistMapCriticalState();
   saveLastViewState();
   return true;
 }
@@ -436,7 +436,7 @@ function deleteMapAuxnode(id){
   delete nodePos[id];
   delete nodeSizes[id];
   closeMapPopup();
-  saveData();
+  persistMapCriticalState();
   if(isMapOpen) scheduleMapRedraw(0);
   showToast('已刪除');
 }
@@ -570,7 +570,7 @@ function buildMapTreeIndex(visNotes){
         updateMapPagePath();
         forceLayout();
         drawMap();
-        saveData();
+        persistMapCriticalState();
         saveLastViewState();
         return;
       }
@@ -777,7 +777,7 @@ function showMapInfo(id){
     nodePos={};
     forceLayout();
     drawMap();
-    const saveResult=await saveData();
+    const saveResult=await persistMapCriticalState();
     closeMapPopup();
     if(!saveResult||saveResult.ok===false){
       showToast('儲存失敗，請稍後重試');
@@ -804,7 +804,7 @@ function showMapInfo(id){
       return;
     }
     if(mapLinkSourceId===id) clearMapLinkSource({silent:true});
-    saveData();
+    persistMapCriticalState();
     closeMapPopup();
     drawMap();
     updateMapPagePath();
