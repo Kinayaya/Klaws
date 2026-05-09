@@ -1,4 +1,4 @@
-var appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
+var appStateFacadeMap=(typeof window!=='undefined'&&window.appState)?window.appState:null;
 // ==================== 體系圖 ====================
 const MAP_TREE_SIDEBAR_OPEN_KEY='klaws_map_tree_sidebar_open_v1';
 function setMapTreeSidebarOpen(willOpen){
@@ -901,7 +901,7 @@ function startDragTouch(e,id){
 }
 function buildMapFilters(){
   const sch=g('mapFilterGroup'),ssc=g('mapFilterPart'),sd=g('mapDepthSel');
-  if(appStateFacade) appStateFacade.updateMapFilter({sub:'all',group:'all',part:'all'});
+  if(appStateFacadeMap) appStateFacadeMap.updateMapFilter({sub:'all',group:'all',part:'all'});
   mapFilter.sub='all';
   mapFilter.group='all';
   mapFilter.part='all';
