@@ -1,3 +1,6 @@
+const utils=(typeof window!=='undefined'&&window.KLawsUtils)||{};
+const safeStr=typeof utils.safeStr==='function'?utils.safeStr:(v=>typeof v==='string'?v:'');
+const ensureNoteUid=typeof utils.ensureNoteUid==='function'?utils.ensureNoteUid:(note=>{const n=(note&&typeof note==='object')?note:{};const raw=safeStr(n.uid).trim();if(raw) return raw;const legacyId=Number.isFinite(Number(n.id))?String(Number(n.id)):'';return `n_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}${legacyId?`_${legacyId}`:''}`;});
 
 const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
 const ARCHIVE_NOISE_EXCLUDE_KEYS = ['nodePos','mapCenterNodeId','mapCenterNodeIds','mapFilter'];
