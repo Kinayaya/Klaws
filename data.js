@@ -115,14 +115,7 @@ function flushCriticalSnapshotSync(){
   writeEmergencySnapshotSync(getPayload());
 }
 
-function verifyIdentityInvariant(stage){
-  if(!dataStorageApi||typeof dataStorageApi.detectIdentityDriftRisk!=='function') return {ok:true,issues:[]};
-  const result=dataStorageApi.detectIdentityDriftRisk();
-  if(result&&result.ok===false){
-    console.warn('[data-invariant][identity-drift-risk]',{stage,issues:result.issues});
-  }
-  return result||{ok:true,issues:[]};
-}
+
 
 
 // ==================== 資料儲存 ====================
@@ -217,13 +210,20 @@ async function loadData() {
       groupPartMigrated=dataStorageApi.migrateLegacyGroupPartData();
       domainCleared=dataStorageApi.clearLegacyDomainsFromNotes();
       if(dataStorageApi.backfillNoteUids()) repaired=true;
-      const loadInvariant=verifyIdentityInvariant('loadData:post-migrations');
-      if(loadInvariant.ok===false) repaired=false;
+      const loadInvariant=dataStorageApi.detectIdentityDriftRisk();
+      if(loadInvariant&&loadInvariant.ok===false){
+        console.warn('[data-invariant][identity-drift-risk]',{stage:'loadData:post-migrations',issues:loadInvariant.issues});
+        repaired=false;
+      }
       if(dataStorageApi.migratePathOverridesIntoNotes()) repaired=true;
       if(hasInvalidOrDuplicateNoteIds() && normalizeNoteIds()) repaired=true;
       const missingTransientLayout=!hasTransientNodePos||typeof d.mapScale!=='number'||typeof d.mapOffX!=='number'||typeof d.mapOffY!=='number';
       if(missingTransientLayout) nodePos={};
-      const autoRepairSafe=verifyIdentityInvariant('loadData:before-auto-repair-save').ok!==false;
+      const autoRepairCheck=dataStorageApi.detectIdentityDriftRisk();
+      if(autoRepairCheck&&autoRepairCheck.ok===false){
+        console.warn('[data-invariant][identity-drift-risk]',{stage:'loadData:before-auto-repair-save',issues:autoRepairCheck.issues});
+      }
+      const autoRepairSafe=!autoRepairCheck||autoRepairCheck.ok!==false;
       if((repaired||groupMigrated||groupPartMigrated||domainCleared)&&autoRepairSafe){
         if(groupPartMigrated){
           const migratedNotes=[...notes,...mapAuxNodes].filter(n=>safeStr(n.detail).includes('【舊資料】')).length;
@@ -356,8 +356,9 @@ async function scheduleCloudSyncAfterLocalSave(opts={}){
 
 async function saveDataCritical(opt={}) {
   const {includeTransient=true}=opt||{};
-  const invariant=verifyIdentityInvariant('saveDataCritical:preflight');
-  if(invariant.ok===false){
+  const invariant=dataStorageApi.detectIdentityDriftRisk();
+  if(invariant&&invariant.ok===false){
+    console.warn('[data-invariant][identity-drift-risk]',{stage:'saveDataCritical:preflight',issues:invariant.issues});
     return {ok:false,store:'none',code:'IDENTITY_DRIFT_RISK',issues:invariant.issues};
   }
   let payload=withRevision(getPayload({includeTransient}));
