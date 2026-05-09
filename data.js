@@ -188,7 +188,7 @@ async function loadData() {
       groupPartMigrated=dataStorageApi.migrateLegacyGroupPartData();
       domainCleared=dataStorageApi.clearLegacyDomainsFromNotes();
       if(dataStorageApi.migratePathOverridesIntoNotes()) repaired=true;
-      if(normalizeNoteIds(true)) repaired=true;
+      if(hasInvalidOrDuplicateNoteIds() && normalizeNoteIds()) repaired=true;
       const missingTransientLayout=!hasTransientNodePos||typeof d.mapScale!=='number'||typeof d.mapOffX!=='number'||typeof d.mapOffY!=='number';
       if(missingTransientLayout) nodePos={};
       if(repaired||groupMigrated||groupPartMigrated||domainCleared){

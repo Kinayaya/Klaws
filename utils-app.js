@@ -991,13 +991,19 @@ function rollbackTaskCompletion(task,skill){
   return true;
 }
 
+function hasInvalidOrDuplicateNoteIds() {
+  const seen=new Set();
+  for(const node of [...notes,...mapAuxNodes]){
+    if(!Number.isFinite(node.id)) return true;
+    if(seen.has(node.id)) return true;
+    seen.add(node.id);
+  }
+  return false;
+}
+
 function normalizeNoteIds(forceReindexAll=false) {
-  const seen={}, duplicates=new Set();
-  [...notes,...mapAuxNodes].forEach(n=>{
-    if(!Number.isFinite(n.id) || seen[n.id]) duplicates.add(n.id);
-    seen[n.id]=true;
-  });
-  if(!forceReindexAll && !duplicates.size) {
+  const shouldRepair=forceReindexAll||hasInvalidOrDuplicateNoteIds();
+  if(!shouldRepair) {
     nid=Math.max(nid||1,[...notes,...mapAuxNodes].reduce((m,n)=>Math.max(m,n.id||0),0)+1);
     lid=Math.max(lid||1,links.reduce((m,l)=>Math.max(m,l.id||0),0)+1);
     return false;
