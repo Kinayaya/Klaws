@@ -28,21 +28,64 @@ test('shard checksum mismatch returns null', async ()=>{
 });
 
 
-test('emergency snapshot hooks exist for sync flush and merge recovery', ()=>{
-  const dataJs=require('node:fs').readFileSync('./data.js','utf8');
-  const initJs=require('node:fs').readFileSync('./init.js','utf8');
-  assert.match(dataJs,/const EMERGENCY_SNAPSHOT_KEY='klaws_emergency_snapshot_v1';/);
-  assert.match(dataJs,/writeEmergencySnapshotSync\(payload\);/);
-  assert.match(dataJs,/mergeEmergencyPathSnapshot\(d,emergencySnapshot\)/);
-  assert.match(dataJs,/const byUid=new Map\(\);/);
-  assert.match(initJs,/flushCriticalSnapshotSync\(\);\s*saveData\(\);/);
-});
 
 
-test('data layer blocks auto-repair overwrite when identity drift risk is detected', ()=>{
-  const dataJs=require('node:fs').readFileSync('./data.js','utf8');
-  assert.match(dataJs,/function verifyIdentityInvariant\(stage\)\{/);
-  assert.match(dataJs,/\[data-invariant\]\[identity-drift-risk\]/);
-  assert.match(dataJs,/autoRepairSafe=verifyIdentityInvariant\('loadData:before-auto-repair-save'\)\.ok!==false/);
-  assert.match(dataJs,/code:'IDENTITY_DRIFT_RISK'/);
+test('createDataStorageApi composes migration/fallback/shard APIs', async ()=>{
+  global.KlawsDataMigrations=require('./data/migrations.js');
+  global.KlawsDataShards=require('./data/shards.js');
+  global.KlawsDataFallback=require('./data/fallback.js');
+  const { createDataStorageApi }=require('./data/index.js');
+
+  const localStore=new Map();
+  const idbStore=new Map();
+  const localStorage={
+    getItem:k=>localStore.has(k)?localStore.get(k):null,
+    setItem:(k,v)=>localStore.set(k,String(v)),
+    removeItem:k=>localStore.delete(k),
+    key:i=>Array.from(localStore.keys())[i]??null,
+    get length(){ return localStore.size; }
+  };
+  const deps={
+    SKEY:'klaws_data',
+    storageAdapter:{
+      primaryStore:{
+        get:async(k,d)=>idbStore.has(k)?idbStore.get(k):d,
+        set:async(k,v)=>{ idbStore.set(k,v); }
+      },
+      fallbackStore:{
+        set:async(k,v)=>{ localStore.set(k,v); return true; },
+        remove:async(k)=>localStore.delete(k)
+      }
+    },
+    readJSON:(k,d)=>localStore.has(k)?localStore.get(k):d,
+    readJSONAsync:async(k,d)=>idbStore.has(k)?idbStore.get(k):d,
+    location:{host:'klaws.test'},
+    localStorage,
+    notesRef:{value:[{id:1,uid:'dup',path:'A'}]},
+    mapAuxNodesRef:{value:[{id:9,uid:'dup',path:'B'}]},
+    linksRef:{value:[{id:1,from:1,to:99}]},
+    normalizePathText:v=>v,
+    removeLocal:k=>localStore.delete(k),
+    writeLocal:(k,v)=>localStore.set(k,String(v)),
+    showToast:()=>{},
+    safeStr:v=>typeof v==='string'?v:String(v??''),
+    ensureNoteUid:n=>n.uid||`uid_${n.id}`,
+    domainsRef:{value:[]},
+    mapFilterRef:{value:{sub:'all',group:'all',part:'all'}},
+    groupsRef:{value:[]},
+    partsRef:{value:[]}
+  };
+
+  const api=createDataStorageApi(deps);
+  const drift=api.detectIdentityDriftRisk();
+  assert.equal(drift.ok,false);
+  assert.equal(drift.issues.some(i=>i.type==='uid-conflict'),true);
+
+  const wrote=await api.writeLocalFallbackPayload(api.buildFallbackMeta({idbFailed:false}),true);
+  assert.equal(wrote,true);
+
+  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},levelSystem:{},rev:10};
+  await api.writeShardedPayloadParts(payload);
+  const meta=await api.readShardedMeta();
+  assert.equal(Array.isArray(meta.shards),true);
 });
