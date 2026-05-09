@@ -26,6 +26,12 @@ const LAST_VIEW_STATE_KEY = 'klaws_last_view_state_v1';
 const GOOGLE_DRIVE_CLIENT_ID_KEY = 'klaws_google_drive_client_id_v1';
 const GOOGLE_DRIVE_SYNC_FILE_NAME = 'klaws-sync-v1.json';
 const GOOGLE_DRIVE_SYNC_MIME = 'application/json';
+const CLOUD_SYNC_PUSH_SCHEDULER_ENABLED = true;
+const CLOUD_SYNC_PUSH_DEBOUNCE_MS = 1200;
+const CLOUD_SYNC_PUSH_MIN_INTERVAL_MS = 8000;
+const CLOUD_SYNC_PUSH_RETRY_MAX = 5;
+const CLOUD_SYNC_PUSH_RETRY_BASE_MS = 2000;
+const CLOUD_SYNC_PUSH_RETRY_MAX_DELAY_MS = 60000;
 const PORTABLE_EXPORT_SCHEMA_VERSION = '1.0.0';
 const AI_MODELS = [
   {id:'openrouter/free', label:'🔀 自動選最佳免費模型（推薦）'},
