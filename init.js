@@ -249,22 +249,22 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   canvas.addEventListener('touchstart',e=>{if(e.touches.length===2){const d=e.touches[0].clientX-e.touches[1].clientX,dd=e.touches[0].clientY-e.touches[1].clientY;pinchDist=Math.sqrt(d*d+dd*dd);}},{passive:true});
   canvas.addEventListener('touchmove',e=>{if(e.touches.length===2&&pinchDist){e.preventDefault();const d=e.touches[0].clientX-e.touches[1].clientX,dd=e.touches[0].clientY-e.touches[1].clientY,nd=Math.sqrt(d*d+dd*dd);setZoom();pinchDist=nd;}},{passive:false});
   window.addEventListener('resize',()=>scheduleMapRedraw(100));window.addEventListener('orientationchange',()=>scheduleMapRedraw(120));
+  const flushAndPersistBeforeUnload=async()=>{
+    if(typeof flushNoteDraftSnapshot==='function') flushNoteDraftSnapshot();
+    await flushDeferredSave();
+    flushCriticalSnapshotSync();
+    saveData();
+    const result=await saveDataCritical();
+    if(!result||!result.ok) console.warn('[flush-before-unload-failed]',result);
+  };
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='hidden'){
-      if(typeof flushNoteDraftSnapshot==='function') flushNoteDraftSnapshot();
-      if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
-      flushCriticalSnapshotSync();
-      saveData();
+      void flushAndPersistBeforeUnload();
       return;
     }
     scheduleMapRedraw(100);
   });
-  window.addEventListener('pagehide',()=>{
-    if(typeof flushNoteDraftSnapshot==='function') flushNoteDraftSnapshot();
-    if(_saveTimer){clearTimeout(_saveTimer);_saveTimer=null;}
-    flushCriticalSnapshotSync();
-    saveData();
-  });
+  window.addEventListener('pagehide',()=>{ void flushAndPersistBeforeUnload(); });
   window.addEventListener('pageshow',()=>bindCoreButtons());
   if(window.ResizeObserver){mapResizeObserver=new ResizeObserver(()=>scheduleMapRedraw(60));mapResizeObserver.observe(canvas);}
   try{reminderDismissed=JSON.parse(localStorage.getItem('klaws_reminder_dismissed_v1')||'{}')||{};}catch(e){reminderDismissed={};}

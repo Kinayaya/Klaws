@@ -305,12 +305,27 @@ const togglePanelDir = () => {
   }
   showToast(next==='bottom'?'已切換為底部展開':'已切換為右側展開');
 };
-const saveDataDeferred = () => { clearTimeout(_saveTimer); _saveTimer=setTimeout(()=>{ if(JSON.stringify({notes,links}).length>4500000) showToast('⚠️ 資料接近儲存上限'); saveData(); },500); };
-const flushDeferredSave = () => {
-  if(!_saveTimer) return;
+let _saveDeferredPromise=null;
+const saveDataDeferred = () => {
   clearTimeout(_saveTimer);
-  _saveTimer=null;
-  saveData();
+  _saveDeferredPromise=null;
+  _saveTimer=setTimeout(()=>{
+    const runSave=async()=>{
+      if(JSON.stringify({notes,links}).length>4500000) showToast('⚠️ 資料接近儲存上限');
+      return saveData();
+    };
+    _saveDeferredPromise=runSave().finally(()=>{ _saveDeferredPromise=null; });
+  },500);
+};
+const flushDeferredSave = async () => {
+  if(_saveTimer){
+    clearTimeout(_saveTimer);
+    _saveTimer=null;
+    const runSave=async()=>saveData();
+    _saveDeferredPromise=runSave().finally(()=>{ _saveDeferredPromise=null; });
+  }
+  if(_saveDeferredPromise) return _saveDeferredPromise;
+  return null;
 };
 const savePathChange = ({isDraft=false}={}) => {
   if(isDraft){
