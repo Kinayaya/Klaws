@@ -41,8 +41,6 @@ function openExamForm() { g('examListPanel')?.classList.remove('open'); g('examA
 function closeExamView() {
   if (examTimer) clearInterval(examTimer);
   examTimer = null;
-  examSec = 0;
-  examTotal = 0;
   currentExam = null;
   examAnswerReveal = false;
   g('examView')?.classList.remove('open');

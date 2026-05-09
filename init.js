@@ -220,7 +220,10 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   });
   window.addEventListener('pagehide',()=>{ void flushAndPersistBeforeUnload(); });
   window.addEventListener('pageshow',()=>bindCoreButtons());
-  if(window.ResizeObserver){mapResizeObserver=new ResizeObserver(()=>scheduleMapRedraw(60));mapResizeObserver.observe(canvas);}
+  if(window.ResizeObserver){
+    const mapResizeObserver=new ResizeObserver(()=>scheduleMapRedraw(60));
+    mapResizeObserver.observe(canvas);
+  }
   try{reminderDismissed=JSON.parse(localStorage.getItem('klaws_reminder_dismissed_v1')||'{}')||{};}catch(e){reminderDismissed={};}
   clearInterval(reminderTimer); reminderTimer=setInterval(checkReminders,30000); checkReminders();
   updateNotesHomeVisibility();
