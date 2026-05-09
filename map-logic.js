@@ -772,7 +772,19 @@ function showMapInfo(id){
   const currentCenterIds=getMapCentersFromScopes();
   const setCenterBtn=document.createElement('button');setCenterBtn.className='mp-action-btn mp-action-secondary mp-set-center';
   setCenterBtn.textContent=currentCenterIds.includes(id)?'✓ 已核心':'⭐ 設核心';
-  setCenterBtn.onclick=()=>{const added=toggleMapCenterForCurrentScope(id,{updateGlobal:true});nodePos={};forceLayout();drawMap();saveData();closeMapPopup();showToast(added?`已新增「${n.title}」為核心點（僅此頁）`:`已移除「${n.title}」核心點（僅此頁）`);};
+  setCenterBtn.onclick=async ()=>{
+    const added=toggleMapCenterForCurrentScope(id,{updateGlobal:true});
+    nodePos={};
+    forceLayout();
+    drawMap();
+    const saveResult=await saveData();
+    closeMapPopup();
+    if(saveResult&&saveResult.ok===false){
+      showToast('儲存失敗，請稍後重試');
+      return;
+    }
+    showToast(added?`已新增「${n.title}」為核心點（僅此頁）`:`已移除「${n.title}」核心點（僅此頁）`);
+  };
   const goBtn=g('mpGoto');
   const hasSubpage=hasSubpageForNode(id);
   const linkStartBtn=document.createElement('button');

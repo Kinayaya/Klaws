@@ -195,25 +195,46 @@ function pushPayloadToBackend(payload){
 }
 
 async function saveData() {
+  const dispatchSaveFailed=(error,store='none')=>{
+    const detail={store,error:error||null,at:new Date().toISOString()};
+    window.dispatchEvent(new CustomEvent('klaws:save-failed',{detail}));
+    return detail;
+  };
   try {
     const payload=getPayload();
     writeEmergencySnapshotSync(payload);
     const nextRaw=JSON.stringify(payload);
     const saveStartedAt=performance.now();
-    dataStorageApi.writeShardedPayloadParts(payload).then(()=>{
+    try{
+      await dataStorageApi.writeShardedPayloadParts(payload);
       idbHealthDegraded=false;
       console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
-    }).catch(err=>{
+      await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}));
+      lastSavedPayloadRaw=nextRaw;
+      pushPayloadToBackend(payload);
+      return {ok:true,store:'idb'};
+    }catch(err){
       idbHealthDegraded=true;
       const code=err&&err.code?err.code:(storageAdapter.isQuotaErr(err)?'QUOTA_EXCEEDED':'IDB_WRITE_FAILED');
       console.warn('[saveData-idb-failed]',{code,key:SKEY,bytes:nextRaw.length,error:err});
-      void dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:true}),true);
-      console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
-    });
-    await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}));
-    lastSavedPayloadRaw=nextRaw;
-    pushPayloadToBackend(payload);
-  } catch(e){}
+      try{
+        await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:true}),true);
+        lastSavedPayloadRaw=nextRaw;
+        pushPayloadToBackend(payload);
+        console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
+        return {ok:true,store:'local',error:err};
+      }catch(localErr){
+        const failure=localErr||err;
+        console.error('[saveData-local-failed]',{key:SKEY,error:localErr,idbError:err});
+        dispatchSaveFailed(failure,'none');
+        return {ok:false,store:'none',error:failure};
+      }
+    }
+  } catch(e){
+    console.error('[saveData-failed]',e);
+    dispatchSaveFailed(e,'none');
+    return {ok:false,store:'none',error:e};
+  }
 }
 // ==================== 匯入/匯出 ====================
 function exportData() {
