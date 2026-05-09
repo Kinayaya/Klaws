@@ -88,6 +88,7 @@
   on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
   on('archiveSaveBtn','click',createArchiveSnapshot);
   on('archiveExportBtn','click',exportData);
+  on('storageCleanupBtn','click',runStorageCleanupFlow);
   on('archivePortableExportBtn','click',exportPortablePackage);
   on('archiveImportBtn','click',()=>g('importFile')?.click());
   on('cloudLoginBtn','click',loginGoogleDriveAndSync);
