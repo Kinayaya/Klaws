@@ -1,4 +1,17 @@
 (function(global){
+
+  function backfillNoteUids(ctx){
+    const { notesRef, mapAuxNodesRef, ensureNoteUid } = ctx;
+    if(typeof ensureNoteUid!=='function') return false;
+    let changed=false;
+    [...notesRef.value,...mapAuxNodesRef.value].forEach(n=>{
+      if(!n||typeof n!=='object') return;
+      const nextUid=ensureNoteUid(n);
+      if(n.uid!==nextUid){ n.uid=nextUid; changed=true; }
+    });
+    return changed;
+  }
+
   function migratePathOverridesIntoNotes(ctx){
     const { localStorage, readJSON, notesRef, mapAuxNodesRef, normalizePathText, removeLocal, writeLocal, showToast } = ctx;
     if(localStorage.getItem('klaws_path_override_migrated_v1')==='1') return false;
@@ -6,9 +19,10 @@
     if(!overrides||typeof overrides!=='object'||Array.isArray(overrides)) return false;
     let changed=false; let migratedCount=0;
     [...notesRef.value,...mapAuxNodesRef.value].forEach(n=>{
-      const key=String(n&&n.id);
-      if(!key) return;
-      const ov=typeof overrides[key]==='string'?normalizePathText(overrides[key]):'';
+      const uidKey=String(n&&n.uid||'').trim();
+      const idKey=String(n&&n.id);
+      const raw=(uidKey&&typeof overrides[uidKey]==='string')?overrides[uidKey]:(typeof overrides[idKey]==='string'?overrides[idKey]:'');
+      const ov=raw?normalizePathText(raw):'';
       if(!ov) return;
       if((n.path||'')!==ov){ n.path=ov; changed=true; migratedCount++; }
     });
@@ -49,7 +63,7 @@
     return changed;
   }
 
-  const api={ migratePathOverridesIntoNotes, clearLegacyDomainsFromNotes, migrateLegacyGroupPartData };
+  const api={ backfillNoteUids, migratePathOverridesIntoNotes, clearLegacyDomainsFromNotes, migrateLegacyGroupPartData };
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   global.KlawsDataMigrations=api;
 })(typeof globalThis!=='undefined'?globalThis:window);

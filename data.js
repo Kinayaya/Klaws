@@ -43,6 +43,7 @@ const dataStorageApi=window.KlawsData.createDataStorageApi({
   writeLocal:(key,val)=>window.KLawsStorage.governedWriteLocal(key,val,'core'),
   showToast,
   safeStr,
+  ensureNoteUid,
   domainsRef:{ get value(){ return domains; }, set value(v){ domains=v; } },
   mapFilterRef:{ get value(){ return mapFilter; }, set value(v){ mapFilter=v; } },
   groupsRef:{ get value(){ return groups; }, set value(v){ groups=v; } },
@@ -60,8 +61,8 @@ function buildEmergencySnapshot(payload){
     version:EMERGENCY_SNAPSHOT_VERSION,
     snapshotAt:nowIso,
     payloadUpdatedAt:typeof src.updatedAt==='string'?src.updatedAt:nowIso,
-    notes:Array.isArray(src.notes)?src.notes.map(n=>({id:n.id,path:safeStr(n.path)})):[],
-    mapAuxNodes:Array.isArray(src.mapAuxNodes)?src.mapAuxNodes.map(n=>({id:n.id,path:safeStr(n.path)})):[]
+    notes:Array.isArray(src.notes)?src.notes.map(n=>({uid:safeStr(n.uid),id:n.id,path:safeStr(n.path)})):[],
+    mapAuxNodes:Array.isArray(src.mapAuxNodes)?src.mapAuxNodes.map(n=>({uid:safeStr(n.uid),id:n.id,path:safeStr(n.path)})):[]
   };
 }
 function writeEmergencySnapshotSync(payload){
@@ -79,10 +80,18 @@ function mergeEmergencyPathSnapshot(payload,snapshot){
   if(Number.isFinite(payloadTs)&&Number.isFinite(snapshotTs)&&snapshotTs<=payloadTs) return {payload:base,applied:false};
   const applyPaths=(list,snaps)=>{
     if(!Array.isArray(list)||!Array.isArray(snaps)||!snaps.length) return list;
-    const byId=new Map(snaps.map(item=>[item.id,safeStr(item.path)]));
+    const byUid=new Map();
+    const byId=new Map();
+    snaps.forEach(item=>{
+      const nextPath=safeStr(item&&item.path);
+      const uidKey=safeStr(item&&item.uid).trim();
+      if(uidKey) byUid.set(uidKey,nextPath);
+      if(item&&item.id!=null) byId.set(item.id,nextPath);
+    });
     return list.map(item=>{
-      if(!byId.has(item.id)) return item;
-      const nextPath=byId.get(item.id);
+      const uidKey=safeStr(item&&item.uid).trim();
+      const nextPath=(uidKey&&byUid.has(uidKey))?byUid.get(uidKey):(byId.has(item.id)?byId.get(item.id):null);
+      if(nextPath===null) return item;
       return safeStr(item.path)===nextPath?item:{...item,path:nextPath};
     });
   };
@@ -187,6 +196,7 @@ async function loadData() {
       normalizeNotesTaxonomy();
       groupPartMigrated=dataStorageApi.migrateLegacyGroupPartData();
       domainCleared=dataStorageApi.clearLegacyDomainsFromNotes();
+      if(dataStorageApi.backfillNoteUids()) repaired=true;
       if(dataStorageApi.migratePathOverridesIntoNotes()) repaired=true;
       if(hasInvalidOrDuplicateNoteIds() && normalizeNoteIds()) repaired=true;
       const missingTransientLayout=!hasTransientNodePos||typeof d.mapScale!=='number'||typeof d.mapOffX!=='number'||typeof d.mapOffY!=='number';

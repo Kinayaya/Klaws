@@ -6,6 +6,7 @@
     return {
       ...shardApi,
       ...fallbackApi,
+      backfillNoteUids:()=>migrations.backfillNoteUids(deps),
       migratePathOverridesIntoNotes:()=>migrations.migratePathOverridesIntoNotes(deps),
       clearLegacyDomainsFromNotes:()=>migrations.clearLegacyDomainsFromNotes(deps),
       migrateLegacyGroupPartData:()=>migrations.migrateLegacyGroupPartData(deps)
