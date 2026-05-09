@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const { migratePathOverridesIntoNotes, clearLegacyDomainsFromNotes }=require('./data/migrations.js');
+const { backfillNoteUids, migratePathOverridesIntoNotes, clearLegacyDomainsFromNotes }=require('./data/migrations.js');
 
 function createLocalStorage(seed={}){
   const map=new Map(Object.entries(seed));
@@ -79,4 +79,37 @@ test('clearLegacyDomainsFromNotes clears legacy fields and resets domain filters
     mapFilterRef
   });
   assert.equal(noChange,false);
+});
+
+
+test('backfillNoteUids assigns uid to legacy records', ()=>{
+  const notes=[{id:1},{id:2,uid:'u2'}];
+  const mapAuxNodes=[{id:3}];
+  const changed=backfillNoteUids({notesRef:{value:notes},mapAuxNodesRef:{value:mapAuxNodes},ensureNoteUid:(n)=>n.uid||`uid_${n.id}`});
+  assert.equal(changed,true);
+  assert.equal(notes[0].uid,'uid_1');
+  assert.equal(notes[1].uid,'u2');
+  assert.equal(mapAuxNodes[0].uid,'uid_3');
+});
+
+
+test('migratePathOverridesIntoNotes prefers uid across reorder/reindex/import merge scenarios', ()=>{
+  const localStorage=createLocalStorage();
+  const notes=[
+    {id:2,uid:'uid_a',path:''},
+    {id:1,uid:'uid_b',path:''}
+  ];
+  const changed=migratePathOverridesIntoNotes({
+    localStorage,
+    readJSON:(key,def)=>key==='klaws_note_paths_v1'?{uid_a:'Path>A',uid_b:'Path>B','1':'Wrong>B','2':'Wrong>A'}:def,
+    notesRef:{value:notes},
+    mapAuxNodesRef:{value:[]},
+    normalizePathText:v=>String(v),
+    removeLocal:()=>{},
+    writeLocal:(k,v)=>localStorage.setItem(k,v),
+    showToast:()=>{}
+  });
+  assert.equal(changed,true);
+  assert.equal(notes[0].path,'Path>A');
+  assert.equal(notes[1].path,'Path>B');
 });

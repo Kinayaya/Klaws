@@ -34,6 +34,14 @@
     }
     return null;
   };
+  const ensureNoteUid = (note) => {
+    const n=(note&&typeof note==='object')?note:{};
+    const raw=safeStr(n.uid).trim();
+    if(raw) return raw;
+    const legacyId=Number.isFinite(Number(n.id))?String(Number(n.id)):'';
+    return `n_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}${legacyId?`_${legacyId}`:''}`;
+  };
+
   const normalizeNoteSchema = (note) => {
     const n = (note && typeof note==='object') ? {...note} : {};
     if(!Array.isArray(n.todos)) n.todos=[];
@@ -48,6 +56,7 @@
     n.body=safeStr(n.body);
     n.detail=safeStr(n.detail);
     n.path=safeStr(n.path).trim();
+    n.uid=ensureNoteUid(n);
     if(!n.extraFields||typeof n.extraFields!=='object'||Array.isArray(n.extraFields)) n.extraFields={};
     const domains=Array.isArray(n.domains)?n.domains:(safeStr(n.domain)?[n.domain]:[]);
     n.domains=uniq(domains.map(x=>safeStr(x).trim()).filter(Boolean));
@@ -65,6 +74,6 @@
   };
 
   global.KLawsUtils = {
-    safeStr, uniq, pad2, escapeHtml, hl, parseTodos, formatTodosForEdit, parseSearchDateVariants, formatDate, normalizeNoteSchema
+    safeStr, uniq, pad2, escapeHtml, hl, parseTodos, formatTodosForEdit, parseSearchDateVariants, formatDate, ensureNoteUid, normalizeNoteSchema
   };
 })(window);
