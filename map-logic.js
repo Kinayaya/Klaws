@@ -507,6 +507,7 @@ function buildMapTreeIndex(visNotes){
     ensurePath(pathSegs).notes.push(n);
   });
   const countNode=node=>node.notes.length+Object.values(node.items).reduce((sum,ch)=>sum+countNode(ch),0);
+  const selectedPath=isPathPageKey(mapCurrentPageRoot())?safeStr(pathFromPageKey(mapCurrentPageRoot())):'';
   const renderNode=(node,depth=0,parentPath='')=>{
     const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
     const icon=getLevelIcon(depth);
@@ -529,7 +530,8 @@ function buildMapTreeIndex(visNotes){
       const collapsed=!!mapTreeCollapsedPaths[treePath];
       const toggleSymbol=collapsed?'➕':'➖';
       const collapsedByFilter=filterQ?false:collapsed;
-      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn" data-tree-nav-path="${escapeHtml(treePath)}" title="雙擊可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
+      const pathActiveClass=selectedPath===treePath?' active-path':'';
+      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn${pathActiveClass}" data-tree-nav-path="${escapeHtml(treePath)}" title="雙擊可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
@@ -744,7 +746,7 @@ function openMapPopup(id){
       goBtn.style.display='none';
     }else{
       goBtn.style.display='block';
-      goBtn.onclick=()=>{openNote(id);closeMapPopup();};
+      goBtn.onclick=()=>{openId=id;openForm(true);closeMapPopup();};
     }
   }
 }
@@ -862,19 +864,9 @@ function showMapInfo(id){
 function extractLawLines(text){
   return safeStr(text).split('\n').map(v=>v.trim()).filter(v=>/^第.+條/.test(v)).slice(0,2);
 }
-function renderMapReviewCard(note){
+function renderMapReviewCard(){
   const root=g('mpReview');
-  if(!root) return;
-  const body=safeStr(note?.body||note?.detail||'').trim();
-  const lines=body.split('\n').map(v=>v.trim()).filter(Boolean);
-  const focusLine=lines[0]||'（尚未填寫）';
-  const keypoints=lines.slice(1,4);
-  const lawLines=extractLawLines(body);
-  root.innerHTML=`<div class="mp-review-title">快速複習</div>
-    <div class="mp-review-row"><b>爭點：</b>${escapeHtml(focusLine)}</div>
-    <div class="mp-review-row"><b>要件：</b>${keypoints.length?escapeHtml(keypoints.join(' / ')):'（可補 1~3 點）'}</div>
-    <div class="mp-review-row"><b>法條原文：</b></div>
-    <div class="mp-review-law">${escapeHtml(lawLines.length?lawLines.join('\n'):'（保留完整法條於筆記內文，這裡顯示條號定位）')}</div>`;
+  if(root) root.innerHTML='';
 }
 function closeMapPopup(){ g('mapPopup').classList.remove('open'); }
 function getFocusNodeSet(id){ const set={[id]:true};links.forEach(l=>{if(l.from===id)set[l.to]=true;if(l.to===id)set[l.from]=true;});return set; }
@@ -1003,6 +995,9 @@ function bindCoreButtons(){
   bind('dupBtn',duplicateNote);
   bind('dpClose',closeDetail);bind('fpClose',closeForm);bind('fpCancel',closeForm);
   bind('fpSave',saveNote);bind('delBtn',deleteNote);
+  bind('fpDeleteBtn',()=>deleteMapNode(openId));
+  bind('fpDuplicateBtn',()=>duplicateMapNode(openId));
+  bind('fpCopyBtn',()=>copyNoteToClipboard(openId));
 }
 function bindPathManagerNav(){
   g('pathCategoryNav')?.addEventListener('click',ev=>{

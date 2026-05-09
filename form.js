@@ -18,6 +18,8 @@ function syncFormModeVisibility(){
   setDisplay('typeTriggerBtn','inline');
   const saveBtn=g('fpSave');
   if(saveBtn) saveBtn.textContent='儲存';
+  const actionIds=['fpDuplicateBtn','fpCopyBtn','fpDeleteBtn'];
+  actionIds.forEach(id=>{const el=g(id);if(el) el.style.display=(editMode&&formMode!=='auxnode')?'inline-flex':'none';});
 }
 function syncFormHeaderLabels(){
   const typeSelect=g('ft'),titleInput=g('fti');
@@ -89,6 +91,7 @@ function openForm(isEdit) {
   if(inheritToggle) inheritToggle.onchange=updatePathInheritanceUI;
   if(pathInput) pathInput.oninput=()=>{updatePathInheritanceUI();saveNoteDraftFromForm();};
   updatePathInheritanceUI();
+  syncFormModeVisibility();
   g('fp').classList.add('open');['dp','tp'].forEach(p=>g(p).classList.remove('open'));
   syncSidePanelState();
 }
