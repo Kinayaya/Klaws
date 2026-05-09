@@ -19,6 +19,10 @@ const safeEventHandler=(fn,label='event-handler')=>{
 const on = (id, evt, fn) => { const el=g(id); if(el) el.addEventListener(evt,safeEventHandler(fn,`${id}:${evt}`)); return el; };
 const val = id => { const el=g(id); return el?el.value:''; };
 const debounce = (fn,ms) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+window.g=g;
+window.on=on;
+window.val=val;
+window.debounce=debounce;
 const showToast = m => { let t=g('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); };
 function showActionToast(msg, undoFn=null){
   const wrap=g('actionToast'),txt=g('actionToastText'),undoBtn=g('actionToastUndoBtn');
