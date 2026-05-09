@@ -869,6 +869,47 @@ function createArchiveSnapshot(){
   }
   showToast('已儲存存檔');
 }
+function formatStorageBytes(bytes=0){
+  const n=Math.max(0,Number(bytes)||0);
+  if(n<1024) return `${n} B`;
+  const units=['KB','MB','GB','TB'];
+  let value=n/1024;
+  let i=0;
+  while(value>=1024&&i<units.length-1){ value/=1024; i++; }
+  return `${value.toFixed(value>=10?1:2)} ${units[i]}`;
+}
+function updateStorageCleanupStatus(text=''){
+  const el=g('storageCleanupStatus');
+  if(el) el.textContent=`儲存清理：${text||'尚未執行'}`;
+}
+async function runStorageCleanupFlow(){
+  const storageApi=window.KLawsStorage;
+  if(!storageApi||typeof storageApi.cleanupRebuildableData!=='function'){
+    showToast('目前環境不支援儲存清理');
+    return;
+  }
+  if(!confirm('建議先匯出完整備份，是否立即匯出？')) return;
+  exportData();
+  const scopeText='可清理項目：\n• cache（可重建）\n• archive 存檔快照（不可逆刪除）\n• recycle 回收區（不可逆刪除）\n• 暫存資料（可重建）';
+  if(!confirm(`${scopeText}\n\n確認後將立即執行清理。`)) return;
+  updateStorageCleanupStatus('清理中...');
+  try{
+    const result=await storageApi.cleanupRebuildableData();
+    renderArchivePanel();
+    const before=result&&result.before?result.before:{usage:0,quota:0,ratio:0};
+    const after=result&&result.after?result.after:{usage:0,quota:0,ratio:0};
+    const ratioText=`${Math.round((after.ratio||0)*100)}%`;
+    const summary=`已清理：cache ${result?.cache?.count||0} 筆、archive ${result?.archivesRemoved||0} 筆、recycle ${result?.recycleRemoved||0} 筆；使用量 ${formatStorageBytes(before.usage)} → ${formatStorageBytes(after.usage)}（${ratioText}）`;
+    updateStorageCleanupStatus(summary);
+    showToast('儲存清理完成，已重新估算容量');
+    if((after.ratio||0)>=0.9){
+      alert('清理後儲存壓力仍偏高。\n建議：\n1) 刪除大型筆記附件/歷史資料（若有）\n2) 分批整理舊筆記與關聯資料\n3) 定期匯出後移除不必要快照');
+    }
+  }catch(err){
+    updateStorageCleanupStatus('清理失敗，請稍後再試');
+    showToast('儲存清理失敗');
+  }
+}
 function removeNotesToRecycle(noteIds){
   const idSet=new Set((noteIds||[]).map(Number).filter(Number.isFinite));
   if(!idSet.size) return 0;
