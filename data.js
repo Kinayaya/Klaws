@@ -194,26 +194,39 @@ function pushPayloadToBackend(payload){
   }).catch(err=>console.warn('[backend-sync-push-failed]',err));
 }
 
-async function saveData() {
-  try {
-    const payload=getPayload();
-    writeEmergencySnapshotSync(payload);
-    const nextRaw=JSON.stringify(payload);
-    const saveStartedAt=performance.now();
-    dataStorageApi.writeShardedPayloadParts(payload).then(()=>{
-      idbHealthDegraded=false;
-      console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
-    }).catch(err=>{
-      idbHealthDegraded=true;
-      const code=err&&err.code?err.code:(storageAdapter.isQuotaErr(err)?'QUOTA_EXCEEDED':'IDB_WRITE_FAILED');
-      console.warn('[saveData-idb-failed]',{code,key:SKEY,bytes:nextRaw.length,error:err});
-      void dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:true}),true);
-      console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
-    });
+async function saveDataCritical() {
+  const payload=getPayload();
+  writeEmergencySnapshotSync(payload);
+  const nextRaw=JSON.stringify(payload);
+  const saveStartedAt=performance.now();
+  try{
+    await dataStorageApi.writeShardedPayloadParts(payload);
+    idbHealthDegraded=false;
     await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}));
     lastSavedPayloadRaw=nextRaw;
     pushPayloadToBackend(payload);
-  } catch(e){}
+    console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
+    return {ok:true};
+  }catch(err){
+    idbHealthDegraded=true;
+    const code=err&&err.code?err.code:(storageAdapter.isQuotaErr(err)?'QUOTA_EXCEEDED':'IDB_WRITE_FAILED');
+    console.warn('[saveData-idb-failed]',{code,key:SKEY,bytes:nextRaw.length,error:err});
+    try{
+      await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:true}),true);
+    }catch(fallbackErr){
+      console.warn('[saveData-fallback-failed]',fallbackErr);
+    }
+    console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
+    return {ok:false,error:err,code};
+  }
+}
+
+async function saveData() {
+  try {
+    return await saveDataCritical();
+  } catch(e){
+    return {ok:false,error:e,code:'SAVE_UNKNOWN_ERROR'};
+  }
 }
 // ==================== 匯入/匯出 ====================
 function exportData() {
