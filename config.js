@@ -68,7 +68,7 @@ const RELATION_TYPE_META = {
 const REVIEW_INTERVALS_DAYS = { forgot:1, hard:3, knew:7, easy:14 };
 
 
-const { safeStr, uniq, pad2, escapeHtml, hl, parseTodos, formatTodosForEdit, parseSearchDateVariants, formatDate, normalizeNoteSchema } = window.KLawsUtils;
+var { safeStr, uniq, pad2, escapeHtml, hl, parseTodos, formatTodosForEdit, parseSearchDateVariants, formatDate, normalizeNoteSchema } = window.KLawsUtils;
 const { readJSON, writeJSON, readJSONAsync, writeJSONAsync, createStoreAdapter } = window.KLawsStorage;
 const { renderTodoHtml, sortedNotes } = window.KLawsRender;
 const { MAP_NODE_RADIUS_MIN, MAP_NODE_RADIUS_MAX, MAP_NODE_RADIUS_DEFAULT, MAP_LIGHT_BUNDLING_STRENGTH, DEFAULT_LANE_NAMES, MIN_LANE_COUNT, MAX_LANE_COUNT, clampMapRadius, defaultLaneNameAt, normalizeLaneCount, splitMapTitleLines } = window.KLawsMap;

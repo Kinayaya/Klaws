@@ -1,4 +1,4 @@
-const appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
+var appStateFacade=(typeof window!=='undefined'&&window.appState)?window.appState:null;
 // ==================== 體系圖 ====================
 const MAP_TREE_SIDEBAR_OPEN_KEY='klaws_map_tree_sidebar_open_v1';
 function setMapTreeSidebarOpen(willOpen){

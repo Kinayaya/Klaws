@@ -1,4 +1,4 @@
-const { escapeHtml, safeText, safeAttr } = window.KLawsSafeHtml;
+var { escapeHtml, safeText, safeAttr } = window.KLawsSafeHtml;
 // ==================== UI 建構 ====================
 function buildTypeRow() {
   const row=g('typeRow');
