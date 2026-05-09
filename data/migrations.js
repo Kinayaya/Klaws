@@ -35,6 +35,39 @@
     return changed;
   }
 
+
+  function detectIdentityDriftRisk(ctx){
+    const { notesRef, mapAuxNodesRef, linksRef, safeStr } = ctx;
+    const stringify=safeStr||((v)=>typeof v==='string'?v:String(v??''));
+    const nodes=[...(Array.isArray(notesRef.value)?notesRef.value:[]),...(Array.isArray(mapAuxNodesRef.value)?mapAuxNodesRef.value:[])];
+    const byUid=new Map();
+    const ids=new Set();
+    const issues=[];
+    nodes.forEach((n,idx)=>{
+      if(!n||typeof n!=='object') return;
+      if(Number.isFinite(Number(n.id))) ids.add(Number(n.id));
+      const uid=stringify(n.uid).trim();
+      const path=stringify(n.path).trim();
+      if(!uid) return;
+      if(byUid.has(uid)){
+        const prev=byUid.get(uid);
+        if(prev.id!==n.id||prev.path!==path){
+          issues.push({type:'uid-conflict',uid,firstId:prev.id,secondId:n.id,firstPath:prev.path,secondPath:path,index:idx});
+        }
+        return;
+      }
+      byUid.set(uid,{id:n.id,path});
+    });
+    const brokenLinks=[];
+    const links=Array.isArray(linksRef&&linksRef.value)?linksRef.value:[];
+    links.forEach(l=>{
+      const from=Number(l&&l.from),to=Number(l&&l.to);
+      if(!ids.has(from)||!ids.has(to)) brokenLinks.push({id:l&&l.id,from,to});
+    });
+    if(brokenLinks.length) issues.push({type:'broken-links',count:brokenLinks.length,sample:brokenLinks.slice(0,3)});
+    return {ok:issues.length===0,issues};
+  }
+
   function clearLegacyDomainsFromNotes(ctx){
     const { notesRef, mapAuxNodesRef, safeStr, domainsRef, mapFilterRef } = ctx;
     let changed=false;
@@ -63,7 +96,7 @@
     return changed;
   }
 
-  const api={ backfillNoteUids, migratePathOverridesIntoNotes, clearLegacyDomainsFromNotes, migrateLegacyGroupPartData };
+  const api={ backfillNoteUids, migratePathOverridesIntoNotes, detectIdentityDriftRisk, clearLegacyDomainsFromNotes, migrateLegacyGroupPartData };
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   global.KlawsDataMigrations=api;
 })(typeof globalThis!=='undefined'?globalThis:window);

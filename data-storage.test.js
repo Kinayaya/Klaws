@@ -37,3 +37,12 @@ test('emergency snapshot hooks exist for sync flush and merge recovery', ()=>{
   assert.match(dataJs,/const byUid=new Map\(\);/);
   assert.match(initJs,/flushCriticalSnapshotSync\(\);\s*saveData\(\);/);
 });
+
+
+test('data layer blocks auto-repair overwrite when identity drift risk is detected', ()=>{
+  const dataJs=require('node:fs').readFileSync('./data.js','utf8');
+  assert.match(dataJs,/function verifyIdentityInvariant\(stage\)\{/);
+  assert.match(dataJs,/\[data-invariant\]\[identity-drift-risk\]/);
+  assert.match(dataJs,/autoRepairSafe=verifyIdentityInvariant\('loadData:before-auto-repair-save'\)\.ok!==false/);
+  assert.match(dataJs,/code:'IDENTITY_DRIFT_RISK'/);
+});
