@@ -46,6 +46,7 @@ function clearLegacyDomainsFromNotes(){
 const LOCAL_FALLBACK_PREFIX='klaws_payload_backup_v1';
 const FALLBACK_META_VERSION = 1;
 const FALLBACK_META_MIGRATION_KEY = 'klaws_fallback_meta_migration_v1';
+const FALLBACK_IDB_META_KEY = 'klaws_fallback_meta_idb_v1';
 const FALLBACK_WRITE_INTERVAL_MS = 5*60*1000;
 const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
 const ARCHIVE_NOISE_EXCLUDE_KEYS = ['nodePos','mapCenterNodeId','mapCenterNodeIds','mapFilter'];
@@ -55,8 +56,16 @@ function fallbackStorageKey(){
   const host=(location&&location.host)?location.host:'unknown-host';
   return `${LOCAL_FALLBACK_PREFIX}::${host}`;
 }
-function readLocalFallbackPayload(){
-  return readJSON(fallbackStorageKey(), null);
+async function readFallbackPayload(){
+  const storageKey=fallbackStorageKey();
+  try{
+    const idbValue=await storageAdapter.primaryStore.get(FALLBACK_IDB_META_KEY, null);
+    if(idbValue&&typeof idbValue==='object'&&!Array.isArray(idbValue)){
+      const payload=idbValue[storageKey];
+      if(payload&&typeof payload==='object'&&!Array.isArray(payload)) return payload;
+    }
+  }catch(e){}
+  return readJSON(storageKey, null);
 }
 function buildFallbackMeta({idbFailed=false,lastSaveAt=Date.now()}={}){
   return {
@@ -73,31 +82,71 @@ async function writeLocalFallbackPayload(meta, force=false){
   const storageKey=fallbackStorageKey();
   const payloadBytes=JSON.stringify(fallbackMeta).length;
   try{
-    const ok=await storageAdapter.fallbackStore.set(storageKey, fallbackMeta);
-    if(ok) lastFallbackWriteAt=now;
-    if(!ok){
-      console.warn('[saveData-local-fallback-failed]',{code:'LOCAL_FALLBACK_WRITE_FAILED',key:storageKey,bytes:payloadBytes});
-    }
-    return ok;
+    const currentMap=await storageAdapter.primaryStore.get(FALLBACK_IDB_META_KEY, {});
+    const nextMap=(currentMap&&typeof currentMap==='object'&&!Array.isArray(currentMap))?{...currentMap}:{ };
+    nextMap[storageKey]=fallbackMeta;
+    await storageAdapter.primaryStore.set(FALLBACK_IDB_META_KEY,nextMap);
+    try{ await storageAdapter.fallbackStore.remove(storageKey); }catch(e){}
+    lastFallbackWriteAt=now;
+    return true;
   }catch(e){
-    const code=e&&e.code?e.code:'LOCAL_FALLBACK_WRITE_THROWN';
-    console.warn('[saveData-local-fallback-failed]',{code,key:storageKey,bytes:payloadBytes,error:e});
-    return false;
+    const code=e&&e.code?e.code:'IDB_FALLBACK_WRITE_FAILED';
+    console.warn('[saveData-idb-fallback-failed]',{code,key:storageKey,bytes:payloadBytes,error:e});
+    try{
+      const ok=await storageAdapter.fallbackStore.set(storageKey, fallbackMeta);
+      if(ok) lastFallbackWriteAt=now;
+      return ok;
+    }catch(localErr){
+      const localCode=localErr&&localErr.code?localErr.code:'LOCAL_FALLBACK_WRITE_THROWN';
+      console.warn('[saveData-local-fallback-failed]',{code:localCode,key:storageKey,bytes:payloadBytes,error:localErr});
+      return false;
+    }
   }
 }
 async function clearLocalFallbackPayload(){
+  const storageKey=fallbackStorageKey();
   try{
-    await storageAdapter.fallbackStore.remove(fallbackStorageKey());
+    const currentMap=await storageAdapter.primaryStore.get(FALLBACK_IDB_META_KEY, {});
+    if(currentMap&&typeof currentMap==='object'&&!Array.isArray(currentMap)&&Object.prototype.hasOwnProperty.call(currentMap,storageKey)){
+      const nextMap={...currentMap};
+      delete nextMap[storageKey];
+      await storageAdapter.primaryStore.set(FALLBACK_IDB_META_KEY,nextMap);
+    }
+  }catch(e){}
+  try{
+    await storageAdapter.fallbackStore.remove(storageKey);
   }catch(e){}
 }
 
+
+async function migrateLegacyLocalFallbackToIdb(){
+  if(localStorage.getItem(FALLBACK_META_MIGRATION_KEY)==='1') return;
+  const storageKey=fallbackStorageKey();
+  const legacyMeta=readJSON(storageKey,null);
+  if(!legacyMeta||typeof legacyMeta!=='object'||Array.isArray(legacyMeta)){
+    window.KLawsStorage.governedWriteLocal(FALLBACK_META_MIGRATION_KEY,'1','core');
+    return;
+  }
+  try{
+    const currentMap=await storageAdapter.primaryStore.get(FALLBACK_IDB_META_KEY, {});
+    const nextMap=(currentMap&&typeof currentMap==='object'&&!Array.isArray(currentMap))?{...currentMap}:{ };
+    nextMap[storageKey]=legacyMeta;
+    await storageAdapter.primaryStore.set(FALLBACK_IDB_META_KEY,nextMap);
+    await storageAdapter.fallbackStore.remove(storageKey);
+    window.KLawsStorage.governedWriteLocal(FALLBACK_META_MIGRATION_KEY,'1','core');
+    console.info('[fallback-migration] moved local fallback metadata into indexeddb',{key:storageKey});
+  }catch(e){
+    console.warn('[fallback-migration-failed]',e);
+  }
+}
 function clearLegacyLocalFallbackKeys(){
   if(localStorage.getItem(FALLBACK_META_MIGRATION_KEY)==='1') return;
   try{
     const staleKeys=[];
+    const currentKey=fallbackStorageKey();
     for(let i=0;i<localStorage.length;i++){
       const key=localStorage.key(i);
-      if(typeof key==='string'&&key.startsWith(`${LOCAL_FALLBACK_PREFIX}::`)) staleKeys.push(key);
+      if(typeof key==='string'&&key.startsWith(`${LOCAL_FALLBACK_PREFIX}::`)&&key!==currentKey) staleKeys.push(key);
     }
     staleKeys.forEach(key=>window.KLawsStorage.governedRemoveLocal(key));
     window.KLawsStorage.governedWriteLocal(FALLBACK_META_MIGRATION_KEY,'1','core');
@@ -133,6 +182,7 @@ function migrateLegacyGroupPartData(){
 }
 
 async function loadData() {
+  await migrateLegacyLocalFallbackToIdb();
   clearLegacyLocalFallbackKeys();
   try {
     let d=await readJSONAsync(SKEY,null);
