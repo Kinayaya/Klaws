@@ -514,7 +514,23 @@
 <script src="config.js"></script>
 <script src="klaws-core.js"></script>
 <script src="state.js"></script>
-<script src="debug-tool.js"></script>
+<script>
+(() => {
+  const DEBUG_QUERY_KEYS = ['debug', 'devDebug', 'debugTool'];
+  const params = new URLSearchParams(window.location.search);
+  const queryEnabled = DEBUG_QUERY_KEYS.some((key) => {
+    const value = (params.get(key) || '').toLowerCase();
+    return value === '1' || value === 'true' || value === 'on';
+  });
+  const buildEnabled = !!window.__KLAWS_DEV__;
+  const stickyEnabled = localStorage.getItem('klaws_debug_tool') === '1';
+  if (!(queryEnabled || buildEnabled || stickyEnabled)) return;
+  const s = document.createElement('script');
+  s.src = 'debug-tool.js';
+  s.defer = true;
+  document.head.appendChild(s);
+})();
+</script>
 <script src="touch-guard.js"></script>
 <script src="view-state.js"></script>
 <script src="utils-app.js"></script>

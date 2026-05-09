@@ -1,9 +1,43 @@
 // ==================== 工具函數 ====================
 const g = id => document.getElementById(id);
+const loadDebugToolkit = (() => {
+  let pending = null;
+  return () => {
+    if (window.KLawsDebug) return Promise.resolve(window.KLawsDebug);
+    if (pending) return pending;
+    pending = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'debug-tool.js';
+      s.onload = () => resolve(window.KLawsDebug || null);
+      s.onerror = () => reject(new Error('load debug-tool.js failed'));
+      document.head.appendChild(s);
+    }).finally(() => { pending = null; });
+    return pending;
+  };
+})();
 const debugRuntime = (window.KLawsDebug&&window.KLawsDebug.createDebugRuntime)
   ? window.KLawsDebug.createDebugRuntime({maxLines:600, sink:(line)=>{ if(window.__KLawsDebugPushLine) window.__KLawsDebugPushLine(line); }})
   : null;
 window.__KLawsDebugRuntime=debugRuntime;
+window.enableKlawsDebugTool = async (options = {}) => {
+  const persist = options && options.persist === true;
+  await loadDebugToolkit();
+  if (persist) localStorage.setItem('klaws_debug_tool', '1');
+  if (typeof window.bindDebugToggleButton === 'function') window.bindDebugToggleButton();
+  const btn = g('debugToggle');
+  if (btn) btn.click();
+  return { loaded: !!window.KLawsDebug, persisted: persist };
+};
+window.disableKlawsDebugTool = () => {
+  localStorage.removeItem('klaws_debug_tool');
+  return { persisted: false };
+};
+window.KLawsDiagnostics = Object.freeze({
+  enableDebugTool: window.enableKlawsDebugTool,
+  disableDebugTool: window.disableKlawsDebugTool,
+  hasDebugRuntime: () => !!window.__KLawsDebugRuntime,
+  hasDebugToolkit: () => !!window.KLawsDebug
+});
 const safeEventHandler=(fn,label='event-handler')=>{
   if(typeof fn!=='function') return fn;
   return function wrappedEventHandler(...args){

@@ -712,6 +712,7 @@ function bindDebugToggleButton(){
   btn.dataset.boundDebugToggle='1';
   btn.addEventListener('click',toggleDebugTool);
 }
+window.bindDebugToggleButton=bindDebugToggleButton;
 bindDebugToggleButton();
 
 // 若 UI 被重建導致按鈕點替換，透過事件代理補綁，避免「點擊無反應」
