@@ -40,3 +40,69 @@ test('list and search hide blank drafts but surface content drafts with a draft 
   assert.match(renderUiJs,/草稿/);
   assert.match(renderUiJs,/未命名草稿/);
 });
+
+
+test('flushing immediately after saveNoteDraftFromForm persists draft snapshot to storage',async()=>{
+  const vm=require('node:vm');
+  const timers=[];
+  const takeFunction=(src,name)=>{
+    let start=src.indexOf(`async function ${name}(`);
+    if(start===-1) start=src.indexOf(`function ${name}(`);
+    assert.notEqual(start,-1,`${name} should exist`);
+    const brace=src.indexOf('{',start);
+    let depth=0;
+    for(let i=brace;i<src.length;i++){
+      if(src[i]==='{') depth++;
+      else if(src[i]==='}'){
+        depth--;
+        if(depth===0) return src.slice(start,i+1);
+      }
+    }
+    throw new Error(`could not extract ${name}`);
+  };
+  const utilsStart=fs.readFileSync('utils-app.js','utf8').indexOf('const DRAFT_SAVE_THROTTLE_MS = 100;');
+  const utilsEnd=fs.readFileSync('utils-app.js','utf8').indexOf('const typeByKey =',utilsStart);
+  const utilsSnippet=fs.readFileSync('utils-app.js','utf8').slice(utilsStart,utilsEnd)+`\nObject.assign(globalThis,{queueDraftImmediateSave,flushDraftSave,savePathChange});`;
+  const formSnippet=[
+    takeFunction(formJs,'saveNoteDraftFromForm'),
+    takeFunction(formJs,'flushNoteDraftSnapshot'),
+    'Object.assign(globalThis,{saveNoteDraftFromForm,flushNoteDraftSnapshot});'
+  ].join('\n');
+  const saveDataCalls=[];
+  const target={id:1,isDraft:true,type:'note',domain:'old',domains:['old'],title:'old title'};
+  const elements={
+    fti:{value:'立即保存草稿'},
+    ft:{value:'note'},
+    fpath:{value:'draft/path'}
+  };
+  const context={
+    console,
+    setTimeout(fn,ms){ const timer=setTimeout(fn,ms); timers.push(timer); return timer; },
+    clearTimeout(timer){ clearTimeout(timer); },
+    saveData:async opt=>{ saveDataCalls.push(opt); return {ok:true,store:'test'}; },
+    showToast:()=>{},
+    flushDeferredSave:async()=>null,
+    editMode:true,
+    draftNoteId:null,
+    openId:1,
+    domains:[{key:'dom'}],
+    mapNodeById:id=>id===1?target:null,
+    g:id=>elements[id]||{value:''},
+    currentFormHasDraftContent:()=>true,
+    resolveInheritedPath:path=>path,
+    collectFormValuesByType:()=>({question:'',answer:'',prompt:'',application:'',body:'草稿內容',detail:'',todos:[],extraFields:{}}),
+    selectedValues:()=>[],
+    normalizeNoteSchema:n=>n
+  };
+  vm.createContext(context);
+  vm.runInContext(utilsSnippet,context);
+  vm.runInContext(formSnippet,context);
+
+  await context.flushNoteDraftSnapshot();
+  assert.equal(saveDataCalls.length,1);
+  assert.equal(saveDataCalls[0].includeTransient,false);
+  assert.equal(target.title,'立即保存草稿');
+  assert.equal(target.body,'草稿內容');
+  assert.equal(target.isDraft,true);
+  timers.forEach(clearTimeout);
+});
