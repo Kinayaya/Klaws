@@ -27,6 +27,8 @@
         if(checksum(JSON.stringify(part))!==meta.checksumByShard[n]) return null;
         Object.assign(payload,part);
       }
+      if(meta.updatedAt&&!payload.updatedAt) payload.updatedAt=meta.updatedAt;
+      if(meta.rev&&!payload.rev) payload.rev=meta.rev;
       return payload;
     }
     const parseRev=v=>Number.isFinite(Number(v))?Number(v):0;
