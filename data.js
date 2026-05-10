@@ -93,10 +93,23 @@ function buildEmergencySnapshot(payload){
   };
 }
 function writeEmergencySnapshotSync(payload){
+  const snapshot=buildEmergencySnapshot(payload);
   try{
-    localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(buildEmergencySnapshot(payload)));
+    localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(snapshot));
   }catch(e){
-    console.error('[emergency-snapshot-write-failed]',e);
+    const quota=storageAdapter&&typeof storageAdapter.isQuotaErr==='function'&&storageAdapter.isQuotaErr(e);
+    if(quota){
+      try{
+        const compact={...snapshot,payload:null,compacted:true};
+        localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(compact));
+        console.warn('[emergency-snapshot-write-compacted]',{key:EMERGENCY_SNAPSHOT_KEY,error:e});
+        return;
+      }catch(compactErr){
+        console.error('[emergency-snapshot-write-failed]',{key:EMERGENCY_SNAPSHOT_KEY,quotaError:true,error:compactErr});
+        return;
+      }
+    }
+    console.error('[emergency-snapshot-write-failed]',{key:EMERGENCY_SNAPSHOT_KEY,quotaError:false,error:e});
   }
 }
 function removeTransientPayloadFields(payload){
