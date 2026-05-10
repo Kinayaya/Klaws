@@ -20,7 +20,7 @@ function selectAll() {
   render();
 }
 async function copySelectedNotes(){
-  const ids=Object.keys(selectedIds).map(Number).filter(id=>selectedIds[id]);
+  const ids=Object.keys(selectedIds).map(Number).filter(id=>selectedIds[id]&&(!noteById(id)?.isDraft||formDraftHasContent(noteById(id))));
   if(!ids.length){showToast('請先選擇筆記');return;}
   const text=ids.map(id=>{
     const n=noteById(id);

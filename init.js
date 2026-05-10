@@ -74,8 +74,8 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   bindCoreButtons();
   bindTouchQuickActions();
   const draftSaver=debounce(saveNoteDraftFromForm,900);
-  g('fp')?.addEventListener('input',()=>{ if(editMode) draftSaver(); });
-  g('fp')?.addEventListener('focusout',()=>{ if(editMode) saveNoteDraftFromForm(); });
+  g('fp')?.addEventListener('input',()=>{ if(editMode||draftNoteId) draftSaver(); });
+  g('fp')?.addEventListener('focusout',()=>{ if(editMode||draftNoteId) saveNoteDraftFromForm(); });
   bindPathManagerNav();
   on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
   on('archiveSaveBtn','click',createArchiveSnapshot);

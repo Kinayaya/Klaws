@@ -1,7 +1,7 @@
 // ==================== 全域變數 ====================
 let notes=[], mapAuxNodes=[], links=[], nid=10, lid=10, types=[], domains=[], groups=[], parts=[];
 let recycleBin=[];
-let cv='all', cs='all', cch='all', csec='all', searchQ='', openId=null, editMode=false;
+let cv='all', cs='all', cch='all', csec='all', searchQ='', openId=null, editMode=false, draftNoteId=null;
 let selectedDomains=[], selectedGroups=[], selectedParts=[];
 let scopeLinkedEnabled = localStorage.getItem(SCOPE_LINKED_TOGGLE_KEY)==='1';
 let formLinkSelections={}, pathSearchQ='';
