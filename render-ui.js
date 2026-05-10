@@ -183,7 +183,8 @@ function render() {
   const shouldExpand=scopeLinkedEnabled&&hasTaxonomyFilter();
   const visibleIds=shouldExpand?expandWithLinkedNotes(seedIds):seedIds;
   const dueSet=new Set(dueReviewNotes().map(n=>n.id));
-  const filtered=sortedNotes(notes,{sortMode,safeStr,noteDomainText,noteGroupText}).filter(n=>visibleIds.has(n.id)&&noteMatchesSearch(n,q,normalizedDate)&&(!reviewMode||dueSet.has(n.id)));
+  const isVisibleDraft=n=>!n.isDraft||formDraftHasContent(n);
+  const filtered=sortedNotes(notes,{sortMode,safeStr,noteDomainText,noteGroupText}).filter(n=>isVisibleDraft(n)&&visibleIds.has(n.id)&&noteMatchesSearch(n,q,normalizedDate)&&(!reviewMode||(!n.isDraft&&dueSet.has(n.id))));
   const sb=g('search-results-bar');
   if(q){sb.style.display='block';sb.textContent=`搜尋「${searchQ}」：找到 ${filtered.length} 筆筆記`;}
   else if(shouldExpand){
@@ -209,9 +210,11 @@ function render() {
     const subChips=subs.map(sk=>{const sb2=subByKey(sk);return `<span class="chip" style="background:${lightC(sb2.color)};color:${darkC(sb2.color)}">${escapeHtml(sb2.label)}</span>`;}).join('');
     const noteActionChips=isReminder?'':`<span class="chip card-action-chip" data-action="duplicate">建立副本</span><span class="chip card-action-chip" data-action="copy">複製內容</span><span class="chip card-action-chip" data-action="delete">刪除</span>`;
     const linkedChip=(shouldExpand&&!seedIds.has(n.id))?'<span class="chip" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459">跨科關聯</span>':'';
+    const draftChip=(!isReminder&&n.isDraft)?'<span class="chip" style="background:#FFF4CC;color:#8A5A00;border-color:#F0CD62">草稿</span>':'';
     const hasContent=isReminder?!!safeStr(n.body):noteHasVisibleContent(n);
-    const previewText=reviewMode?(n.prompt||n.question||'（尚未填寫問題）'):(n.question||n.body);
-    return `<div class="card ${hasContent?'':'card-empty-content'} ${isReminder?'calendar-reminder-card':''}" data-id="${safeAttr(n.id)}" data-reminder-id="${isReminder?n.eventId:''}" style="--type-color:${tp.color}"><button class="sel-check" type="button" aria-label="勾選筆記"></button><div class="ctop"><span class="ctag">${escapeHtml(tp.label)}</span><div class="ctitle-inline">${hl(n.title,q)}</div></div>${hasContent?`<div class="cbody">${safeText(previewText)}</div>`:''}<div class="cfoot">${subChips}${linkedChip}${noteActionChips}</div></div>`;
+    const previewText=reviewMode?(n.prompt||n.question||'（尚未填寫問題）'):(n.question||n.body||n.application||n.detail);
+    const displayTitle=(!isReminder&&n.isDraft&&!safeStr(n.title).trim())?'（未命名草稿）':n.title;
+    return `<div class="card ${hasContent?'':'card-empty-content'} ${isReminder?'calendar-reminder-card':''}" data-id="${safeAttr(n.id)}" data-reminder-id="${isReminder?n.eventId:''}" style="--type-color:${tp.color}"><button class="sel-check" type="button" aria-label="勾選筆記"></button><div class="ctop"><span class="ctag">${escapeHtml(tp.label)}</span><div class="ctitle-inline">${hl(displayTitle,q)}</div></div>${hasContent?`<div class="cbody">${safeText(previewText)}</div>`:''}<div class="cfoot">${subChips}${linkedChip}${draftChip}${noteActionChips}</div></div>`;
   }).join('');
   grid.querySelectorAll('.card').forEach(c=>{
     const rid=c.dataset.reminderId?parseInt(c.dataset.reminderId,10):0;

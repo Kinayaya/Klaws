@@ -2,7 +2,7 @@
   "name": "klaws",
   "private": true,
   "scripts": {
-    "test": "node --test klaws-core.test.js debug-tool.test.js touch-guard.test.js view-state.test.js view-transition.test.js eruda-guard.test.js path-manager.test.js map-tree-index.test.js path-stats.test.js data-storage.test.js data-migration.test.js storage-fallback.test.js safe-html.test.js",
+    "test": "node --test klaws-core.test.js debug-tool.test.js touch-guard.test.js view-state.test.js view-transition.test.js eruda-guard.test.js path-manager.test.js map-tree-index.test.js path-stats.test.js data-storage.test.js data-migration.test.js storage-fallback.test.js safe-html.test.js form-draft.test.js",
     "check:partitions": "node scripts/check-partition-boundaries.js"
   }
 }

@@ -52,15 +52,64 @@ function updatePathInheritanceUI(){
   const finalPath=resolvePathInput((toggle.checked&&inherited)?inherited:(input.value||''));
   preview.textContent=finalPath?`儲存後路徑：${finalPath}`:'儲存後路徑：（空）';
 }
+
+function formDraftHasContent(note){
+  if(!note) return false;
+  const extra=note.extraFields&&typeof note.extraFields==='object'&&!Array.isArray(note.extraFields)?note.extraFields:{};
+  return !!(safeStr(note.title).trim()
+    ||safeStr(note.question).trim()
+    ||safeStr(note.answer).trim()
+    ||safeStr(note.prompt).trim()
+    ||safeStr(note.application).trim()
+    ||safeStr(note.body).trim()
+    ||safeStr(note.detail).trim()
+    ||Object.values(extra).some(v=>safeStr(v).trim())
+    ||(Array.isArray(note.todos)&&note.todos.length));
+}
+function currentFormHasDraftContent(){
+  const title=(g('fti')?.value||'').trim();
+  const typeKey=g('ft')?.value||'';
+  const fieldData=collectFormValuesByType(typeKey);
+  return formDraftHasContent({title,...fieldData});
+}
+function removeDraftNoteById(id){
+  notes=notes.filter(n=>n.id!==id);
+  mapAuxNodes=mapAuxNodes.filter(n=>n.id!==id);
+  links=links.filter(l=>l.from!==id&&l.to!==id);
+  Object.keys(mapPageNotes||{}).forEach(key=>{
+    mapPageNotes[key]=(mapPageNotes[key]||[]).filter(noteId=>Number(noteId)!==Number(id));
+  });
+  if(openId===id) openId=null;
+}
+function createFormDraftNote(){
+  const typeKey=g('ft')?.value||types[0]?.key||'';
+  const fallbackDomain=domains[0]?.key||'';
+  const selectedSubs=selectedValues('fs2').slice(0,1);
+  const effectiveDomain=selectedSubs[0]||fallbackDomain;
+  const normalizedSubs=effectiveDomain?[effectiveDomain]:[];
+  const d=new Date(),dt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const nowIso=new Date().toISOString();
+  const path=resolveInheritedPath(g('fpath')?.value||'');
+  const draft=normalizeNoteSchema({id:nid++,isDraft:true,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title:'',path,question:'',answer:'',prompt:'',application:'',body:'',detail:'',date:dt,created_at:nowIso,last_reviewed:'',next_review:nowIso,todos:[],extraFields:{}});
+  notes.unshift(draft);
+  draftNoteId=draft.id;
+  openId=draft.id;
+  if(isMapOpen) assignNoteToMapPage(draft.id,currentSubpageRootId()?String(currentSubpageRootId()):'root');
+  savePathChange({mode:'draft'});
+  return draft;
+}
+
 function openForm(isEdit) {
   editMode=isEdit; buildFormSelects();
+  if(isEdit) draftNoteId=null;
   if(!isEdit&&formMode!=='auxnode') formMode='note';
   syncFormModeVisibility();
   if(editMode) {
     const n=mapNodeById(openId); if(!n) return;
+    if(n.isDraft) draftNoteId=n.id;
     const auxnode=isAuxnodeNode(n);
     formMode=auxnode?'auxnode':'note';
-    g('form-title').textContent=auxnode?'編輯':'編輯筆記';
+    g('form-title').textContent=n.isDraft?'編輯草稿':(auxnode?'編輯':'編輯筆記');
     g('ft').value=n.type;setSelectedValues('fs2',noteDomains(n));g('fti').value=n.title;g('fpath').value=n.path||'';
     if(g('fpathInheritToggle')) g('fpathInheritToggle').checked=false;
     renderDynamicFields(n.type,n);
@@ -84,6 +133,7 @@ function openForm(isEdit) {
     }
     else{setSelectedValues('fs2',[]);}
     renderDynamicFields(g('ft').value,null);
+    createFormDraftNote();
   }
   syncFormHeaderLabels();
   buildInlineLinksPanel();
@@ -96,6 +146,12 @@ function openForm(isEdit) {
   syncSidePanelState();
 }
 function closeForm() {
+  const closingDraftId=draftNoteId;
+  if(closingDraftId){
+    if(currentFormHasDraftContent()) saveNoteDraftFromForm();
+    else { removeDraftNoteById(closingDraftId); savePathChange({mode:'draft'}); }
+    draftNoteId=null;
+  }
   g('fp').classList.remove('open');
   if(_saveTimer){ clearTimeout(_saveTimer); _saveTimer=null; }
   editMode=false;
@@ -354,6 +410,31 @@ function saveNote() {
   const normalizedSubs=effectiveDomain?[effectiveDomain]:[];
   const primaryDomain=effectiveDomain;
   saveFormTaxonomyPref(primaryDomain,'','');
+  const draftTarget=openId?mapNodeById(openId):null;
+  if(draftTarget&&draftTarget.isDraft){
+    const source=isAuxnodeNode(draftTarget)?mapAuxNodes:notes;
+    const idx=source.findIndex(n=>n.id===openId);
+    const prevDone=idx!==-1?doneTodoCount(source[idx].todos):0;
+    if(idx!==-1){
+      const oldPath=source[idx]?.path||'';
+      const updated=normalizeNoteSchema({...source[idx],isDraft:false,type:typeKey,domain:primaryDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
+      delete updated.isDraft;
+      console.log('[saveNote][finalize-draft]',{noteId:source[idx]?.id,oldPath,newPath:updated.path});
+      source[idx]=isAuxnodeNode(source[idx])?{...updated,isAuxnode:true,pageRootId:auxnodePageRootId(source[idx]),noteTypeBackup:typeKey}:updated;
+    }
+    const saved=idx!==-1?source[idx]:draftTarget;
+    const mentionAdded=idx!==-1?autoLinkMentionsForNote(saved):0;
+    const nextDone=idx!==-1?doneTodoCount(saved.todos):0;
+    if(nextDone>prevDone&&levelSystem.tasks.length&&levelSystem.skills.length){
+      completeLevelTask(levelSystem.tasks[0].id,levelSystem.skills[0].id);
+    }
+    refreshAchievementProgress();
+    draftNoteId=null;
+    savePathChange();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`筆記已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
+    if(isMapOpen) setTimeout(()=>openNote(saved.id),120);
+    else setTimeout(()=>{window.scrollTo(0,0);setTimeout(()=>openNote(saved.id),300);},100);
+    return;
+  }
   if(editMode&&openId) {
     const isAuxnode=formMode==='auxnode';
     const source=isAuxnode?mapAuxNodes:notes;
@@ -408,11 +489,12 @@ function saveNote() {
   }
 }
 function saveNoteDraftFromForm(){
-  if(!(editMode&&openId)) return;
+  if(!((editMode||draftNoteId)&&openId)) return;
   const target=mapNodeById(openId);
   if(!target) return;
   const title=(g('fti').value||'').trim();
-  if(!title) return;
+  if(target.isDraft&&!currentFormHasDraftContent()) return;
+  if(!target.isDraft&&!title) return;
   const typeKey=g('ft').value;
   const path=resolveInheritedPath(g('fpath').value||'');
   const fieldData=collectFormValuesByType(typeKey);
@@ -420,11 +502,13 @@ function saveNoteDraftFromForm(){
   const selectedSubs=selectedValues('fs2').slice(0,1);
   const effectiveDomain=selectedSubs[0]||fallbackDomain;
   const normalizedSubs=effectiveDomain?[effectiveDomain]:[];
-  Object.assign(target,normalizeNoteSchema({...target,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields}));
+  const updated=normalizeNoteSchema({...target,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
+  Object.assign(target,updated);
+  if(target.isDraft) target.isDraft=true; else delete target.isDraft;
   savePathChange({mode:'draft'});
 }
 async function flushNoteDraftSnapshot(){
-  if(!(editMode&&openId)) return;
+  if(!((editMode||draftNoteId)&&openId)) return;
   saveNoteDraftFromForm();
   await flushDeferredSave();
 }
