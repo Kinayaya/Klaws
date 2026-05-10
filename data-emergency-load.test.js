@@ -60,6 +60,7 @@ test('loadData restores newer emergency full payload and writes it back to shard
     migrateLegacyLocalFallbackToIdb:async()=>{},
     clearLegacyLocalFallbackKeys:()=>{},
     readShardedPayload:async()=>stale,
+    readFallbackPayload:async()=>null,
     writeLocalFallbackPayload:async()=>true,
     buildFallbackMeta:meta=>meta,
     writeShardedPayloadParts:async payload=>{ shardWrite=payload; },
