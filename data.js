@@ -1368,6 +1368,11 @@ async function loginGoogleDriveAndSync(){
   const token=await ensureGoogleAccessToken(false);
   if(!token) return false;
   persistCloudSyncEnabled(true);
+  const shouldAutoLoad=confirm('偵測到已登入 Google 雲端。是否現在載入最新雲端存檔？');
+  if(!shouldAutoLoad){
+    showToast('已登入 Google 雲端（未載入雲端存檔）');
+    return true;
+  }
   const pulled=await scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:true});
   if(pulled){
     showToast('已登入並自動載入最新雲端紀錄');
