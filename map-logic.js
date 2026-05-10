@@ -994,7 +994,7 @@ function bindCoreButtons(){
   bind('editBtn',()=>{if(!openId){showToast('請先開啟一筆筆記');return;}openForm(true);});
   bind('copyBtn',copyNoteToClipboard);
   bind('dupBtn',duplicateNote);
-  bind('dpClose',closeDetail);bind('fpClose',closeForm);bind('fpCancel',closeForm);
+  bind('dpClose',closeDetail);bind('fpClose',closeForm);
   bind('fpSave',saveNote);bind('delBtn',deleteNote);
   bind('fpDeleteBtn',()=>deleteMapNode(openId));
   bind('fpDuplicateBtn',()=>duplicateMapNode(openId));
