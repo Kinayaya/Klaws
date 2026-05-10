@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="KLaws icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#142863"/>
+      <stop offset="100%" stop-color="#274F9B"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+  <path d="M180 120V392H234V276L350 392H414L280 256L408 120H344L234 224V120Z" fill="#EAF1FF"/>
+  <path d="M180 120V392H208V120Z" fill="#7eaef8" opacity="0.75"/>
+</svg>
