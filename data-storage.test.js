@@ -89,3 +89,17 @@ test('createDataStorageApi composes migration/fallback/shard APIs', async ()=>{
   const meta=await api.readShardedMeta();
   assert.equal(Array.isArray(meta.shards),true);
 });
+
+
+test('readShardedPayload ignores pending meta revisions', async ()=>{
+  const db=new Map();
+  const storageAdapter={primaryStore:{set:async(k,v)=>db.set(k,v)}};
+  const readJSONAsync=async(k,d)=>db.has(k)?db.get(k):d;
+  const api=createShardStorageApi({SKEY:'k2',storageAdapter,readJSONAsync});
+  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},levelSystem:{}};
+  await api.writeShardedPayloadParts(payload);
+  const metaKey='k2__parts_v1::meta';
+  db.set(metaKey,{...db.get(metaKey),pending:true});
+  const out=await api.readShardedPayload();
+  assert.equal(out,null);
+});

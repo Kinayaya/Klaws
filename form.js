@@ -290,6 +290,28 @@ function addSelectedFormLinks(){
   formLinkSelections={};saveData();renderFormLinks();renderFormLinkSearch();showToast(`已建立 ${added} 筆關聯`);if(isMapOpen)scheduleMapRedraw(100);
 }
 
+
+function getCurrentFormSnapshot(){
+  const typeKey=g('ft')?.value||'';
+  const snapshot={
+    title:(g('fti')?.value||''),
+    path:(g('fpath')?.value||''),
+    type:typeKey,
+    domain:selectedValues('fs2').slice(0,1)[0]||'',
+    fields:{}
+  };
+  const keys=getTypeFieldKeys(typeKey);
+  keys.forEach(key=>{ const el=g(`f-field-${key}`); if(el) snapshot.fields[key]=el.value||''; });
+  return snapshot;
+}
+function applyFormSnapshot(snapshot){
+  if(!snapshot||typeof snapshot!=='object') return;
+  if(g('fti')) g('fti').value=snapshot.title||'';
+  if(g('fpath')) g('fpath').value=snapshot.path||'';
+  if(snapshot.domain) setSelectedValues('fs2',[snapshot.domain]);
+  Object.entries(snapshot.fields||{}).forEach(([key,val])=>{ const el=g(`f-field-${key}`); if(el) el.value=val; });
+}
+
 function collectFormValuesByType(typeKey){
   const result={question:'',answer:'',prompt:'',application:'',body:'',detail:'',todos:[],extraFields:{}};
   getTypeFieldKeys(typeKey).forEach(key=>{
@@ -307,13 +329,14 @@ function collectFormValuesByType(typeKey){
   });
   return result;
 }
-function renderDynamicFields(typeKey,note=null){
+function renderDynamicFields(typeKey,note=null,snapshot=null){
   const wrap=g('dynamicFields'); if(!wrap) return;
   const keys=getTypeFieldKeys(typeKey);
   wrap.innerHTML=keys.map(key=>{
     const def=getFieldDef(key);
     const isText=def.kind==='text';
-    const value=note?noteFieldValueForEdit(note,key):'';
+    const snapValue=snapshot&&snapshot.fields&&Object.prototype.hasOwnProperty.call(snapshot.fields,key)?snapshot.fields[key]:null;
+    const value=snapValue!==null?safeStr(snapValue):(note?noteFieldValueForEdit(note,key):'');
     return `<div class="type-field-item"><div class="type-field-title"><label class="type-field-label" for="f-field-${key}">${def.label}</label><div style="display:flex;align-items:center;gap:8px;"><button class="tool-btn mini-btn clear-field-btn" data-clear-target="f-field-${key}" type="button">清空</button><button class="tool-btn mini-btn copy-field-btn" data-copy-target="f-field-${key}" type="button">複製</button><button class="tool-btn mini-btn rename-field-btn" data-rename-field="${key}" type="button">改名</button>${!BUILTIN_FIELD_DEFS[key]?`<button class="type-field-remove" data-remove-custom="${key}" type="button">刪除此自訂欄位</button>`:''}</div></div>${isText?`<input class="fi" id="f-field-${key}" placeholder="${def.placeholder||''}" value="${value.replace(/"/g,'&quot;')}">`:`<textarea class="ft field-textarea" id="f-field-${key}" placeholder="${def.placeholder||''}" ${key==='todos'?'style="min-height:96px;"':''}>${value}</textarea>`}</div>`;
   }).join('');
   bindFormClearButtons();
@@ -323,12 +346,15 @@ function renderDynamicFields(typeKey,note=null){
     const key=btn.dataset.removeCustom;
     const typeCfg=getTypeFieldKeys(typeKey).filter(k=>k!==key);
     typeFieldConfigs[typeKey]=typeCfg;
+    saveNoteDraftFromForm();
     saveData();
-    renderDynamicFields(typeKey,note);
+    renderDynamicFields(typeKey,note,getCurrentFormSnapshot());
     showToast('已刪除欄位');
   }));
 }
 function addTypeFieldForCurrentType(){
+  saveNoteDraftFromForm();
+  const snapshot=getCurrentFormSnapshot();
   const typeKey=g('ft')?.value;
   if(!typeKey) return;
   const current=getTypeFieldKeys(typeKey);
@@ -350,7 +376,8 @@ function addTypeFieldForCurrentType(){
   if(current.includes(key)){showToast('此欄位已存在');return;}
   typeFieldConfigs[typeKey]=[...current,key];
   saveData();
-  renderDynamicFields(typeKey,editMode&&openId?noteById(openId):null);
+  renderDynamicFields(typeKey,editMode&&openId?noteById(openId):null,snapshot);
+  applyFormSnapshot(snapshot);
   showToast('欄位已新增');
 }
 function editTypeFieldsForCurrentType(){
@@ -365,6 +392,8 @@ function editTypeFieldsForCurrentType(){
   else showToast('請輸入 add 或 remove');
 }
 function removeTypeFieldForCurrentType(){
+  saveNoteDraftFromForm();
+  const snapshot=getCurrentFormSnapshot();
   const typeKey=g('ft')?.value;
   if(!typeKey) return;
   const current=getTypeFieldKeys(typeKey);
@@ -376,7 +405,8 @@ function removeTypeFieldForCurrentType(){
   if(!current.includes(key)){showToast('找不到該欄位');return;}
   typeFieldConfigs[typeKey]=current.filter(k=>k!==key);
   saveData();
-  renderDynamicFields(typeKey,editMode&&openId?noteById(openId):null);
+  renderDynamicFields(typeKey,editMode&&openId?noteById(openId):null,snapshot);
+  applyFormSnapshot(snapshot);
   showToast('欄位已刪除');
 }
 async function saveNote() {
@@ -504,9 +534,9 @@ function saveNoteDraftFromForm(){
   if(!((editMode||draftNoteId)&&openId)) return;
   const target=mapNodeById(openId);
   if(!target) return;
-  const title=(g('fti').value||'').trim();
+  const rawTitle=(g('fti').value||'');
+  const title=rawTitle.trim();
   if(target.isDraft&&!currentFormHasDraftContent()) return;
-  if(!target.isDraft&&!title) return;
   const typeKey=g('ft').value;
   const path=resolveInheritedPath(g('fpath').value||'');
   const fieldData=collectFormValuesByType(typeKey);
@@ -514,7 +544,7 @@ function saveNoteDraftFromForm(){
   const selectedSubs=selectedValues('fs2').slice(0,1);
   const effectiveDomain=selectedSubs[0]||fallbackDomain;
   const normalizedSubs=effectiveDomain?[effectiveDomain]:[];
-  const updated=normalizeNoteSchema({...target,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
+  const updated=normalizeNoteSchema({...target,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title:title||'',path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
   Object.assign(target,updated);
   if(target.isDraft) target.isDraft=true; else delete target.isDraft;
   savePathChange({mode:'draft'});
