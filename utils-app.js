@@ -429,13 +429,12 @@ const flushDraftSave = async () => {
   if(_draftSavePromise) return _draftSavePromise;
   return null;
 };
-const savePathChange = ({mode='final'}={}) => {
+const savePathChange = async ({mode='final'}={}) => {
   if(mode==='draft'){
-    queueDraftImmediateSave();
-    return;
+    return queueDraftImmediateSave();
   }
-  flushDeferredSave();
-  saveData();
+  await flushDeferredSave();
+  return await saveData();
 };
 const typeByKey = k => k?(types.find(t=>t.key===k)||{key:k,label:k,color:'#888'}):{key:'',label:'無',color:'#888'};
 const subByKey = k => k?(domains.find(s=>s.key===k)||{key:k,label:k,color:'#888'}):{key:'',label:'無',color:'#888'};

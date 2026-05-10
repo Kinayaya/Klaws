@@ -153,7 +153,6 @@ function closeForm() {
     draftNoteId=null;
   }
   g('fp').classList.remove('open');
-  if(_saveTimer){ clearTimeout(_saveTimer); _saveTimer=null; }
   editMode=false;
   formMode='note';
   syncFormModeVisibility();
@@ -380,7 +379,11 @@ function removeTypeFieldForCurrentType(){
   renderDynamicFields(typeKey,editMode&&openId?noteById(openId):null);
   showToast('欄位已刪除');
 }
-function saveNote() {
+async function saveNote() {
+  const saveBtn=g('fpSave');
+  if(saveBtn&&saveBtn.disabled) return;
+  if(saveBtn) saveBtn.disabled=true;
+  try{
   const title=(g('fti').value||'').trim();
   if(!title){g('fti').style.borderColor='#FF3B30';showToast('請輸入標題');return;}
   g('fti').style.borderColor='';
@@ -430,7 +433,9 @@ function saveNote() {
     }
     refreshAchievementProgress();
     draftNoteId=null;
-    savePathChange();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`筆記已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
+    const result=await savePathChange();
+    if(!result||result.ok===false){ showToast('儲存失敗，請稍後重試'); return; }
+    closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`筆記已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     if(isMapOpen) setTimeout(()=>openNote(saved.id),120);
     else setTimeout(()=>{window.scrollTo(0,0);setTimeout(()=>openNote(saved.id),300);},100);
     return;
@@ -462,7 +467,9 @@ function saveNote() {
         Object.assign(target,{type:typeKey,domain:primaryDomain,domains:[...normalizedSubs],group:'',groups:[],part:'',parts:[]});
       });
     }
-    savePathChange();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
+    const result=await savePathChange();
+    if(!result||result.ok===false){ showToast('儲存失敗，請稍後重試'); return; }
+    closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     setTimeout(()=>openNote(openId),150);
   } else {
     const d=new Date(),dt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -483,9 +490,14 @@ function saveNote() {
     }
     openId=created.id;
     const mentionAdded=autoLinkMentionsForNote(created);
-    savePathChange();closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
+    const result=await savePathChange();
+    if(!result||result.ok===false){ showToast('儲存失敗，請稍後重試'); return; }
+    closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     if(isMapOpen) setTimeout(()=>openNote(created.id),120);
     else setTimeout(()=>{window.scrollTo(0,0);setTimeout(()=>openNote(notes[0].id),300);},100);
+  }
+  } finally {
+    if(saveBtn) saveBtn.disabled=false;
   }
 }
 function saveNoteDraftFromForm(){

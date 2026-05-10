@@ -81,7 +81,7 @@ test('createDataStorageApi composes migration/fallback/shard APIs', async ()=>{
   assert.equal(drift.ok,false);
   assert.equal(drift.issues.some(i=>i.type==='uid-conflict'),true);
 
-  const wrote=await api.writeLocalFallbackPayload(api.buildFallbackMeta({idbFailed:false}),true);
+  const wrote=await api.writeLocalFallbackPayload({meta:api.buildFallbackMeta({idbFailed:false}),payload:{notes:[]}},true);
   assert.equal(wrote,true);
 
   const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},levelSystem:{},rev:10};

@@ -7,9 +7,9 @@ const formJs = fs.readFileSync('./form.js','utf8');
 const mapJs = fs.readFileSync('./map-logic.js','utf8');
 
 test('path structural changes use immediate persistence helper', ()=>{
-  assert.match(utilsJs,/const savePathChange = \(\{mode='final'\}=\{\}\) => \{/);
-  assert.match(utilsJs,/if\(mode==='draft'\)\{\s*queueDraftImmediateSave\(\);/);
-  assert.match(utilsJs,/flushDeferredSave\(\);\s*saveData\(\);/);
+  assert.match(utilsJs,/const savePathChange = async \(\{mode='final'\}=\{\}\) => \{/);
+  assert.match(utilsJs,/if\(mode==='draft'\)\{\s*return queueDraftImmediateSave\(\);/);
+  assert.match(utilsJs,/await flushDeferredSave\(\);\s*return await saveData\(\);/);
 });
 
 test('form path draft updates are deferred and provide flush snapshot hook', ()=>{

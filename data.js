@@ -75,7 +75,7 @@ const dataStorageApi=window.KlawsData.createDataStorageApi({
 
 const EMERGENCY_SNAPSHOT_KEY='klaws_emergency_snapshot_v1';
 const EMERGENCY_FULL_PAYLOAD_KEY='klaws_emergency_full_payload_v1';
-const EMERGENCY_SNAPSHOT_VERSION=1;
+const EMERGENCY_SNAPSHOT_VERSION=2;
 const EMERGENCY_FULL_PAYLOAD_VERSION=1;
 
 function buildEmergencySnapshot(payload){
@@ -86,7 +86,8 @@ function buildEmergencySnapshot(payload){
     snapshotAt:nowIso,
     payloadUpdatedAt:typeof src.updatedAt==='string'?src.updatedAt:nowIso,
     notes:Array.isArray(src.notes)?src.notes.map(n=>({uid:safeStr(n.uid),id:n.id,path:safeStr(n.path)})):[],
-    mapAuxNodes:Array.isArray(src.mapAuxNodes)?src.mapAuxNodes.map(n=>({uid:safeStr(n.uid),id:n.id,path:safeStr(n.path)})):[]
+    mapAuxNodes:Array.isArray(src.mapAuxNodes)?src.mapAuxNodes.map(n=>({uid:safeStr(n.uid),id:n.id,path:safeStr(n.path)})):[],
+    payload:removeTransientPayloadFields(src)
   };
 }
 function writeEmergencySnapshotSync(payload){
@@ -145,9 +146,17 @@ function isEmergencyFullPayloadNewer(basePayload,emergencyPayload){
 }
 function mergeEmergencyPathSnapshot(payload,snapshot){
   const base=(payload&&typeof payload==='object')?payload:{};
-  if(!snapshot||snapshot.version!==EMERGENCY_SNAPSHOT_VERSION) return {payload:base,applied:false};
+  if(!snapshot||typeof snapshot!=='object') return {payload:base,applied:false};
   const snapshotTs=Date.parse(snapshot.snapshotAt||snapshot.payloadUpdatedAt||'');
   const payloadTs=Date.parse(base.updatedAt||'');
+  const snapshotRev=parseRev(snapshot&&snapshot.payload&&snapshot.payload.rev);
+  const baseRev=parseRev(base&&base.rev);
+  if(snapshot.version>=2&&snapshot.payload&&typeof snapshot.payload==='object'){
+    if((snapshotRev&&snapshotRev>baseRev)||(!baseRev&&Number.isFinite(snapshotTs)&&(!Number.isFinite(payloadTs)||snapshotTs>payloadTs))){
+      return {payload:{...snapshot.payload},applied:true};
+    }
+  }
+  if(snapshot.version!==1&&snapshot.version!==2) return {payload:base,applied:false};
   if(Number.isFinite(payloadTs)&&Number.isFinite(snapshotTs)&&snapshotTs<=payloadTs) return {payload:base,applied:false};
   const applyPaths=(list,snaps)=>{
     if(!Array.isArray(list)||!Array.isArray(snaps)||!snaps.length) return list;
@@ -192,6 +201,13 @@ async function loadData() {
     if(!d){
       d=await readJSONAsync(SKEY,null);
       loadedFromLegacyBlob=!!d;
+    }
+    const fallbackRecord=await dataStorageApi.readFallbackPayload();
+    const fallbackPayload=(fallbackRecord&&typeof fallbackRecord==='object'&&fallbackRecord.payload&&typeof fallbackRecord.payload==='object')?fallbackRecord.payload:null;
+    if((!d||!Object.keys(d).length)&&fallbackPayload){
+      d=fallbackPayload;
+    }else if(fallbackPayload&&isEmergencyFullPayloadNewer(d,fallbackPayload)){
+      d=fallbackPayload;
     }
     const emergencyFullPayload=readFullEmergencyPayloadSync();
     let loadedFromEmergencyFull=false;
@@ -304,7 +320,7 @@ async function loadData() {
       mapPageStack=normalizeMapPageStack(d.mapPageStack);
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
-      await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}), true);
+      await dataStorageApi.writeLocalFallbackPayload({meta:dataStorageApi.buildFallbackMeta({idbFailed:false}),payload:removeTransientPayloadFields(d)}, true);
       if(loadedFromLegacyBlob||loadedFromEmergencyFull){
         await dataStorageApi.writeShardedPayloadParts(withRevision(getPayload()));
       }
@@ -450,7 +466,7 @@ async function saveDataCritical(opt={}) {
     await dataStorageApi.writeShardedPayloadParts(payload,{compareAndSet:true});
     lastPersistedRev=Math.max(lastPersistedRev,parseRev(payload.rev));
     idbHealthDegraded=false;
-    await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}));
+    await dataStorageApi.writeLocalFallbackPayload({meta:dataStorageApi.buildFallbackMeta({idbFailed:false}),payload:removeTransientPayloadFields(payload)});
     lastSavedPayloadRaw=nextRaw;
     lastSavedContentPayloadRaw=nextContentRaw;
     saveStatus={state:'saved',lastSuccessAt:Date.now()};
@@ -462,7 +478,7 @@ async function saveDataCritical(opt={}) {
     const code=err&&err.code?err.code:(storageAdapter.isQuotaErr(err)?'QUOTA_EXCEEDED':'IDB_WRITE_FAILED');
     console.warn('[saveData-idb-failed]',{code,key:SKEY,bytes:nextRaw.length,error:err});
     try{
-      await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:true}),true);
+      await dataStorageApi.writeLocalFallbackPayload({meta:dataStorageApi.buildFallbackMeta({idbFailed:true}),payload:removeTransientPayloadFields(payload)},true);
     }catch(fallbackErr){
       console.warn('[saveData-fallback-failed]',fallbackErr);
     }

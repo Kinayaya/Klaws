@@ -36,16 +36,14 @@ test('writeLocalFallbackPayload falls back to local store when IDB write fails',
     removeLocal:()=>{}
   });
 
-  const written=await api.writeLocalFallbackPayload(api.buildFallbackMeta({idbFailed:true}),true);
+  const fullPayload={notes:[{id:1,title:'fallback'}],rev:77,updatedAt:'2026-05-10T00:00:00.000Z'};
+  const written=await api.writeLocalFallbackPayload({meta:api.buildFallbackMeta({idbFailed:true}),payload:fullPayload},true);
   assert.equal(written,true);
-  assert.deepEqual(local.get('klaws_payload_backup_v1::klaws.test'),{
-    version:1,
-    lastSaveAt:123,
-    idbFailed:true,
-    requiresManualRestore:true
-  });
+  assert.deepEqual(local.get('klaws_payload_backup_v1::klaws.test').meta,{version:1,lastSaveAt:123,idbFailed:true,requiresManualRestore:true});
+  assert.deepEqual(local.get('klaws_payload_backup_v1::klaws.test').payload,fullPayload);
   const payload=await api.readFallbackPayload();
-  assert.equal(payload.idbFailed,true);
+  assert.equal(payload.meta.idbFailed,true);
+  assert.equal(payload.payload.notes[0].title,'fallback');
 });
 
 test('migrateLegacyLocalFallbackToIdb restores legacy local payload into IDB metadata', async ()=>{
