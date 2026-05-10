@@ -74,7 +74,9 @@ const dataStorageApi=window.KlawsData.createDataStorageApi({
 
 
 const EMERGENCY_SNAPSHOT_KEY='klaws_emergency_snapshot_v1';
+const EMERGENCY_FULL_PAYLOAD_KEY='klaws_emergency_full_payload_v1';
 const EMERGENCY_SNAPSHOT_VERSION=1;
+const EMERGENCY_FULL_PAYLOAD_VERSION=1;
 
 function buildEmergencySnapshot(payload){
   const nowIso=new Date().toISOString();
@@ -93,6 +95,53 @@ function writeEmergencySnapshotSync(payload){
   }catch(e){
     console.error('[emergency-snapshot-write-failed]',e);
   }
+}
+function removeTransientPayloadFields(payload){
+  const base=(payload&&typeof payload==='object')?{...payload}:{};
+  delete base.nodePos;
+  delete base.mapOffX;
+  delete base.mapOffY;
+  delete base.mapScale;
+  delete base.mapCollapsed;
+  return base;
+}
+function buildEmergencyFullPayloadRecord(payload){
+  const fullPayload=removeTransientPayloadFields((payload&&typeof payload==='object')?payload:getPayload({includeTransient:false}));
+  const nowIso=new Date().toISOString();
+  return {
+    version:EMERGENCY_FULL_PAYLOAD_VERSION,
+    snapshotAt:nowIso,
+    payload:fullPayload&&typeof fullPayload==='object'?{...fullPayload,updatedAt:typeof fullPayload.updatedAt==='string'?fullPayload.updatedAt:nowIso}:fullPayload
+  };
+}
+function writeFullEmergencyPayloadSync(payload){
+  try{
+    localStorage.setItem(EMERGENCY_FULL_PAYLOAD_KEY,JSON.stringify(buildEmergencyFullPayloadRecord(payload)));
+    return true;
+  }catch(e){
+    const quota=storageAdapter&&typeof storageAdapter.isQuotaErr==='function'&&storageAdapter.isQuotaErr(e);
+    console.error('[emergency-full-payload-write-failed]',{key:EMERGENCY_FULL_PAYLOAD_KEY,quotaError:!!quota,error:e});
+    if(typeof showToast==='function') showToast(quota?'緊急完整備份失敗：瀏覽器儲存空間不足。請先匯出備份並清理空間。':'緊急完整備份失敗，請手動匯出備份。');
+    return false;
+  }
+}
+function readFullEmergencyPayloadSync(){
+  const record=readJSON(EMERGENCY_FULL_PAYLOAD_KEY,null);
+  if(!record||typeof record!=='object') return null;
+  if(record.version===EMERGENCY_FULL_PAYLOAD_VERSION&&record.payload&&typeof record.payload==='object') return record.payload;
+  return record.notes||record.links||record.nid?record:null;
+}
+function payloadFreshnessMeta(payload){
+  if(!payload||typeof payload!=='object') return {rev:0,updatedAtMs:0};
+  return {rev:parseRev(payload.rev),updatedAtMs:Date.parse(payload.updatedAt||'')||0};
+}
+function isEmergencyFullPayloadNewer(basePayload,emergencyPayload){
+  const emergency=payloadFreshnessMeta(emergencyPayload);
+  if(!emergency.rev&&!emergency.updatedAtMs) return false;
+  const base=payloadFreshnessMeta(basePayload);
+  if(emergency.rev&&base.rev&&emergency.rev!==base.rev) return emergency.rev>base.rev;
+  if(emergency.updatedAtMs&&base.updatedAtMs&&emergency.updatedAtMs!==base.updatedAtMs) return emergency.updatedAtMs>base.updatedAtMs;
+  return !base.rev&&!base.updatedAtMs;
 }
 function mergeEmergencyPathSnapshot(payload,snapshot){
   const base=(payload&&typeof payload==='object')?payload:{};
@@ -123,7 +172,9 @@ function mergeEmergencyPathSnapshot(payload,snapshot){
   };
 }
 function flushCriticalSnapshotSync(){
-  writeEmergencySnapshotSync(getPayload());
+  const payload=withRevision(getPayload({includeTransient:false}));
+  writeFullEmergencyPayloadSync(payload);
+  writeEmergencySnapshotSync(payload);
 }
 
 
@@ -141,6 +192,13 @@ async function loadData() {
     if(!d){
       d=await readJSONAsync(SKEY,null);
       loadedFromLegacyBlob=!!d;
+    }
+    const emergencyFullPayload=readFullEmergencyPayloadSync();
+    let loadedFromEmergencyFull=false;
+    if(isEmergencyFullPayloadNewer(d,emergencyFullPayload)){
+      d=emergencyFullPayload;
+      loadedFromEmergencyFull=true;
+      console.warn('[emergency-full-payload-restored]',{rev:d&&d.rev,updatedAt:d&&d.updatedAt});
     }
     if(d) {
       const emergencySnapshot=readJSON(EMERGENCY_SNAPSHOT_KEY,null);
@@ -247,7 +305,7 @@ async function loadData() {
       applyPanelDir(d.panelDir||getPanelDir());
       lastSavedPayloadRaw=JSON.stringify(getPayload());
       await dataStorageApi.writeLocalFallbackPayload(dataStorageApi.buildFallbackMeta({idbFailed:false}), true);
-      if(loadedFromLegacyBlob){
+      if(loadedFromLegacyBlob||loadedFromEmergencyFull){
         await dataStorageApi.writeShardedPayloadParts(withRevision(getPayload()));
       }
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
@@ -377,8 +435,10 @@ async function saveDataCritical(opt={}) {
     return {ok:false,store:'none',code:'IDENTITY_DRIFT_RISK',issues:invariant.issues};
   }
   let payload=withRevision(getPayload({includeTransient}));
+  const emergencyPayload=removeTransientPayloadFields(payload);
+  writeFullEmergencyPayloadSync(emergencyPayload);
   const nextContentRaw=JSON.stringify(buildContentPayload());
-  writeEmergencySnapshotSync(payload);
+  writeEmergencySnapshotSync(emergencyPayload);
   const nextRaw=JSON.stringify(payload);
   const saveStartedAt=performance.now();
   try{
