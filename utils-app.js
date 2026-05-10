@@ -375,12 +375,59 @@ const flushDeferredSave = async () => {
 };
 const DRAFT_SAVE_THROTTLE_MS = 100;
 let _draftSaveTimer = null;
+let _draftSavePromise = null;
+let _draftSaveResolve = null;
+const runDraftSave = async () => {
+  try {
+    const result=await saveData({includeTransient:false});
+    if(result&&result.ok===false) showToast('草稿尚未寫入，請勿關閉');
+    return result;
+  } catch(err){
+    showToast('草稿尚未寫入，請勿關閉');
+    console.error('[draft-save-error]',err);
+    return {ok:false,store:'none',error:err,code:'DRAFT_SAVE_ERROR'};
+  }
+};
+const clearDraftSavePromise = promise => {
+  if(_draftSavePromise===promise){
+    _draftSavePromise=null;
+    _draftSaveResolve=null;
+  }
+};
+const resolveDraftSaveWith = savePromise => {
+  const pending=_draftSavePromise;
+  const resolve=_draftSaveResolve;
+  savePromise.then(result=>{ if(resolve) resolve(result); })
+    .finally(()=>clearDraftSavePromise(pending));
+  return pending||savePromise;
+};
 const queueDraftImmediateSave = () => {
-  if(_draftSaveTimer) return;
-  _draftSaveTimer=setTimeout(()=>{
+  if(_draftSaveTimer) return _draftSavePromise;
+  if(_draftSavePromise){
+    let promise;
+    promise=_draftSavePromise.then(()=>runDraftSave()).finally(()=>clearDraftSavePromise(promise));
+    _draftSavePromise=promise;
+    return promise;
+  }
+  let promise;
+  promise=new Promise(resolve=>{
+    _draftSaveResolve=resolve;
+    _draftSaveTimer=setTimeout(()=>{
+      _draftSaveTimer=null;
+      resolveDraftSaveWith(runDraftSave());
+    },DRAFT_SAVE_THROTTLE_MS);
+  });
+  _draftSavePromise=promise;
+  return promise;
+};
+const flushDraftSave = async () => {
+  if(_draftSaveTimer){
+    clearTimeout(_draftSaveTimer);
     _draftSaveTimer=null;
-    saveData({includeTransient:false});
-  },DRAFT_SAVE_THROTTLE_MS);
+    resolveDraftSaveWith(runDraftSave());
+  }
+  if(_draftSavePromise) return _draftSavePromise;
+  return null;
 };
 const savePathChange = ({mode='final'}={}) => {
   if(mode==='draft'){

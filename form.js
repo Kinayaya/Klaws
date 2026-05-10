@@ -511,6 +511,7 @@ async function flushNoteDraftSnapshot(){
   if(!((editMode||draftNoteId)&&openId)) return;
   saveNoteDraftFromForm();
   await flushDeferredSave();
+  await flushDraftSave();
 }
 
 function duplicateNote(targetId=openId) {
