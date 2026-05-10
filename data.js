@@ -79,6 +79,7 @@ const EMERGENCY_SNAPSHOT_KEY='klaws_emergency_snapshot_v1';
 const EMERGENCY_FULL_PAYLOAD_KEY='klaws_emergency_full_payload_v1';
 const EMERGENCY_SNAPSHOT_VERSION=2;
 const EMERGENCY_FULL_PAYLOAD_VERSION=1;
+const EMERGENCY_SNAPSHOT_PAYLOAD_SOFT_LIMIT=350*1024;
 
 function buildEmergencySnapshot(payload){
   const nowIso=new Date().toISOString();
@@ -92,24 +93,37 @@ function buildEmergencySnapshot(payload){
     payload:removeTransientPayloadFields(src)
   };
 }
+function isQuotaExceededError(err){
+  if(storageAdapter&&typeof storageAdapter.isQuotaErr==='function'){
+    try{ if(storageAdapter.isQuotaErr(err)) return true; }catch(_){ }
+  }
+  const name=safeStr(err&&err.name);
+  const msg=safeStr(err&&err.message);
+  const code=Number(err&&err.code);
+  return name==='QuotaExceededError' || name==='NS_ERROR_DOM_QUOTA_REACHED' || code===22 || code===1014 || /quota/i.test(msg);
+}
 function writeEmergencySnapshotSync(payload){
   const snapshot=buildEmergencySnapshot(payload);
+  const rawPayload=JSON.stringify(snapshot.payload||{});
+  const shouldCompact=rawPayload.length>EMERGENCY_SNAPSHOT_PAYLOAD_SOFT_LIMIT;
+  const record=shouldCompact?{...snapshot,payload:null,compacted:true}:snapshot;
   try{
-    localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(snapshot));
+    localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(record));
+    return;
   }catch(e){
-    const quota=storageAdapter&&typeof storageAdapter.isQuotaErr==='function'&&storageAdapter.isQuotaErr(e);
-    if(quota){
+    const quota=isQuotaExceededError(e);
+    if(quota&&!shouldCompact){
       try{
         const compact={...snapshot,payload:null,compacted:true};
         localStorage.setItem(EMERGENCY_SNAPSHOT_KEY,JSON.stringify(compact));
-        console.warn('[emergency-snapshot-write-compacted]',{key:EMERGENCY_SNAPSHOT_KEY,error:e});
+        console.warn('[emergency-snapshot-write-compacted]',{key:EMERGENCY_SNAPSHOT_KEY,reason:'quota',bytes:rawPayload.length});
         return;
       }catch(compactErr){
         console.error('[emergency-snapshot-write-failed]',{key:EMERGENCY_SNAPSHOT_KEY,quotaError:true,error:compactErr});
         return;
       }
     }
-    console.error('[emergency-snapshot-write-failed]',{key:EMERGENCY_SNAPSHOT_KEY,quotaError:false,error:e});
+    console.error('[emergency-snapshot-write-failed]',{key:EMERGENCY_SNAPSHOT_KEY,quotaError:quota,error:e});
   }
 }
 function removeTransientPayloadFields(payload){
