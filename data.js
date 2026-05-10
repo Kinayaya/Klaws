@@ -317,8 +317,11 @@ async function runCloudSyncPushScheduler(){
   clearCloudSyncPushRetryTimer();
   if(!cloudSyncEnabled) return true;
   if(!hasActiveGoogleDriveSession()){
-    enterCloudSyncAuthorizationPending('授權已過期，請重新登入 Google 雲端');
-    return true;
+    const token=await ensureGoogleAccessToken(false);
+    if(!token){
+      enterCloudSyncAuthorizationPending(googleSyncLastError||'授權已過期，請重新登入 Google 雲端');
+      return true;
+    }
   }
   const waitMs=Math.max(0,cloudSyncPushLastStartedAt+CLOUD_SYNC_PUSH_MIN_INTERVAL_MS-Date.now());
   if(waitMs>0){
@@ -1175,10 +1178,20 @@ async function ensureGoogleAccessToken(forcePrompt=false){
   const now=Date.now();
   if(googleAccessToken&&now<googleTokenExpireAt-5000) return googleAccessToken;
   const ready=await ensureGoogleIdentityClient();
-  if(!ready){showToast('Google SDK 載入失敗');return '';}
+  if(!ready){
+    googleSyncLastError='Google SDK 載入失敗';
+    updateCloudSyncStatus();
+    if(forcePrompt) showToast(googleSyncLastError);
+    return '';
+  }
   let clientId=getGoogleDriveClientId();
-  if(!clientId) clientId=await askGoogleDriveClientId();
-  if(!clientId){showToast('未設定 Google Client ID');return '';}
+  if(!clientId&&forcePrompt) clientId=await askGoogleDriveClientId();
+  if(!clientId){
+    googleSyncLastError='未設定 Google Client ID';
+    updateCloudSyncStatus();
+    if(forcePrompt) showToast(googleSyncLastError);
+    return '';
+  }
   const tokenClient=google.accounts.oauth2.initTokenClient({
     client_id:clientId,
     scope:'https://www.googleapis.com/auth/drive.file',
@@ -1200,10 +1213,11 @@ async function ensureGoogleAccessToken(forcePrompt=false){
       if(resp&&resp.error){
         googleSyncLastError=cloudSyncErrorText(resp.error_description||resp.error);
         logCloudSync('error','token callback error:',resp);
-        updateCloudSyncStatus();
       }else{
+        googleSyncLastError='授權已過期，請重新登入 Google 雲端';
         logCloudSync('warn','token callback without access_token',resp||'');
       }
+      updateCloudSyncStatus();
       settled=true;
       resolve('');
     };
@@ -1212,29 +1226,43 @@ async function ensureGoogleAccessToken(forcePrompt=false){
         googleSyncLastError=cloudSyncErrorText(err);
         logCloudSync('error','token error callback:',err);
         updateCloudSyncStatus();
+        settled=true;
         resolve('');
       }
     };
     logCloudSync('info','requestAccessToken', { prompt: promptValue||'(silent)' });
-    tokenClient.requestAccessToken({prompt:promptValue,hint:''});
+    try{
+      tokenClient.requestAccessToken({prompt:promptValue,hint:''});
+    }catch(err){
+      if(!settled){
+        googleSyncLastError=cloudSyncErrorText(err);
+        logCloudSync('error','token request failed:',err);
+        updateCloudSyncStatus();
+        settled=true;
+        resolve('');
+      }
+    }
   });
-  if(forcePrompt) return await requestToken('consent');
-  const silentToken=await requestToken('');
-  if(silentToken) return silentToken;
-  return await requestToken('consent');
+  return await requestToken(forcePrompt?'consent':'');
+}
+async function fetchGoogleDriveWithAuth(url,opt={}){
+  const token=await ensureGoogleAccessToken(false);
+  if(!token) throw new Error(googleSyncLastError||'no token');
+  return await fetch(url,{
+    ...opt,
+    headers:{
+      Authorization:`Bearer ${token}`,
+      ...(opt.headers||{})
+    }
+  });
 }
 async function driveApiRequest(path,opt={}){
   logCloudSync('info','Drive request',opt.method||'GET',path);
-  const token=await ensureGoogleAccessToken(false);
-  if(!token) throw new Error(googleSyncLastError||'no token');
   let res=null;
   try{
-    res=await fetch(`https://www.googleapis.com/drive/v3/${path}`,{
+    res=await fetchGoogleDriveWithAuth(`https://www.googleapis.com/drive/v3/${path}`,{
       method:opt.method||'GET',
-      headers:{
-        Authorization:`Bearer ${token}`,
-        ...(opt.headers||{})
-      },
+      headers:opt.headers||{},
       body:opt.body
     });
   }catch(fetchErr){
@@ -1277,14 +1305,11 @@ async function uploadPayloadToDrive(payload){
   const baseUrl=fileId
     ?`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
     :'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-  const token=await ensureGoogleAccessToken(false);
-  if(!token) throw new Error(googleSyncLastError||'no token');
   let res=null;
   try{
-    res=await fetch(baseUrl,{
+    res=await fetchGoogleDriveWithAuth(baseUrl,{
       method:fileId?'PATCH':'POST',
       headers:{
-        Authorization:`Bearer ${token}`,
         'Content-Type':`multipart/related; boundary=${boundary}`
       },
       body
@@ -1301,13 +1326,9 @@ async function downloadPayloadFromDrive(){
   ensureCloudRuntimeSupported();
   const fileId=await findDriveSyncFileId();
   if(!fileId) return null;
-  const token=await ensureGoogleAccessToken(false);
-  if(!token) throw new Error(googleSyncLastError||'no token');
   let res=null;
   try{
-    res=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{
-      headers:{Authorization:`Bearer ${token}`}
-    });
+    res=await fetchGoogleDriveWithAuth(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
   }catch(fetchErr){
     throw new Error(`Download fetch failed: ${cloudSyncErrorText(fetchErr)} / ${cloudSyncErrorDetail(fetchErr)}`);
   }
@@ -1399,7 +1420,7 @@ async function cloudSyncPushNow(opts={}){
   }
 }
 async function loginGoogleDriveAndSync(){
-  const token=await ensureGoogleAccessToken(false);
+  const token=await ensureGoogleAccessToken(true);
   if(!token) return false;
   persistCloudSyncEnabled(true);
   const pulled=await scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:true,confirmBeforeApply:true});
