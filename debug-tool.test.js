@@ -61,3 +61,7 @@ test('shouldIgnoreRuntimeError filters known eruda init warning', ()=>{
 test('shouldIgnoreRuntimeError filters cross-origin masked script error noise', ()=>{
   assert.equal(shouldIgnoreRuntimeError({message:'Script error.',filename:'webkit-masked-url://hidden/:27'}),true);
 });
+
+test('shouldIgnoreRuntimeError filters null unhandled rejection noise', ()=>{
+  assert.equal(shouldIgnoreRuntimeError(null),true);
+});

@@ -65,7 +65,9 @@
       ? `${errorLike.message||''} ${errorLike.reason||''} ${errorLike.filename||''} ${errorLike.source||''}`
       : String(errorLike||'');
     const text=String(raw).toLowerCase();
-    return text.includes('eruda.init()') || (text.includes('script error')&&text.includes('webkit-masked-url://hidden/'));
+    if(text.includes('eruda.init()')) return true;
+    if(text.includes('webkit-masked-url://hidden/')) return true;
+    return text==='' || text==='null';
   }
 
   const api={ normalizeStack, formatErrorDetail, createDebugRuntime, bindDebugToggle, shouldIgnoreRuntimeError };
