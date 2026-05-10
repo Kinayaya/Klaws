@@ -88,7 +88,7 @@
 
   <!-- Form Panel -->
   <div class="panel" id="fp" data-allow-touch-default="1">
-    <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><div class="ph-inline-actions"><button class="fbtn bcl" id="fpCancel">取消</button><button class="fbtn bsv" id="fpSave">儲存</button><button class="fbtn bcl fp-side-action" id="fpDuplicateBtn" type="button" style="display:none;">複製筆記</button><button class="fbtn bcl fp-side-action" id="fpCopyBtn" type="button" style="display:none;">複製內容</button><button class="fbtn bcl fp-side-action" id="fpDeleteBtn" type="button" style="display:none;">刪除筆記</button></div><button class="pcls" id="fpClose">&#215;</button></div>
+    <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><div class="ph-inline-actions"><button class="fbtn bsv" id="fpSave">儲存</button><button class="fbtn bcl fp-side-action" id="fpDuplicateBtn" type="button" style="display:none;">複製筆記</button><button class="fbtn bcl fp-side-action" id="fpCopyBtn" type="button" style="display:none;">複製內容</button><button class="fbtn bcl fp-side-action" id="fpDeleteBtn" type="button" style="display:none;">刪除筆記</button></div><button class="pcls" id="fpClose">&#215;</button></div>
     <div class="form-section">
       <div class="form-section-title"><span>基本資料</span></div>
       <div class="f2col">
@@ -98,7 +98,7 @@
     </div>
     <div id="fpath-row" class="form-section" style="display:none;">
       <div class="form-section-title"><span>路徑</span></div>
-      <label class="flbl field-label-row">路徑 <button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="fpath">清空</button></label>
+      <div class="flbl field-label-row"><span>路徑</span><button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="fpath">清空</button></div>
       <input class="fi" id="fpath" placeholder="例如：民法 > 總則 > 法律行為 > 代理（之後可只輸入代理）">
       <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#475569;">
         <input type="checkbox" id="fpathInheritToggle">
@@ -496,6 +496,18 @@
     </div>
   </div>
 </div>
+
+<div id="cloudLoadConfirmModal" aria-hidden="true">
+  <div id="cloudLoadConfirmBox" role="dialog" aria-modal="true" aria-labelledby="cloudLoadConfirmTitle">
+    <h3 id="cloudLoadConfirmTitle">載入雲端存檔？</h3>
+    <p>偵測到 Google 雲端存檔。載入後會以雲端資料取代目前本機筆記資料。</p>
+    <div class="cloud-load-confirm-actions">
+      <button class="fbtn bcl" id="cloudLoadConfirmNoBtn" type="button">否</button>
+      <button class="fbtn bsv" id="cloudLoadConfirmYesBtn" type="button">載入</button>
+    </div>
+  </div>
+</div>
+
 <div id="focusTimerAlert">
   <div id="focusTimerAlertBox">
     <h3>⏰ 時間到！</h3>

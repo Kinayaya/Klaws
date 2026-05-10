@@ -351,10 +351,11 @@ async function scheduleCloudSyncAfterLocalSave(opts={}){
     mode='push',
     force=false,
     silent=true,
-    payload=null
+    payload=null,
+    confirmBeforeApply=false
   }=opts||{};
   if(mode==='pull'){
-    return await cloudSyncPullLatest({silent,force});
+    return await cloudSyncPullLatest({silent,force,confirmBeforeApply});
   }
   const nextPayload=(payload&&typeof payload==='object')?payload:getPayload();
   pushPayloadToBackend(nextPayload);
@@ -1316,10 +1317,35 @@ async function downloadPayloadFromDrive(){
   }
   return await res.json();
 }
+function requestCloudLoadConfirmation(){
+  const modal=g('cloudLoadConfirmModal');
+  const yesBtn=g('cloudLoadConfirmYesBtn');
+  const noBtn=g('cloudLoadConfirmNoBtn');
+  if(!modal||!yesBtn||!noBtn) return Promise.resolve(confirm('是否要載入雲端存檔？\n載入後會以雲端資料取代目前本機筆記資料。'));
+  return new Promise(resolve=>{
+    const finish=answer=>{
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+      yesBtn.onclick=null;
+      noBtn.onclick=null;
+      modal.onclick=null;
+      document.removeEventListener('keydown',onKeydown);
+      resolve(!!answer);
+    };
+    const onKeydown=e=>{ if(e.key==='Escape') finish(false); };
+    yesBtn.onclick=()=>finish(true);
+    noBtn.onclick=()=>finish(false);
+    modal.onclick=e=>{ if(e.target===modal) finish(false); };
+    document.addEventListener('keydown',onKeydown);
+    modal.setAttribute('aria-hidden','false');
+    modal.classList.add('open');
+    setTimeout(()=>yesBtn.focus(),0);
+  });
+}
 async function cloudSyncPullLatest(opts={}){
-  const {silent=false}=opts||{};
+  const {silent=false,confirmBeforeApply=false}=opts||{};
   try{
-    logCloudSync('info','pull start', { silent });
+    logCloudSync('info','pull start', { silent, confirmBeforeApply });
     googleSyncBusy=true;updateCloudSyncStatus();
     const remote=await downloadPayloadFromDrive();
     if(!remote){ if(!silent) showToast('雲端沒有可下載資料'); return false; }
@@ -1328,6 +1354,14 @@ async function cloudSyncPullLatest(opts={}){
     const localUpdatedAt=parseUpdatedAt(localPayload.updatedAt||'');
     if(remoteUpdatedAt<localUpdatedAt&&!silent){
       if(!confirm('雲端資料比本機舊，仍要覆蓋本機嗎？')) return false;
+    }
+    if(confirmBeforeApply){
+      const accepted=await requestCloudLoadConfirmation();
+      if(!accepted){
+        logCloudSync('info','pull cancelled by user before apply');
+        if(!silent) showToast('已取消載入雲端存檔');
+        return false;
+      }
     }
     const ok=applySnapshotRaw(JSON.stringify(remote));
     if(ok) googleSyncLastError='';
@@ -1368,7 +1402,7 @@ async function loginGoogleDriveAndSync(){
   const token=await ensureGoogleAccessToken(false);
   if(!token) return false;
   persistCloudSyncEnabled(true);
-  const pulled=await scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:true});
+  const pulled=await scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:true,confirmBeforeApply:true});
   if(pulled){
     showToast('已登入並自動載入最新雲端紀錄');
   }else{
