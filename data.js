@@ -16,7 +16,9 @@ let cloudSyncPushRetryCount=0;
 let cloudSyncPushRetryTimer=null;
 let cloudSyncPushPendingPayload=null;
 let lastSavedContentPayloadRaw='';
-let saveStatus={state:'idle',lastSuccessAt:0};
+let saveStatus={state:'idle',lastSuccessAt:0,errorCode:''};
+window.KlawsSaveStatus=saveStatus;
+function publishSaveStatus(next){ saveStatus={...saveStatus,...next}; window.KlawsSaveStatus=saveStatus; const el=g&&g('saveStatusIndicator'); if(el){ const m={saving:'儲存中',saved:'已儲存',failed:'儲存失敗',idle:'尚未儲存'}; el.textContent=m[saveStatus.state]||saveStatus.state; el.dataset.state=saveStatus.state; } }
 function buildContentPayload(){
   return {notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,rev:Number(window.__klawsDataRev)||0};
 }
@@ -469,7 +471,7 @@ async function saveDataCritical(opt={}) {
     await dataStorageApi.writeLocalFallbackPayload({meta:dataStorageApi.buildFallbackMeta({idbFailed:false}),payload:removeTransientPayloadFields(payload)});
     lastSavedPayloadRaw=nextRaw;
     lastSavedContentPayloadRaw=nextContentRaw;
-    saveStatus={state:'saved',lastSuccessAt:Date.now()};
+    publishSaveStatus({state:'saved',lastSuccessAt:Date.now(),errorCode:''});
     await scheduleCloudSyncAfterLocalSave({mode:'push',payload,silent:true});
     console.debug('[save-metrics]',{store:'primary-idb',bytes:nextRaw.length,latencyMs:Math.round(performance.now()-saveStartedAt)});
     return {ok:true,store:'idb'};
@@ -483,7 +485,7 @@ async function saveDataCritical(opt={}) {
       console.warn('[saveData-fallback-failed]',fallbackErr);
     }
     console.debug('[save-metrics]',{store:'fallback-localstorage',bytes:nextRaw.length,quotaError:storageAdapter.isQuotaErr(err)?'global_quota':'idb_error'});
-    saveStatus={state:'failed',lastSuccessAt:saveStatus.lastSuccessAt};
+    publishSaveStatus({state:'failed',lastSuccessAt:saveStatus.lastSuccessAt,errorCode:code});
     const result={ok:false,store:'local',error:err,code};
     try{
       window.dispatchEvent(new CustomEvent('klaws:save-failed',{detail:result}));
@@ -499,7 +501,7 @@ async function saveData(opt={}) {
     queuedSaveAfterHydration=true;
     return {ok:true,queued:true,store:'none'};
   }
-  saveStatus={state:'saving',lastSuccessAt:saveStatus.lastSuccessAt};
+  publishSaveStatus({state:'saving',lastSuccessAt:saveStatus.lastSuccessAt});
   saveChain=saveChain.then(async()=>{
     try {
       if(opt&&opt.contentOnly===true){

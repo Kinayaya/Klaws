@@ -106,3 +106,16 @@ test('flushing immediately after saveNoteDraftFromForm persists draft snapshot t
   assert.equal(target.isDraft,true);
   timers.forEach(clearTimeout);
 });
+
+
+test('switching type preserves detail via form snapshot',()=>{
+  assert.match(formJs,/function getCurrentFormSnapshot\(\)/);
+  assert.match(formJs,/function applyFormSnapshot\(snapshot\)/);
+  assert.match(initJs,/on\('ft','change',\(\)=>\{saveNoteDraftFromForm\(\);const snapshot/);
+  assert.match(formJs,/renderDynamicFields\(typeKey,note=null,snapshot=null\)/);
+});
+
+test('draft save allows empty title and still updates detail',()=>{
+  assert.doesNotMatch(formJs,/saveNoteDraftFromForm\(\)\{[\s\S]*if\(!target\.isDraft&&!title\) return;/);
+  assert.match(formJs,/title:title\|\|''/);
+});

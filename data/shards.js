@@ -20,7 +20,7 @@
     async function readShardedPayload(){
       const meta=await readJSONAsync(metaKey(),null);
       const shardNames=Array.isArray(meta&&meta.shards)?meta.shards.filter(n=>DATA_SHARD_GETTERS[n]):[];
-      if(!shardNames.length||!meta.version||!meta.checksumByShard) return null;
+      if(!shardNames.length||!meta.version||!meta.checksumByShard||meta.pending) return null;
       const payload={};
       for(const n of shardNames){
         const part=await readJSONAsync(key(n),null); if(!part||typeof part!=='object'||Array.isArray(part)) return null;
@@ -48,9 +48,13 @@
       }
       const next=buildMap(payload); const prev=(global.__klawsLastSavedShards&&typeof global.__klawsLastSavedShards==='object')?global.__klawsLastSavedShards:{};
       const writes=[]; const checksumByShard={};
-      names.forEach(n=>{ const raw=JSON.stringify(next[n]); checksumByShard[n]=checksum(raw); if(raw===JSON.stringify(prev[n])) return; writes.push(storageAdapter.primaryStore.set(key(n),next[n])); });
-      writes.push(storageAdapter.primaryStore.set(metaKey(),{version:2,shards:names,checksumByShard,updatedAt:new Date().toISOString(),rev:incomingRev||Date.now()}));
-      await Promise.all(writes); global.__klawsLastSavedShards=next;
+      names.forEach(n=>{ const raw=JSON.stringify(next[n]); checksumByShard[n]=checksum(raw); if(raw===JSON.stringify(prev[n])) return; writes.push({key:key(n),value:next[n]}); });
+      const pendingMeta={version:2,pending:true,shards:names,checksumByShard,updatedAt:new Date().toISOString(),rev:incomingRev||Date.now()};
+      await storageAdapter.primaryStore.set(metaKey(),pendingMeta);
+      if(storageAdapter.primaryStore&&typeof storageAdapter.primaryStore.setMany==='function') await storageAdapter.primaryStore.setMany(writes);
+      else await Promise.all(writes.map(w=>storageAdapter.primaryStore.set(w.key,w.value)));
+      await storageAdapter.primaryStore.set(metaKey(),{...pendingMeta,pending:false});
+      global.__klawsLastSavedShards=next;
     }
     return { readShardedPayload, writeShardedPayloadParts, readShardedMeta };
   }

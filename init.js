@@ -40,7 +40,7 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
   const viewController=bootstrapUI();
-  on('ft','change',()=>{renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null);syncFormHeaderLabels();});
+  on('ft','change',()=>{saveNoteDraftFromForm();const snapshot=typeof getCurrentFormSnapshot==='function'?getCurrentFormSnapshot():null;renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null,snapshot);if(typeof applyFormSnapshot==='function') applyFormSnapshot(snapshot);syncFormHeaderLabels();});
   on('fti','input',syncFormHeaderLabels);
   on('typeTriggerBtn','click',()=>g('ft')?.focus());
   on('titleTriggerBtn','click',()=>g('fti')?.focus());
@@ -215,7 +215,15 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
     })().finally(()=>{ flushBeforeUnloadInFlight=null; });
     return flushBeforeUnloadInFlight;
   };
-  document.addEventListener('visibilitychange',()=>{
+  
+  window.addEventListener('beforeunload',e=>{
+    const hasDraftDirty=(typeof currentFormHasDraftContent==='function'&&currentFormHasDraftContent());
+    if(hasDraftDirty||(window.KlawsSaveStatus&&window.KlawsSaveStatus.state==='failed')){
+      e.preventDefault();
+      e.returnValue='資料尚未保存';
+    }
+  });
+document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='hidden'){
       void flushAndPersistBeforeUnload();
       return;

@@ -203,6 +203,12 @@
       set: async (key,value,kind='core')=> {
         const res=await governedWrite({kind,store:'indexedDB',key,value});
         if(!res.ok) throw res.error;
+      },
+      setMany: async (entries,kind='core')=> {
+        for(const entry of entries||[]){
+          const res=await governedWrite({kind,store:'indexedDB',key:entry.key,value:entry.value});
+          if(!res.ok) throw res.error;
+        }
       }
     };
     const fallbackStore={
