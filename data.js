@@ -25,11 +25,11 @@ function buildContentPayload(){
   return {notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,examList,rev:Number(window.__klawsDataRev)||0};
 }
 function buildUiPayload(includeTransient=true){
-  const ui={nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),panelDir:getPanelDir()};
-  if(includeTransient){ ui.nodePos=nodePos;ui.mapOffX=mapOffX;ui.mapOffY=mapOffY;ui.mapScale=mapScale;ui.mapCollapsed=mapCollapsed; }
   // mapCollapsed: 節點卡片折疊（以節點 id 為 key）
   // mapTreeCollapsedPaths: 路徑樹折疊（以路徑字串為 key），兩者用途不同需分開持久化
-  ui.mapTreeCollapsedPaths=(mapTreeCollapsedPaths&&typeof mapTreeCollapsedPaths==='object'&&!Array.isArray(mapTreeCollapsedPaths))?mapTreeCollapsedPaths:{};
+  const safeMapTreeCollapsedPaths=(mapTreeCollapsedPaths&&typeof mapTreeCollapsedPaths==='object'&&!Array.isArray(mapTreeCollapsedPaths))?mapTreeCollapsedPaths:{};
+  const ui={nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapTreeCollapsedPaths:safeMapTreeCollapsedPaths,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),panelDir:getPanelDir()};
+  if(includeTransient){ ui.nodePos=nodePos;ui.mapOffX=mapOffX;ui.mapOffY=mapOffY;ui.mapScale=mapScale; }
   if(typeof mapTreeFilterQ==='string') ui.mapTreeFilterQ=mapTreeFilterQ;
   return ui;
 }
@@ -138,7 +138,6 @@ function removeTransientPayloadFields(payload){
   delete base.mapOffX;
   delete base.mapOffY;
   delete base.mapScale;
-  delete base.mapCollapsed;
   return base;
 }
 function buildEmergencyFullPayloadRecord(payload){
