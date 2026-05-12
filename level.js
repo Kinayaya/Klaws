@@ -1,58 +1,16 @@
-var { matchesQueryMode } = window.KLawsUtils;
+var { matchesQueryMode, matchesExactQuery } = window.KLawsUtils;
 function refreshAchievementProgress(){
-  if(typeof renderLevelSystemPage==='function' && g('levelSystemView')?.classList.contains('open')){
-    renderLevelSystemPage();
-  }
+  // Level System skill tracking has been removed.
 }
 
-function moveLevelItem(kind,idx,dir){
-  const arr=levelSystem[kind];
-  const target=idx+dir;
-  if(!arr?.[idx]||target<0||target>=arr.length) return;
-  [arr[idx],arr[target]]=[arr[target],arr[idx]];
-  saveData();renderLevelSystemPage();
-}
-function deleteLevelItem(kind,idx){
-  const mapLabel={skills:'技能'};
-  const arr=levelSystem[kind];
-  const item=arr?.[idx];
-  if(!item) return;
-  if(!confirm(`確定刪除${mapLabel[kind]}「${item.name||'未命名'}」？`)) return;
-  arr.splice(idx,1);
-  saveData();
-  renderLevelSystemPage();
-  showToast(`${mapLabel[kind]}已刪除`);
-}
-function renderLevelRows(kind){
-  const arr=levelSystem[kind]||[];
-  if(!arr.length) return '<div style="color:#9aa3b2;font-size:12px;">尚無資料，請先新增。</div>';
-  if(kind==='skills') return arr.map((skill,idx)=>{const need=skill.level>=100?0:skillXpRequired(skill.level);const pct=need?Math.round((skill.xp||0)/need*100):100;return `<div class="stats-bar-row"><span class="stats-bar-label" style="min-width:112px;">${escapeHtml(skill.name)} Lv.${skill.level} (${getSkillStage(skill.level)})</span><div class="stats-bar-bg"><div class="stats-bar-fill" style="width:${Math.max(0,Math.min(100,pct))}%;background:#3B6D11"></div></div><span class="stats-bar-count" style="min-width:64px;">${skill.level>=100?'MAX':`${skill.xp||0}/${need}`}</span><span class="level-list-row-actions"><button class="tool-btn" data-level-move="skills" data-idx="${idx}" data-dir="-1">↑</button><button class="tool-btn" data-level-move="skills" data-idx="${idx}" data-dir="1">↓</button><button class="tool-btn" data-level-del="skills" data-idx="${idx}">移除</button></span></div>`;}).join('');
-  return '<div style="color:#9aa3b2;font-size:12px;">此區塊已停用。</div>';
-}
-function resetSkillLevels(){
-  if(!levelSystem.skills.length){showToast('目前沒有技能可重置');return;}
-  if(!confirm('確定要重置全部技能等級與經驗值嗎？此動作無法復原。')) return;
-  levelSystem.skills.forEach(skill=>{skill.level=1;skill.xp=0;});
-  saveData();
-  renderLevelSystemPage();
-  showToast('已重置技能等級');
-}
-let levelSystemSection='skills';
 function renderLevelSystemPage(){
   const box=g('levelSystemPanel');
   if(!box) return;
-  normalizeLevelSystem();
-  const section={title:'技能（等級 / 經驗）',rows:renderLevelRows('skills'),toolbar:`<button class="tool-btn" id="addSkillBtn">+ 技能</button><button class="tool-btn" id="resetSkillBtn">重置技能</button>`};
-  g('levelSystemTitle').textContent=section.title;
-  let html=`<div style="margin-top:2px;padding:10px;border:1px solid #e8edf6;border-radius:10px;background:#f8fbff;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span style="font-size:12px;color:#445;">技能總數：<b>${(levelSystem.skills||[]).length}</b></span></div></div>`;
-  html+=`<div class="level-toolbar">${section.toolbar}</div>`;
-  html+=`<div class="level-part-title">${section.title}</div>${section.rows}`;
-  box.innerHTML=html;
-  g('addSkillBtn')?.addEventListener('click',addSkillItem);
-  g('resetSkillBtn')?.addEventListener('click',resetSkillLevels);
-  box.querySelectorAll('[data-level-move]').forEach(btn=>btn.addEventListener('click',()=>moveLevelItem(btn.dataset.levelMove,Number(btn.dataset.idx),Number(btn.dataset.dir))));
-  box.querySelectorAll('[data-level-del]').forEach(btn=>btn.addEventListener('click',()=>deleteLevelItem(btn.dataset.levelDel,Number(btn.dataset.idx))));
+  const title=g('levelSystemTitle');
+  if(title) title.textContent='等級系統已停用';
+  box.innerHTML='<div style="color:#64748b;font-size:13px;line-height:1.6;">等級系統的技能功能已移除。</div>';
 }
+
 function renderPathLists(){
   const panelRoot=g('tp');
   const panels=panelRoot?panelRoot.querySelectorAll('[data-category-panel]'):[];
@@ -92,7 +50,7 @@ function renderPathList(cid,arr,kind) {
   if(!el) return;
   const source=Array.isArray(arr)?arr:[];
   let list=source.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount(kind,item.key)}));
-  if(pathSearchQ) list=list.filter(item=>matchesQueryMode({query:pathSearchQ,candidates:[item.label||'',item.key||''],mode:window.__klawsSearchMode}));
+  if(pathSearchQ) list=list.filter(item=>matchesExactQuery({query:pathSearchQ,candidates:[item.label||'',item.key||'']}));
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的路徑）</div>';return;}
   el.innerHTML=list.map(item=>`<div class="tag-item ${kind==='sub'&&groupDomainFilter===item.key?'active-domain':''}" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="${kind}" ${kind==='sub'?`data-domain-key="${item.key}"`:''}><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div class="tag-color-dot" style="background:${item.color}"></div><span class="tag-item-label">${item.label}</span><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="${kind}" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="${kind}" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="${kind}" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="${kind}" data-del="1">🗑</button></div></div>`).join('');
   if(kind==='sub'){
@@ -304,12 +262,5 @@ function addPath(kind) {
   g(isType?'newTypeLabel':'newSubLabel').value='';
   saveData();renderPathLists();rebuildUI();showToast('路徑已新增！');
 }
-function addSkillItem(){
-  const name=safeStr(prompt('技能名稱：','法條理解力')||'').trim();
-  if(!name) return;
-  levelSystem.skills.push({id:Date.now()+Math.random(),name,level:1,xp:0});
-  saveData();renderLevelSystemPage();showToast('技能已新增');
-}
-
 function closeLevelEditor(){ g('levelEditorModal')?.classList.remove('open'); }
 function saveLevelEditor(){ closeLevelEditor(); }

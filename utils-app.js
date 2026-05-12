@@ -805,7 +805,7 @@ const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
 };
 const getPayload = (opt={}) => {
   const {includeTransient=true}=opt||{};
-  const payload={notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,examList,levelSystem,panelDir:getPanelDir(),rev:Number(window.__klawsDataRev)||0,updatedAt:new Date().toISOString()};
+  const payload={notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,examList,panelDir:getPanelDir(),rev:Number(window.__klawsDataRev)||0,updatedAt:new Date().toISOString()};
   if(includeTransient){
     payload.nodePos=nodePos;
     payload.mapOffX=mapOffX;
@@ -938,53 +938,7 @@ const formatUsageDuration = (startRaw,endRaw=new Date()) => {
 const usageMinutesSinceStart = () => Math.max(0,Math.floor((new Date()-new Date(ensureUsageStart()))/60000));
 const doneTodoCount = todos => (Array.isArray(todos)?todos:[]).filter(t=>t&&t.done&&safeStr(t.text).trim()).length;
 const difficultyRank=d=>({E:1,N:2,H:3}[d]||1);
-const skillXpRequired=level=>Math.round(28+Math.max(1,level)*10);
-const getSkillStage=(lvl=0)=>LEVEL_STAGES.find(s=>lvl>=s.min&&lvl<=s.max)?.rank||'E';
 
-function normalizeLevelSystem(){
-  const fallbackSettings={xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true};
-  if(!levelSystem||typeof levelSystem!=='object'||Array.isArray(levelSystem)) levelSystem={skills:[],settings:{...fallbackSettings}};
-  if(!Array.isArray(levelSystem.skills)) levelSystem.skills=[];
-  if(!levelSystem.settings||typeof levelSystem.settings!=='object'||Array.isArray(levelSystem.settings)) levelSystem.settings={...fallbackSettings};
-  const xpByDifficulty=(levelSystem.settings.xpByDifficulty&&typeof levelSystem.settings.xpByDifficulty==='object'&&!Array.isArray(levelSystem.settings.xpByDifficulty))
-    ? levelSystem.settings.xpByDifficulty
-    : {};
-  levelSystem.settings.xpByDifficulty={
-    E:Math.max(1,parseInt(xpByDifficulty.E,10)||fallbackSettings.xpByDifficulty.E),
-    N:Math.max(1,parseInt(xpByDifficulty.N,10)||fallbackSettings.xpByDifficulty.N),
-    H:Math.max(1,parseInt(xpByDifficulty.H,10)||fallbackSettings.xpByDifficulty.H)
-  };
-  if(typeof levelSystem.settings.xpBoost150Applied!=='boolean') levelSystem.settings.xpBoost150Applied=true;
-  levelSystem.skills=levelSystem.skills.filter(skill=>skill&&typeof skill==='object').map((skill,idx)=>({
-    ...skill,
-    id:(skill.id===undefined||skill.id===null)?`skill_${idx}_${Date.now()}`:skill.id,
-    name:safeStr(skill.name||'未命名技能').trim()||'未命名技能',
-    level:Math.max(1,Math.min(100,parseInt(skill.level,10)||1)),
-    xp:Math.max(0,parseInt(skill.xp,10)||0)
-  }));
-}
-
-
-
-const getSubtaskXpGain = difficulty => Math.max(1,levelSystem.settings.xpByDifficulty[difficulty]||Math.round(BASE_XP_BY_DIFFICULTY[difficulty||'N']*XP_BOOST_MULTIPLIER));
-function snapshotSkill(skill){
-  return {level:skill.level||1,xp:skill.xp||0};
-}
-function restoreSkill(skill,state){
-  if(!skill||!state) return;
-  skill.level=Math.max(0,Math.min(100,parseInt(state.level,10)||1));
-  skill.xp=Math.max(0,parseInt(state.xp,10)||0);
-}
-function gainSkillXp(skill,difficulty,gain){
-  skill.xp=(skill.xp||0)+Math.max(1,parseInt(gain,10)||0);
-  while(skill.level<100){
-    const need=skillXpRequired(skill.level);
-    if(skill.xp<need) break;
-    skill.xp-=need;
-    skill.level++;
-  }
-  if(skill.level>=100){skill.level=100;skill.xp=0;}
-}
 function hasInvalidOrDuplicateNoteIds() {
   const seen=new Set();
   for(const node of [...notes,...mapAuxNodes]){
