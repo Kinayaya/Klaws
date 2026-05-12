@@ -1,4 +1,12 @@
 var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.appState:null;
+const SEARCH_MODE_KEY='klaws_search_mode_v1';
+const getSearchMode=()=>window.__klawsSearchMode==='contains'?'contains':'exact';
+const applySearchMode=(mode)=>{
+  window.__klawsSearchMode=mode==='contains'?'contains':'exact';
+  const btn=g('searchModeToggle');
+  if(btn) btn.textContent=window.__klawsSearchMode==='contains'?'包含':'完全符合';
+  window.KLawsStorage?.governedWriteLocal?.(SEARCH_MODE_KEY,window.__klawsSearchMode,'ephemeral');
+};
 // ==================== 初始化 ====================
   window.addEventListener('load',async ()=>{
   try{
@@ -46,7 +54,8 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   on('titleTriggerBtn','click',()=>g('fti')?.focus());
   on('fieldConfigTriggerBtn','click',editTypeFieldsForCurrentType);
   if(g('fc')) on('fc','change',()=>syncPartSelect(selectedValues('fc'),selectedValues('fsec'),[]));
-  const si=g('searchInput'),sc=g('searchClear');
+  applySearchMode(localStorage.getItem(SEARCH_MODE_KEY)||'exact');
+  const si=g('searchInput'),sc=g('searchClear'),sm=g('searchModeToggle');
   if(si&&sc){
     si.addEventListener('input',debounce(()=>{
       if(appStateFacadeInit) appStateFacadeInit.setSearchQuery(si.value);
@@ -55,6 +64,11 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
       updateNotesHomeVisibility();render();
     },250));
     sc.addEventListener('click',()=>{si.value='';if(appStateFacadeInit) appStateFacadeInit.setSearchQuery('');searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
+    sm?.addEventListener('click',()=>{
+      applySearchMode(getSearchMode()==='exact'?'contains':'exact');
+      gridPage=1;
+      render();
+    });
   }else if(window.__KLawsDebugRuntime){
     window.__KLawsDebugRuntime.append('debug',[`[init-missing-element] searchInput/searchClear ${JSON.stringify({hasSearchInput:!!si,hasSearchClear:!!sc})}`]);
   }
