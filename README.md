@@ -26,3 +26,6 @@
 3. 開 PR-2：`feat/partition-b-form-update`（只改 `level.js` / `map-logic.js` / `form.js`）
 
 這樣能讓衝突定位更精準，也更容易 rollback 與 code review。
+
+
+> 註：本產品內的「任務」功能已移除；本文件中的「任務單」僅指開發工作項目（PR）。

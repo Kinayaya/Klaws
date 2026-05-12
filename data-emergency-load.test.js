@@ -43,7 +43,7 @@ function basePayload({title,detail,rev,updatedAt}){
     customFieldDefs:{},
     calendarEvents:[],
     calendarSettings:{emails:[]},
-    levelSystem:{skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}},
+    levelSystem:{skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}},
     rev,
     updatedAt
   };

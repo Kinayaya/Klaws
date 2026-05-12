@@ -63,20 +63,13 @@ let googleAccessToken='', googleTokenExpireAt=0, googleSyncBusy=false, googleSyn
 let cloudSyncEnabled=localStorage.getItem(typeof CLOUD_SYNC_ENABLED_KEY==='string'?CLOUD_SYNC_ENABLED_KEY:'klaws_cloud_sync_enabled_v1')==='1';
 const XP_BOOST_MULTIPLIER = 2.5;
 const BASE_XP_BY_DIFFICULTY = {E:12,N:22,H:36};
-let levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
-let levelTaskExpanded={}, levelEditorState={kind:'',idx:-1};
+let levelSystem={skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
+let levelEditorState={kind:'',idx:-1};
 const LEVEL_STAGES=[
   {min:0,max:20,rank:'E'},{min:21,max:40,rank:'F'},{min:41,max:50,rank:'D'},
   {min:51,max:60,rank:'C'},{min:61,max:70,rank:'B'},{min:71,max:80,rank:'B+'},
   {min:81,max:85,rank:'A'},{min:86,max:90,rank:'A+'},{min:91,max:98,rank:'S'},
   {min:99,max:99,rank:'SS'},{min:100,max:100,rank:'SSS'}
-];
-const TASK_REPEAT_OPTIONS=[
-  {key:'daily',label:'每日'},
-  {key:'every3days',label:'每三日'},
-  {key:'weekly',label:'每週'},
-  {key:'monthly',label:'每月'},
-  {key:'yearly',label:'每年'}
 ];
 let klawsCoreBridge=null;
 function resolveKLawsCore(explicitCore){

@@ -12,7 +12,7 @@ function moveLevelItem(kind,idx,dir){
   saveData();renderLevelSystemPage();
 }
 function deleteLevelItem(kind,idx){
-  const mapLabel={skills:'技能',tasks:'任務'};
+  const mapLabel={skills:'技能'};
   const arr=levelSystem[kind];
   const item=arr?.[idx];
   if(!item) return;
@@ -26,18 +26,7 @@ function renderLevelRows(kind){
   const arr=levelSystem[kind]||[];
   if(!arr.length) return '<div style="color:#9aa3b2;font-size:12px;">尚無資料，請先新增。</div>';
   if(kind==='skills') return arr.map((skill,idx)=>{const need=skill.level>=100?0:skillXpRequired(skill.level);const pct=need?Math.round((skill.xp||0)/need*100):100;const decay=getSkillDecayStatus(skill);const decayText=`距離衰退還有 ${decay.daysLeft} 日，需完成 ${decay.difficulty} 難度（逾期衰退 ${decay.levels} 級）`;return `<div class="stats-bar-row"><span class="stats-bar-label" style="min-width:112px;">${escapeHtml(skill.name)} Lv.${skill.level} (${getSkillStage(skill.level)})</span><div class="stats-bar-bg"><div class="stats-bar-fill" style="width:${Math.max(0,Math.min(100,pct))}%;background:#3B6D11"></div></div><span class="stats-bar-count" style="min-width:64px;">${skill.level>=100?'MAX':`${skill.xp||0}/${need}`}</span><span class="level-list-row-actions"><button class="tool-btn" data-level-move="skills" data-idx="${idx}" data-dir="-1">↑</button><button class="tool-btn" data-level-move="skills" data-idx="${idx}" data-dir="1">↓</button><button class="tool-btn" data-level-del="skills" data-idx="${idx}">移除</button></span></div><div class="level-subtext">${decayText}</div>`;}).join('');
-  if(kind==='tasks') return arr.map((task,idx)=>renderTaskRow(task,idx)).join('');
   return '<div style="color:#9aa3b2;font-size:12px;">此區塊已停用。</div>';
-}
-function renderTaskRow(task,idx){
-  const doneInCycle=isTaskCompletedInCurrentCycle(task);
-  const expanded=!!levelTaskExpanded[task.id];
-  const subtasks=Array.isArray(task.subtasks)?task.subtasks:[];
-  const subtasksHtml=subtasks.length?subtasks.map((sub,subIdx)=>{
-    const subDone=isSubtaskCompletedInCurrentCycle(task,sub);
-    return `<div class="level-subtask-item"><label class="level-subtask-left"><input type="checkbox" data-task-subtask-check="${idx}" data-sub-idx="${subIdx}" ${subDone?'checked':''}><span class="level-subtask-text ${subDone?'done':''}">${escapeHtml(sub.text)} [${sub.difficulty||task.difficulty}]</span></label><span class="level-subtask-actions"><button class="tool-btn" data-task-subtask-edit="${idx}" data-sub-idx="${subIdx}">編輯</button><button class="tool-btn" data-task-subtask-del="${idx}" data-sub-idx="${subIdx}">移除</button></span></div>`;
-  }).join(''):'<div style="font-size:12px;color:#94a3b8;">尚未建立小任務</div>';
-  return `<div class="level-task-card"><div class="stats-bar-row"><label style="display:flex;align-items:center;gap:8px;min-width:112px;"><input type="checkbox" data-task-check="${idx}" ${doneInCycle?'checked':''}><span class="level-task-name">${escapeHtml(task.name)} [${task.difficulty}]</span></label><div class="stats-bar-bg"><div class="stats-bar-fill" style="width:${Math.min(100,(task.completions||0)*8)}%;background:#9cb8d8"></div></div><span class="stats-bar-count" style="min-width:64px;">${task.completions||0} 次</span><span class="level-list-row-actions"><button class="tool-btn" data-task-expand="${idx}">${expanded?'收合':'展開'}</button><button class="tool-btn" data-task-edit="${idx}">編輯</button><button class="tool-btn" data-level-move="tasks" data-idx="${idx}" data-dir="-1">↑</button><button class="tool-btn" data-level-move="tasks" data-idx="${idx}" data-dir="1">↓</button><button class="tool-btn" data-level-del="tasks" data-idx="${idx}">移除</button></span></div><div class="level-subtext">重複：${getTaskRepeatLabel(task.repeatCycle)}</div>${expanded?`<div class="level-task-subtasks">${subtasksHtml}<div class="level-subtask-add"><input class="fi" data-task-subtask-input="${idx}" placeholder="新增小任務內容"><select class="fs" data-task-subtask-difficulty="${idx}"><option value="E" ${task.difficulty==='E'?'selected':''}>E</option><option value="N" ${task.difficulty==='N'?'selected':''}>N</option><option value="H" ${task.difficulty==='H'?'selected':''}>H</option></select><button class="tool-btn" data-task-subtask-add="${idx}">+ 小任務</button></div></div>`:''}</div>`;
 }
 function resetSkillLevels(){
   if(!levelSystem.skills.length){showToast('目前沒有技能可重置');return;}
@@ -47,26 +36,22 @@ function resetSkillLevels(){
   renderLevelSystemPage();
   showToast('已重置技能等級');
 }
-let levelSystemSection='tasks';
+let levelSystemSection='skills';
 function renderLevelSystemPage(){
   const box=g('levelSystemPanel');
   if(!box) return;
   normalizeLevelSystem();
   applySkillDecay();
-  const allTaskCount=(levelSystem.tasks||[]).reduce((sum,t)=>sum+(Number(t.completions)||0),0);
-  const sectionMap={tasks:{title:'任務（E/N/H）',rows:renderLevelRows('tasks'),toolbar:`<button class="tool-btn" id="addTaskBtn">+ 任務</button>`}};
-  const section=sectionMap.tasks;
+  const section={title:'技能（等級 / 經驗）',rows:renderLevelRows('skills'),toolbar:`<button class="tool-btn" id="addSkillBtn">+ 技能</button><button class="tool-btn" id="resetSkillBtn">重置技能</button>`};
   g('levelSystemTitle').textContent=section.title;
-  let html=`<div style="margin-top:2px;padding:10px;border:1px solid #e8edf6;border-radius:10px;background:#f8fbff;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span style="font-size:12px;color:#445;">任務完成：<b>${allTaskCount}</b> 次</span></div></div>`;
+  let html=`<div style="margin-top:2px;padding:10px;border:1px solid #e8edf6;border-radius:10px;background:#f8fbff;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span style="font-size:12px;color:#445;">技能總數：<b>${(levelSystem.skills||[]).length}</b></span></div></div>`;
   html+=`<div class="level-toolbar">${section.toolbar}</div>`;
   html+=`<div class="level-part-title">${section.title}</div>${section.rows}`;
   box.innerHTML=html;
-  g('addTaskBtn')?.addEventListener('click',addTaskItem);
+  g('addSkillBtn')?.addEventListener('click',addSkillItem);
+  g('resetSkillBtn')?.addEventListener('click',resetSkillLevels);
   box.querySelectorAll('[data-level-move]').forEach(btn=>btn.addEventListener('click',()=>moveLevelItem(btn.dataset.levelMove,Number(btn.dataset.idx),Number(btn.dataset.dir))));
   box.querySelectorAll('[data-level-del]').forEach(btn=>btn.addEventListener('click',()=>deleteLevelItem(btn.dataset.levelDel,Number(btn.dataset.idx))));
-  box.querySelectorAll('[data-task-edit]').forEach(btn=>btn.addEventListener('click',()=>editTaskItem(Number(btn.dataset.taskEdit))));
-  box.querySelectorAll('[data-task-expand]').forEach(btn=>btn.addEventListener('click',()=>toggleTaskExpand(Number(btn.dataset.taskExpand))));
-  box.querySelectorAll('[data-task-check]').forEach(checkbox=>checkbox.addEventListener('change',()=>toggleTaskCompletionFromCheckbox(Number(checkbox.dataset.taskCheck),checkbox.checked)));
 }
 function renderPathLists(){
   const panelRoot=g('tp');
@@ -337,128 +322,6 @@ function addSkillItem(){
   levelSystem.skills.push({id:Date.now()+Math.random(),name,level:1,xp:0,lastDoneByDiff:{},lastDecayAt:new Date().toISOString()});
   saveData();renderLevelSystemPage();showToast('技能已新增');
 }
-function addTaskItem(){
-  openLevelEditor('task');
-}
-function editTaskItem(idx){
-  openLevelEditor('task',idx);
-}
-function openLevelEditor(kind,idx=-1){
-  const modal=g('levelEditorModal'),box=g('levelEditorBox');
-  if(!modal||!box) return;
-  levelEditorState={kind,idx};
-  box.classList.toggle('task-mode',kind==='task');
-  if(kind==='task'){
-    const task=idx>=0?levelSystem.tasks[idx]:null;
-    g('levelEditorTitle').textContent=task?'編輯任務':'新增任務';
-    g('levelTaskName').value=task?.name||'';
-    g('levelTaskDifficulty').value=task?.difficulty||'N';
-    g('levelTaskRepeat').innerHTML=TASK_REPEAT_OPTIONS.map(opt=>`<option value="${opt.key}" ${(task?.repeatCycle||'daily')===opt.key?'selected':''}>${opt.label}</option>`).join('');
-    g('levelTaskSubtasks').value=(task?.subtasks||[]).map(sub=>sub.text).join('\n');
-  }
-  modal.classList.add('open');
-}
+
 function closeLevelEditor(){ g('levelEditorModal')?.classList.remove('open'); }
-function saveLevelEditor(){
-  if(levelEditorState.kind==='task'){
-    const name=safeStr(g('levelTaskName')?.value||'').trim();
-    const difficulty=safeStr(g('levelTaskDifficulty')?.value||'N').toUpperCase();
-    const repeatCycle=safeStr(g('levelTaskRepeat')?.value||'daily');
-    if(!name){showToast('請輸入任務名稱');return;}
-    if(!['E','N','H'].includes(difficulty)){showToast('難度需為 E / N / H');return;}
-    if(!TASK_REPEAT_OPTIONS.some(opt=>opt.key===repeatCycle)){showToast('重複週期無效');return;}
-    const lines=(g('levelTaskSubtasks')?.value||'').split('\n').map(v=>v.trim()).filter(Boolean);
-    const idx=levelEditorState.idx;
-    const oldTask=idx>=0?levelSystem.tasks[idx]:null;
-    const oldByText={};
-    (oldTask?.subtasks||[]).forEach(sub=>{oldByText[sub.text]=sub;});
-    const subtasks=lines.map(text=>{
-      const prev=oldByText[text];
-      return prev?{...prev,text}:{id:Date.now()+Math.random(),text,difficulty,completions:0,lastCompletedAt:'',lastReward:null};
-    });
-    const payload={id:oldTask?.id||Date.now()+Math.random(),name,difficulty,repeatCycle,completions:oldTask?.completions||0,lastCompletedAt:oldTask?.lastCompletedAt||'',lastReward:oldTask?.lastReward||null,subtasks};
-    if(idx>=0) levelSystem.tasks[idx]=payload;
-    else levelSystem.tasks.push(payload);
-    saveData();renderLevelSystemPage();closeLevelEditor();showToast(idx>=0?'任務已更新':'任務已新增');
-    return;
-  }
-}
-function getSelectedSkillForTaskIdx(taskIdx){
-  const task=levelSystem.tasks[taskIdx];
-  if(!task||!levelSystem.skills.length) return null;
-  const sel=g('levelSystemPanel')?.querySelector(`[data-task-skill="${taskIdx}"]`);
-  const selected=sel?.value||String(levelTaskExpanded[`skill_${task.id}`]||levelSystem.skills[0].id);
-  levelTaskExpanded[`skill_${task.id}`]=selected;
-  return levelSystem.skills.find(skill=>String(skill.id)===String(selected))||null;
-}
-function toggleTaskCompletionFromCheckbox(taskIdx,checked){
-  const task=levelSystem.tasks[taskIdx];
-  if(!task) return;
-  if(!checked){
-    task.completions=Math.max(0,(task.completions||0)-1);
-    task.lastCompletedAt='';
-    task.lastReward=null;
-    saveData();renderLevelSystemPage();showToast('已取消任務完成');
-    return;
-  }
-  if(isTaskCompletedInCurrentCycle(task)){showToast('此任務在本週期已完成');renderLevelSystemPage();return;}
-  task.completions=(task.completions||0)+1;
-  task.lastCompletedAt=new Date().toISOString();
-  task.lastReward=null;
-  saveData();renderLevelSystemPage();showToast('任務已完成');
-}
-function toggleTaskExpand(taskIdx){
-  const task=levelSystem.tasks[taskIdx];
-  if(!task) return;
-  levelTaskExpanded[task.id]=!levelTaskExpanded[task.id];
-  renderLevelSystemPage();
-}
-function addTaskSubtask(taskIdx){
-  const task=levelSystem.tasks[taskIdx];
-  if(!task) return;
-  const input=g('levelSystemPanel')?.querySelector(`[data-task-subtask-input="${taskIdx}"]`);
-  const difficultySel=g('levelSystemPanel')?.querySelector(`[data-task-subtask-difficulty="${taskIdx}"]`);
-  const text=safeStr(input?.value||'').trim();
-  if(!text){showToast('請輸入小任務內容');return;}
-  const difficulty=['E','N','H'].includes(difficultySel?.value)?difficultySel.value:'N';
-  task.subtasks=Array.isArray(task.subtasks)?task.subtasks:[];
-  task.subtasks.push({id:Date.now()+Math.random(),text,difficulty,completions:0,lastCompletedAt:'',lastReward:null});
-  if(input) input.value='';
-  saveData();renderLevelSystemPage();showToast('小任務已新增');
-}
-function editTaskSubtask(taskIdx,subIdx){
-  const task=levelSystem.tasks[taskIdx],sub=task?.subtasks?.[subIdx];
-  if(!sub) return;
-  const next=safeStr(prompt('小任務內容：',sub.text)||'').trim();
-  if(!next) return;
-  const diffInput=safeStr(prompt('小任務難度（E / N / H）：',sub.difficulty||task.difficulty||'N')||'').toUpperCase();
-  const nextDifficulty=['E','N','H'].includes(diffInput)?diffInput:(sub.difficulty||task.difficulty||'N');
-  sub.text=next;
-  sub.difficulty=nextDifficulty;
-  saveData();renderLevelSystemPage();showToast('小任務已更新');
-}
-function deleteTaskSubtask(taskIdx,subIdx){
-  const task=levelSystem.tasks[taskIdx],sub=task?.subtasks?.[subIdx];
-  if(!sub) return;
-  if(!confirm(`確定刪除小任務「${sub.text}」？`)) return;
-  task.subtasks.splice(subIdx,1);
-  saveData();renderLevelSystemPage();showToast('小任務已刪除');
-}
-function toggleSubtaskCompletion(taskIdx,subIdx,checked){
-  const task=levelSystem.tasks[taskIdx],sub=task?.subtasks?.[subIdx];
-  if(!task||!sub) return;
-  if(!checked){
-    sub.completions=Math.max(0,(sub.completions||0)-1);
-    sub.lastCompletedAt='';
-    sub.lastReward=null;
-    saveData();renderLevelSystemPage();
-    showToast('已取消小任務完成');
-    return;
-  }
-  if(isSubtaskCompletedInCurrentCycle(task,sub)){showToast('此小任務在本週期已完成');renderLevelSystemPage();return;}
-  sub.completions=(sub.completions||0)+1;
-  sub.lastCompletedAt=new Date().toISOString();
-  sub.lastReward=null;
-  saveData();renderLevelSystemPage();
-  showToast('小任務已完成');
-}
+function saveLevelEditor(){ closeLevelEditor(); }
