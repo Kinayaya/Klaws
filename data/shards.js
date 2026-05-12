@@ -2,7 +2,7 @@
   const DATA_SHARD_SUFFIX='__parts_v1';
   function createShardStorageApi({ SKEY, storageAdapter, readJSONAsync }){
     const DATA_SHARD_KEY_PREFIX=`${SKEY}${DATA_SHARD_SUFFIX}`;
-    const DATA_SHARD_KEYS={notes:'notes',links:'links',taxonomy:'taxonomy',layout:'layout',uiState:'uiState',mapState:'mapState',calendar:'calendar',level:'level'};
+    const DATA_SHARD_KEYS={notes:'notes',links:'links',taxonomy:'taxonomy',layout:'layout',uiState:'uiState',mapState:'mapState',calendar:'calendar',exam:'exam',level:'level'};
     const DATA_SHARD_GETTERS={
       [DATA_SHARD_KEYS.notes]:p=>({notes:p.notes,mapAuxNodes:p.mapAuxNodes,nid:p.nid}),
       [DATA_SHARD_KEYS.links]:p=>({links:p.links,lid:p.lid}),
@@ -11,6 +11,7 @@
       [DATA_SHARD_KEYS.uiState]:p=>({sortMode:p.sortMode,panelDir:p.panelDir}),
       [DATA_SHARD_KEYS.mapState]:p=>({mapCenterNodeId:p.mapCenterNodeId,mapCenterNodeIds:p.mapCenterNodeIds,mapFilter:p.mapFilter,mapLinkedOnly:p.mapLinkedOnly,mapDepth:p.mapDepth,mapFocusMode:p.mapFocusMode,mapLaneConfigs:p.mapLaneConfigs,mapCollapsed:p.mapCollapsed,mapSubpages:p.mapSubpages,mapPageNotes:p.mapPageNotes,mapPageStack:p.mapPageStack}),
       [DATA_SHARD_KEYS.calendar]:p=>({calendarEvents:p.calendarEvents,calendarSettings:p.calendarSettings}),
+      [DATA_SHARD_KEYS.exam]:p=>({examList:p.examList}),
       [DATA_SHARD_KEYS.level]:p=>({levelSystem:p.levelSystem})
     };
     const names=Object.values(DATA_SHARD_KEYS);

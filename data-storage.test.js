@@ -20,7 +20,7 @@ test('shard checksum mismatch returns null', async ()=>{
   const storageAdapter={primaryStore:{set:async(k,v)=>db.set(k,v)}};
   const readJSONAsync=async(k,d)=>db.has(k)?db.get(k):d;
   const api=createShardStorageApi({SKEY:'k',storageAdapter,readJSONAsync});
-  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},levelSystem:{}};
+  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},examList:[],levelSystem:{}};
   await api.writeShardedPayloadParts(payload);
   db.set('k__parts_v1::notes',{notes:[{id:1}],mapAuxNodes:[],nid:1});
   const out=await api.readShardedPayload();
@@ -84,7 +84,7 @@ test('createDataStorageApi composes migration/fallback/shard APIs', async ()=>{
   const wrote=await api.writeLocalFallbackPayload({meta:api.buildFallbackMeta({idbFailed:false}),payload:{notes:[]}},true);
   assert.equal(wrote,true);
 
-  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},levelSystem:{},rev:10};
+  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},examList:[],levelSystem:{},rev:10};
   await api.writeShardedPayloadParts(payload);
   const meta=await api.readShardedMeta();
   assert.equal(Array.isArray(meta.shards),true);
@@ -96,7 +96,7 @@ test('readShardedPayload ignores pending meta revisions', async ()=>{
   const storageAdapter={primaryStore:{set:async(k,v)=>db.set(k,v)}};
   const readJSONAsync=async(k,d)=>db.has(k)?db.get(k):d;
   const api=createShardStorageApi({SKEY:'k2',storageAdapter,readJSONAsync});
-  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},levelSystem:{}};
+  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},examList:[],levelSystem:{}};
   await api.writeShardedPayloadParts(payload);
   const metaKey='k2__parts_v1::meta';
   db.set(metaKey,{...db.get(metaKey),pending:true});
