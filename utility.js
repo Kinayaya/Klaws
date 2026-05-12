@@ -42,6 +42,19 @@
     return `n_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}${legacyId?`_${legacyId}`:''}`;
   };
 
+  const isNumericQuery = raw => /^\d+$/.test(safeStr(raw).trim());
+  const tokenizeSearchText = raw => safeStr(raw).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const includesToken = (raw,q) => tokenizeSearchText(raw).includes(safeStr(q).toLowerCase());
+  const matchesSmartQuery = ({query='', haystack='', numericExactTexts=[]}) => {
+    const q=safeStr(query).trim().toLowerCase();
+    if(!q) return true;
+    if(isNumericQuery(q)){
+      if(includesToken(haystack,q)) return true;
+      return (Array.isArray(numericExactTexts)?numericExactTexts:[]).some(text=>safeStr(text).toLowerCase().includes(q));
+    }
+    return safeStr(haystack).toLowerCase().includes(q);
+  };
+
   const normalizeNoteSchema = (note) => {
     const n = (note && typeof note==='object') ? {...note} : {};
     if(!Array.isArray(n.todos)) n.todos=[];
@@ -74,6 +87,7 @@
   };
 
   global.KLawsUtils = {
-    safeStr, uniq, pad2, escapeHtml, hl, parseTodos, formatTodosForEdit, parseSearchDateVariants, formatDate, ensureNoteUid, normalizeNoteSchema
+    safeStr, uniq, pad2, escapeHtml, hl, parseTodos, formatTodosForEdit, parseSearchDateVariants, formatDate, ensureNoteUid, normalizeNoteSchema,
+    isNumericQuery, tokenizeSearchText, includesToken, matchesSmartQuery
   };
 })(window);

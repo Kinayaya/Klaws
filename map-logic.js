@@ -343,7 +343,11 @@ function visibleNotes(){
     if(!pageAssignedIds.has(n.id)) return false;
     const subs=noteDomains(n),chs=noteGroups(n),secs=noteParts(n);
     return mapNodeMatchesTaxonomyFilter(n)
-      &&(!q||`${n.title}${subs.join('')}${chs.join('')}${secs.join('')}${noteTags(n).join('')}`.toLowerCase().includes(q));
+      &&(!q||matchesSmartQuery({
+        query:q,
+        haystack:`${n.title} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')} ${noteTags(n).join(' ')}`,
+        numericExactTexts:[String(n.id||''),`第${q}條`,`第 ${q} 條`]
+      }));
   });
   const auxnodeFiltered=mapAuxNodes.filter(n=>{
     if(!pageAssignedIds.has(n.id)) return false;

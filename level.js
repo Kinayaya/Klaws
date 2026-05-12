@@ -107,7 +107,11 @@ function renderPathList(cid,arr,kind) {
   if(!el) return;
   const source=Array.isArray(arr)?arr:[];
   let list=source.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount(kind,item.key)}));
-  if(pathSearchQ) list=list.filter(item=>`${item.label||''} ${item.key||''}`.toLowerCase().includes(pathSearchQ));
+  if(pathSearchQ) list=list.filter(item=>matchesSmartQuery({
+    query:pathSearchQ,
+    haystack:`${item.label||''} ${item.key||''}`,
+    numericExactTexts:[`${item.key||''}`]
+  }));
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的路徑）</div>';return;}
   el.innerHTML=list.map(item=>`<div class="tag-item ${kind==='sub'&&groupDomainFilter===item.key?'active-domain':''}" draggable="true" data-draggable-tag="1" data-idx="${item._idx}" data-kind="${kind}" ${kind==='sub'?`data-domain-key="${item.key}"`:''}><span class="tag-drag-handle" title="拖曳排序">⋮⋮</span><div class="tag-color-dot" style="background:${item.color}"></div><span class="tag-item-label">${item.label}</span><span class="tag-item-meta">${item._usage} 筆</span><div class="tag-actions"><button class="tag-icon-btn" title="上移" data-idx="${item._idx}" data-kind="${kind}" data-dir="-1">↑</button><button class="tag-icon-btn" title="下移" data-idx="${item._idx}" data-kind="${kind}" data-dir="1">↓</button><button class="tag-icon-btn" title="編輯" data-idx="${item._idx}" data-kind="${kind}" data-edit="1">✎</button><button class="tag-icon-btn delete" title="刪除" data-idx="${item._idx}" data-kind="${kind}" data-del="1">🗑</button></div></div>`).join('');
   if(kind==='sub'){
@@ -127,7 +131,11 @@ function renderGroupPathList() {
   if(!groupDomainFilter&&!hasSearch){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
   let list=groups.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('group',item.key)}));
   if(!hasSearch) list=list.filter(item=>item.domain===groupDomainFilter||item.domain==='all');
-  if(pathSearchQ) list=list.filter(item=>`${item.label||''} ${item.key||''} ${subByKey(item.domain).label}`.toLowerCase().includes(pathSearchQ));
+  if(pathSearchQ) list=list.filter(item=>matchesSmartQuery({
+    query:pathSearchQ,
+    haystack:`${item.label||''} ${item.key||''} ${subByKey(item.domain).label}`,
+    numericExactTexts:[`${item.key||''}`]
+  }));
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
     const subLabel=item.domain==='all'?'全部':subByKey(item.domain).label;
@@ -148,7 +156,11 @@ function renderPartPathList() {
   if(!partGroupFilter&&!hasSearch){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">請先到「」面板選擇一個，再管理。</div>';return;}
   let list=parts.map((item,idx)=>({...item,_idx:idx,_usage:tagUsageCount('part',item.key)}));
   if(!hasSearch) list=list.filter(item=>item.group===partGroupFilter||item.group==='all');
-  if(pathSearchQ) list=list.filter(item=>`${item.label||''} ${item.key||''} ${groupByKey(item.group).label}`.toLowerCase().includes(pathSearchQ));
+  if(pathSearchQ) list=list.filter(item=>matchesSmartQuery({
+    query:pathSearchQ,
+    haystack:`${item.label||''} ${item.key||''} ${groupByKey(item.group).label}`,
+    numericExactTexts:[`${item.key||''}`]
+  }));
   if(!list.length){el.innerHTML='<div style="color:#bbb;font-size:13px;padding:8px 0">（無符合條件的）</div>';return;}
   el.innerHTML=list.map(item=>{
     const groupLabel=item.group==='all'?'全部':groupByKey(item.group).label;

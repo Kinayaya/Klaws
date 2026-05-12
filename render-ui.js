@@ -142,14 +142,16 @@ function baseScopeMatch(note) {
 function noteMatchesSearch(note, q, normalizedDate='') {
   if(!q) return true;
   const subs=noteDomains(note), chs=noteGroups(note), secs=noteParts(note);
-  const hay=`${note.title} ${note.question||''} ${note.answer||''} ${note.prompt||''} ${note.application||''} ${note.body} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')} ${note.date||''}`.toLowerCase();
-  return hay.includes(q)||(normalizedDate&&formatDate(note.date)===normalizedDate);
+  const hay=`${note.title} ${note.question||''} ${note.answer||''} ${note.prompt||''} ${note.application||''} ${note.body} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')} ${note.date||''}`;
+  const exactHints=[String(note.id||''),`第${q}條`,`第 ${q} 條`];
+  return matchesSmartQuery({query:q,haystack:hay,numericExactTexts:exactHints})||(normalizedDate&&formatDate(note.date)===normalizedDate);
 }
 function auxnodeMatchesSearch(auxnode, q) {
   if(!q) return true;
   const subs=noteDomains(auxnode), chs=noteGroups(auxnode), secs=noteParts(auxnode);
-  const hay=`${auxnode.title} ${auxnode.body||''} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')}`.toLowerCase();
-  return hay.includes(q);
+  const hay=`${auxnode.title} ${auxnode.body||''} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')}`;
+  const exactHints=[String(auxnode.id||''),`第${q}條`,`第 ${q} 條`];
+  return matchesSmartQuery({query:q,haystack:hay,numericExactTexts:exactHints});
 }
 function expandWithLinkedNotes(seedIds) {
   const expanded=new Set(seedIds), queue=[...expanded];
@@ -197,7 +199,7 @@ function render() {
   const reminderHits=(q||normalizedDate)?calendarEvents.filter(ev=>{
     if(ev.type!=='reminder') return false;
     const hay=`${ev.title||''} ${ev.body||''} ${ev.date||''}`.toLowerCase();
-    return hay.includes(q)||(normalizedDate&&formatDate(ev.date)===normalizedDate);
+    return matchesSmartQuery({query:q,haystack:hay,numericExactTexts:[`第${q}條`,`第 ${q} 條`]})||(normalizedDate&&formatDate(ev.date)===normalizedDate);
   }).map(ev=>({__isReminder:true,id:`r_${ev.id}`,title:ev.title||'未命名提醒',body:ev.body||'',date:ev.date,type:'reminder',eventId:ev.id,dueHour:ev.dueHour||0,dueMinute:ev.dueMinute||0})) : [];
   const mixed=[...filtered,...reminderHits];
   if(!mixed.length){const hasFilters=!!(q||hasTaxonomyFilter()||reviewMode);grid.innerHTML=hasFilters?'<div class="empty">沒有符合的筆記，試試調整關鍵字或篩選條件</div>':'<div class="empty empty-state"><div class="empty-emoji">🗂️</div><div class="empty-title">還沒有筆記</div><div class="empty-sub">先新增第一筆內容，或點選左側分類開始整理你的法律知識。</div><button class="add-btn empty-cta" id="emptyAddBtn">+ 新增第一筆</button></div>';const cta=g('emptyAddBtn');if(cta) cta.addEventListener('click',()=>openForm());return;}
