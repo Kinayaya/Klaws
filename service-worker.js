@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'klaws-pwa-v1';
+const CACHE_VERSION = 'klaws-pwa-v2-2026-05-12';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -27,16 +27,41 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const requestUrl = new URL(event.request.url);
+  const isHtmlRequest = event.request.mode === 'navigate' || requestUrl.pathname.endsWith('/index.html');
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
+    (async () => {
+      if (isHtmlRequest) {
+        try {
+          const networkResponse = await fetch(event.request);
+          const copy = networkResponse.clone();
+          const cache = await caches.open(CACHE_VERSION);
+          await cache.put(event.request, copy);
+          return networkResponse;
+        } catch (error) {
+          return (await caches.match(event.request)) || caches.match('./index.html');
+        }
+      }
+      const cached = await caches.match(event.request);
+      if (cached) {
+        void fetch(event.request)
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match('./index.html'));
-    })
+        .catch(() => null);
+        return cached;
+      }
+      try {
+        const response = await fetch(event.request);
+        const copy = response.clone();
+        const cache = await caches.open(CACHE_VERSION);
+        await cache.put(event.request, copy);
+        return response;
+      } catch (error) {
+        return caches.match('./index.html');
+      }
+    })()
   );
 });

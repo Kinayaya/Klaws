@@ -36,9 +36,11 @@ function toggleLevelSystemView(open){
   saveLastViewState();
 }
 function resolveCalendarCursorSafe(){
+  if(typeof window.getCalendarCursor==='function') return window.getCalendarCursor();
   if(calendarCursor instanceof Date&&!Number.isNaN(calendarCursor.getTime())) return calendarCursor;
   if(window.calendarCursor instanceof Date&&!Number.isNaN(window.calendarCursor.getTime())) return window.calendarCursor;
   const fallback=new Date();
+  if(typeof window.setCalendarCursor==='function') return window.setCalendarCursor(fallback);
   calendarCursor=fallback;
   window.calendarCursor=fallback;
   return fallback;

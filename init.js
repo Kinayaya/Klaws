@@ -152,7 +152,7 @@ var appStateFacadeInit=(typeof window!=='undefined'&&window.appState)?window.app
   on('levelEditorClose','click',closeLevelEditor);
   on('levelEditorCancel','click',closeLevelEditor);
   on('levelEditorSave','click',saveLevelEditor);
-  on('calendarTodayBtn','click',()=>{const next=new Date();calendarCursor=next;window.calendarCursor=next;renderCalendar();});
+  on('calendarTodayBtn','click',()=>{const next=new Date();if(typeof window.setCalendarCursor==='function') window.setCalendarCursor(next);else window.calendarCursor=next;renderCalendar();});
   on('calendarSettingsBtn','click',()=>{g('calendarEmailsInput').value=(calendarSettings.emails||[]).join('\n');g('calendarSmtpToken').value=calendarSettings.smtpToken||'';g('calendarEmailFrom').value=calendarSettings.emailFrom||'';g('calendarSettingsModal').classList.add('open');});
   on('calendarSettingsCancel','click',()=>g('calendarSettingsModal').classList.remove('open'));
   on('calendarSettingsSave','click',()=>{

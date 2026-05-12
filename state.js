@@ -33,6 +33,25 @@ let mapTreeSidebarOpen=false;
 let typeFieldConfigs={}, customFieldDefs={};
 let lastSavedPayloadRaw='';
 let calendarEvents=[], calendarSettings={emails:[]}, calendarCursor=new Date(), activeCalendarDate='';
+function isValidDateObject(value){
+  return value instanceof Date&&!Number.isNaN(value.getTime());
+}
+function getCalendarCursor(){
+  if(isValidDateObject(calendarCursor)) return calendarCursor;
+  const fallback=isValidDateObject(window.calendarCursor)?window.calendarCursor:new Date();
+  calendarCursor=fallback;
+  window.calendarCursor=fallback;
+  return fallback;
+}
+function setCalendarCursor(next){
+  const normalized=isValidDateObject(next)?next:new Date();
+  calendarCursor=normalized;
+  window.calendarCursor=normalized;
+  return normalized;
+}
+window.getCalendarCursor=getCalendarCursor;
+window.setCalendarCursor=setCalendarCursor;
+window.calendarCursor=getCalendarCursor();
 let reminderTimer=null, reminderSent={};
 let reminderDismissed={};
 let editingCalendarEventId=null;
