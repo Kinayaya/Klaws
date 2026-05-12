@@ -1,13 +1,17 @@
 (function(global){
+  const isValidDateObject=(value)=>value instanceof Date&&!Number.isNaN(value.getTime());
   function resolveCalendarCursor(){
-    if(global.calendarCursor instanceof Date&&!Number.isNaN(global.calendarCursor.getTime())) return global.calendarCursor;
-    if(typeof calendarCursor!=='undefined'&&calendarCursor instanceof Date&&!Number.isNaN(calendarCursor.getTime())) return calendarCursor;
-    return new Date();
+    if(typeof global.getCalendarCursor==='function') return global.getCalendarCursor();
+    if(isValidDateObject(global.calendarCursor)) return global.calendarCursor;
+    return global.setCalendarCursor?global.setCalendarCursor(new Date()):new Date();
   }
 
   function syncCalendarCursor(next){
-    global.calendarCursor=next;
-    if(typeof calendarCursor!=='undefined') calendarCursor=next;
+    if(typeof global.setCalendarCursor==='function'){
+      global.setCalendarCursor(next);
+      return;
+    }
+    global.calendarCursor=isValidDateObject(next)?next:new Date();
   }
 
   function registerCalendarBindings(deps={}){
