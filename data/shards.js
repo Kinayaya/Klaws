@@ -20,7 +20,11 @@
     async function readShardedPayload(){
       const meta=await readJSONAsync(metaKey(),null);
       const shardNames=Array.isArray(meta&&meta.shards)?meta.shards.filter(n=>DATA_SHARD_GETTERS[n]):[];
-      if(!shardNames.length||!meta.version||!meta.checksumByShard||meta.pending) return null;
+      if(!shardNames.length||!meta.version||!meta.checksumByShard) return null;
+      if(meta.pending){
+        const pendingAt=Date.parse(meta.pendingAt||meta.updatedAt||'')||0;
+        if(!pendingAt||Date.now()-pendingAt<15000) return null;
+      }
       const payload={};
       for(const n of shardNames){
         const part=await readJSONAsync(key(n),null); if(!part||typeof part!=='object'||Array.isArray(part)) return null;
@@ -49,11 +53,19 @@
       const next=buildMap(payload); const prev=(global.__klawsLastSavedShards&&typeof global.__klawsLastSavedShards==='object')?global.__klawsLastSavedShards:{};
       const writes=[]; const checksumByShard={};
       names.forEach(n=>{ const raw=JSON.stringify(next[n]); checksumByShard[n]=checksum(raw); if(raw===JSON.stringify(prev[n])) return; writes.push({key:key(n),value:next[n]}); });
-      const pendingMeta={version:2,pending:true,shards:names,checksumByShard,updatedAt:new Date().toISOString(),rev:incomingRev||Date.now()};
+      const writerId=(global.__klawsShardWriterId||(global.__klawsShardWriterId=`w_${Math.random().toString(36).slice(2,8)}`));
+      const writeToken=`t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;
+      const pendingMeta={version:3,pending:true,pendingAt:new Date().toISOString(),writerId,writeToken,shards:names,checksumByShard,updatedAt:new Date().toISOString(),rev:incomingRev||Date.now()};
       await storageAdapter.primaryStore.set(metaKey(),pendingMeta);
       if(storageAdapter.primaryStore&&typeof storageAdapter.primaryStore.setMany==='function') await storageAdapter.primaryStore.setMany(writes);
       else await Promise.all(writes.map(w=>storageAdapter.primaryStore.set(w.key,w.value)));
-      await storageAdapter.primaryStore.set(metaKey(),{...pendingMeta,pending:false});
+      const latestMeta=await readShardedMeta();
+      if(!latestMeta||latestMeta.writeToken!==writeToken){
+        const err=new Error('SHARD_WRITE_TOKEN_MISMATCH');
+        err.code='SHARD_WRITE_TOKEN_MISMATCH';
+        throw err;
+      }
+      await storageAdapter.primaryStore.set(metaKey(),{...pendingMeta,pending:false,pendingAt:null});
       global.__klawsLastSavedShards=next;
     }
     return { readShardedPayload, writeShardedPayloadParts, readShardedMeta };

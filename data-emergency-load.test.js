@@ -98,7 +98,7 @@ test('loadData restores newer emergency full payload and writes it back to shard
     DEFAULTS:{notes:[],links:[],types:[],domains:[],groups:[],parts:[]},
     notes:[],mapAuxNodes:[],links:[],nid:0,lid:0,types:[],domains:[],groups:[],parts:[],
     nodePos:{},nodeSizes:{},sortMode:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{sub:'all',group:'all',part:'all',q:''},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapSubpages:{},mapPageNotes:{},mapPageStack:[],typeFieldConfigs:{},customFieldDefs:{},calendarEvents:[],calendarSettings:{emails:[]},levelSystem:{},recycleBin:[],
-    mergeAuxNodesIntoNotes:(notes)=>notes,
+    normalizeNotesList:(notes)=>notes,
     normalizeRelationType:v=>v||'',
     relationColor:()=>'',
     normalizeRelationNote:v=>v||'',
