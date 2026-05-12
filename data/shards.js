@@ -9,7 +9,7 @@
       [DATA_SHARD_KEYS.taxonomy]:p=>({types:p.types,domains:p.domains,groups:p.groups,parts:p.parts,typeFieldConfigs:p.typeFieldConfigs,customFieldDefs:p.customFieldDefs}),
       [DATA_SHARD_KEYS.layout]:p=>({nodePos:p.nodePos,nodeSizes:p.nodeSizes}),
       [DATA_SHARD_KEYS.uiState]:p=>({sortMode:p.sortMode,panelDir:p.panelDir}),
-      [DATA_SHARD_KEYS.mapState]:p=>({mapCenterNodeId:p.mapCenterNodeId,mapCenterNodeIds:p.mapCenterNodeIds,mapFilter:p.mapFilter,mapLinkedOnly:p.mapLinkedOnly,mapDepth:p.mapDepth,mapFocusMode:p.mapFocusMode,mapLaneConfigs:p.mapLaneConfigs,mapCollapsed:p.mapCollapsed,mapSubpages:p.mapSubpages,mapPageNotes:p.mapPageNotes,mapPageStack:p.mapPageStack}),
+      [DATA_SHARD_KEYS.mapState]:p=>({mapCenterNodeId:p.mapCenterNodeId,mapCenterNodeIds:p.mapCenterNodeIds,mapFilter:p.mapFilter,mapLinkedOnly:p.mapLinkedOnly,mapDepth:p.mapDepth,mapFocusMode:p.mapFocusMode,mapLaneConfigs:p.mapLaneConfigs,mapCollapsed:p.mapCollapsed,mapTreeCollapsedPaths:p.mapTreeCollapsedPaths,mapTreeFilterQ:p.mapTreeFilterQ,mapSubpages:p.mapSubpages,mapPageNotes:p.mapPageNotes,mapPageStack:p.mapPageStack}),
       [DATA_SHARD_KEYS.calendar]:p=>({calendarEvents:p.calendarEvents,calendarSettings:p.calendarSettings}),
       [DATA_SHARD_KEYS.exam]:p=>({examList:p.examList}),
       [DATA_SHARD_KEYS.level]:p=>({levelSystem:p.levelSystem})

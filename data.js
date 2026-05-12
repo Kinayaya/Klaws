@@ -27,6 +27,10 @@ function buildContentPayload(){
 function buildUiPayload(includeTransient=true){
   const ui={nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),panelDir:getPanelDir()};
   if(includeTransient){ ui.nodePos=nodePos;ui.mapOffX=mapOffX;ui.mapOffY=mapOffY;ui.mapScale=mapScale;ui.mapCollapsed=mapCollapsed; }
+  // mapCollapsed: 節點卡片折疊（以節點 id 為 key）
+  // mapTreeCollapsedPaths: 路徑樹折疊（以路徑字串為 key），兩者用途不同需分開持久化
+  ui.mapTreeCollapsedPaths=(mapTreeCollapsedPaths&&typeof mapTreeCollapsedPaths==='object'&&!Array.isArray(mapTreeCollapsedPaths))?mapTreeCollapsedPaths:{};
+  if(typeof mapTreeFilterQ==='string') ui.mapTreeFilterQ=mapTreeFilterQ;
   return ui;
 }
 
@@ -285,6 +289,9 @@ async function loadData() {
       mapLaneConfigs=(d.mapLaneConfigs&&typeof d.mapLaneConfigs==='object'&&!Array.isArray(d.mapLaneConfigs))?d.mapLaneConfigs:{};
       const rawMapCollapsed=(d.mapCollapsed&&typeof d.mapCollapsed==='object'&&!Array.isArray(d.mapCollapsed))?d.mapCollapsed:{};
       mapCollapsed=normalizeMapCollapsed(rawMapCollapsed);
+      const rawMapTreeCollapsedPaths=(d.mapTreeCollapsedPaths&&typeof d.mapTreeCollapsedPaths==='object'&&!Array.isArray(d.mapTreeCollapsedPaths))?d.mapTreeCollapsedPaths:{};
+      mapTreeCollapsedPaths={...rawMapTreeCollapsedPaths};
+      mapTreeFilterQ=typeof d.mapTreeFilterQ==='string'?d.mapTreeFilterQ:'';
       const rawMapSubpages=(d.mapSubpages&&typeof d.mapSubpages==='object'&&!Array.isArray(d.mapSubpages))?d.mapSubpages:{};
       mapSubpages=normalizeMapSubpages(rawMapSubpages);
       const rawMapPageNotes=(d.mapPageNotes&&typeof d.mapPageNotes==='object'&&!Array.isArray(d.mapPageNotes))?d.mapPageNotes:null;
@@ -803,6 +810,8 @@ function applySnapshotRaw(rawText){
   mapCenterNodeId=d.mapCenterNodeId||null;
   mapCenterNodeIds=(d.mapCenterNodeIds&&typeof d.mapCenterNodeIds==='object')?d.mapCenterNodeIds:{};
   mapCollapsed=(d.mapCollapsed&&typeof d.mapCollapsed==='object')?d.mapCollapsed:{};
+  mapTreeCollapsedPaths=(d.mapTreeCollapsedPaths&&typeof d.mapTreeCollapsedPaths==='object'&&!Array.isArray(d.mapTreeCollapsedPaths))?{...d.mapTreeCollapsedPaths}:{};
+  mapTreeFilterQ=typeof d.mapTreeFilterQ==='string'?d.mapTreeFilterQ:'';
   mapSubpages=(d.mapSubpages&&typeof d.mapSubpages==='object')?d.mapSubpages:{};
   mapPageNotes=(d.mapPageNotes&&typeof d.mapPageNotes==='object')?normalizeMapPageNotes(d.mapPageNotes):{root:notes.map(n=>n.id)};
   nid=d.nid||Math.max([...notes,...mapAuxNodes].reduce((m,n)=>Math.max(m,n.id||0),0)+1,10);
@@ -899,6 +908,10 @@ function importData(file) {
           });
           mapCollapsed={...mapCollapsed,...remappedCollapsed};
         }
+        if(d.mapTreeCollapsedPaths&&typeof d.mapTreeCollapsedPaths==='object'&&!Array.isArray(d.mapTreeCollapsedPaths)){
+          mapTreeCollapsedPaths={...mapTreeCollapsedPaths,...d.mapTreeCollapsedPaths};
+        }
+        if(typeof d.mapTreeFilterQ==='string') mapTreeFilterQ=d.mapTreeFilterQ;
         if(d.mapSubpages&&typeof d.mapSubpages==='object'){
           const remappedSubpages={};
           Object.keys(d.mapSubpages).forEach(k=>{
