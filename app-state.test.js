@@ -7,7 +7,7 @@ function loadCreateAppState(){
   const code = fs.readFileSync('./state.js','utf8');
   const sandbox={
     console,
-    KLawsCore:{mergeAuxNodesIntoNotes:(n)=>n},
+    KLawsCore:{normalizeNotesList:(n)=>n},
     normalizeNoteSchema:(x)=>x,
     safeStr:(v)=>typeof v==='string'?v:String(v??''),
     localStorage:{getItem:()=>null},

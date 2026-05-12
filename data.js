@@ -1,9 +1,11 @@
 const utils=(typeof window!=='undefined'&&window.KLawsUtils)||{};
 var safeStr=typeof utils.safeStr==='function'?utils.safeStr:(v=>typeof v==='string'?v:'');
 const ensureNoteUid=typeof utils.ensureNoteUid==='function'?utils.ensureNoteUid:(note=>{const n=(note&&typeof note==='object')?note:{};const raw=safeStr(n.uid).trim();if(raw) return raw;const legacyId=Number.isFinite(Number(n.id))?String(Number(n.id)):'';return `n_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}${legacyId?`_${legacyId}`:''}`;});
+const normalizeNotesList=(window.KLawsCore&&typeof window.KLawsCore.normalizeNotesList==='function')?window.KLawsCore.normalizeNotesList:(list=>Array.isArray(list)?list:[]);
 
 const ARCHIVES_IDB_KEY = 'klaws_archives_idb_v2';
 const ARCHIVE_NOISE_EXCLUDE_KEYS = ['nodePos','mapCenterNodeId','mapCenterNodeIds','mapFilter'];
+const runtimeState={idbHealthDegraded:false,dataHydrationInProgress:false,queuedSaveAfterHydration:false,lastPersistedRev:0,saveChain:Promise.resolve(),cloudSyncPushDebounceTimer:null,cloudSyncPushInFlight:false,cloudSyncPushLastStartedAt:0,cloudSyncPushRetryCount:0,cloudSyncPushRetryTimer:null,cloudSyncPushPendingPayload:null,lastSavedContentPayloadRaw:'',saveStatus:{state:'idle',lastSuccessAt:0,errorCode:''}};
 let idbHealthDegraded=false;
 let dataHydrationInProgress=false;
 let queuedSaveAfterHydration=false;
@@ -18,7 +20,7 @@ let cloudSyncPushPendingPayload=null;
 let lastSavedContentPayloadRaw='';
 let saveStatus={state:'idle',lastSuccessAt:0,errorCode:''};
 window.KlawsSaveStatus=saveStatus;
-function publishSaveStatus(next){ saveStatus={...saveStatus,...next}; window.KlawsSaveStatus=saveStatus; const el=g&&g('saveStatusIndicator'); if(el){ const m={saving:'儲存中',saved:'已儲存',failed:'儲存失敗',idle:'尚未儲存'}; el.textContent=m[saveStatus.state]||saveStatus.state; el.dataset.state=saveStatus.state; } }
+function publishSaveStatus(next){ saveStatus={...saveStatus,...next}; window.KlawsSaveStatus=saveStatus; const getter=(typeof g==='function')?g:null; const el=getter?getter('saveStatusIndicator'):null; if(el){ const m={saving:'儲存中',saved:'已儲存',failed:'儲存失敗',idle:'尚未儲存'}; el.textContent=m[saveStatus.state]||saveStatus.state; el.dataset.state=saveStatus.state; } }
 function buildContentPayload(){
   return {notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,rev:Number(window.__klawsDataRev)||0};
 }
@@ -254,7 +256,7 @@ async function loadData() {
         window.__klawsDataRev=loadedRev;
         lastPersistedRev=loadedRev;
       }
-      notes=mergeAuxNodesIntoNotes(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),Array.isArray(d.mapAuxNodes)?d.mapAuxNodes:[]);
+      notes=normalizeNotesList(Array.isArray(d.notes)?d.notes:DEFAULTS.notes.slice(),{ normalizeNoteSchema:typeof normalizeNoteSchema==='function'?normalizeNoteSchema:(n=>n) });
       mapAuxNodes=[];
       links=Array.isArray(d.links)?d.links:DEFAULTS.links.slice();
       links=links.map(l=>({...l,rel:normalizeRelationType(l.rel),color:relationColor(l.rel),note:normalizeRelationNote(l.note)}));
@@ -782,7 +784,7 @@ function applySnapshotRaw(rawText){
   const importNotes=parsed.data.notes;
   const importAuxnodes=parsed.data.auxnodes;
   const importLinks=parsed.data.links;
-  notes=mergeAuxNodesIntoNotes(importNotes,importAuxnodes);
+  notes=normalizeNotesList(importNotes,{ normalizeNoteSchema:typeof normalizeNoteSchema==='function'?normalizeNoteSchema:(n=>n) });
   links=importLinks;
   mapAuxNodes=[];
   nodeSizes=d.nodeSizes||{};

@@ -1,5 +1,13 @@
 // ==================== 表單 ====================
 
+function debugLog(context,payload){
+  try{
+    if(window.__klawsDebugEnabled!==true) return;
+    const rt=window.__klawsDebugRuntime;
+    if(rt&&typeof rt.append==='function') rt.append('debug',[context,JSON.stringify(payload||{})]);
+  }catch(_e){}
+}
+
 function resolveInheritedPath(inputPath=''){
   const raw=resolvePathInput(inputPath||'');
   if(raw) return raw;
@@ -452,7 +460,7 @@ async function saveNote() {
       const oldPath=source[idx]?.path||'';
       const updated=normalizeNoteSchema({...source[idx],isDraft:false,type:typeKey,domain:primaryDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
       delete updated.isDraft;
-      console.log('[saveNote][finalize-draft]',{noteId:source[idx]?.id,oldPath,newPath:updated.path});
+      debugLog('[saveNote][finalize-draft]',{noteId:source[idx]?.id,oldPath,newPath:updated.path});
       source[idx]=isAuxnodeNode(source[idx])?{...updated,isAuxnode:true,pageRootId:auxnodePageRootId(source[idx]),noteTypeBackup:typeKey}:updated;
     }
     const saved=idx!==-1?source[idx]:draftTarget;
@@ -480,7 +488,7 @@ async function saveNote() {
     if(idx!==-1){
       const oldPath=source[idx]?.path||'';
       const updated=normalizeNoteSchema({...source[idx],type:typeKey,domain:primaryDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
-      console.log('[saveNote][update]',{noteId:source[idx]?.id,oldPath,newPath:updated.path});
+      debugLog('[saveNote][update]',{noteId:source[idx]?.id,oldPath,newPath:updated.path});
       source[idx]=isAuxnode?{...updated,isAuxnode:true,pageRootId:auxnodePageRootId(source[idx]),noteTypeBackup:typeKey}:updated;
     }
     const mentionAdded=idx!==-1?autoLinkMentionsForNote(source[idx]):0;
@@ -505,7 +513,7 @@ async function saveNote() {
     const d=new Date(),dt=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const nowIso=new Date().toISOString();
     const newNote=normalizeNoteSchema({id:nid++,type:typeKey,domain:primaryDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,date:dt,created_at:nowIso,last_reviewed:'',next_review:nowIso,todos:fieldData.todos,extraFields:fieldData.extraFields});
-    console.log('[saveNote][create]',{noteId:newNote.id,oldPath:'',newPath:newNote.path});
+    debugLog('[saveNote][create]',{noteId:newNote.id,oldPath:'',newPath:newNote.path});
     if(doneTodoCount(newNote.todos)>0&&levelSystem.tasks.length&&levelSystem.skills.length){
       completeLevelTask(levelSystem.tasks[0].id,levelSystem.skills[0].id);
     }

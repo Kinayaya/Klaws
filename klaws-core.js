@@ -1,8 +1,8 @@
 (function (global) {
-  function mergeAuxNodesIntoNotes(baseNotes, auxNodeList, deps) {
+  function normalizeNotesList(baseNotes, deps) {
     const normalizeNoteSchema = deps && deps.normalizeNoteSchema;
     if (typeof normalizeNoteSchema !== 'function') {
-      throw new TypeError('mergeAuxNodesIntoNotes requires deps.normalizeNoteSchema');
+      throw new TypeError('normalizeNotesList requires deps.normalizeNoteSchema');
     }
 
     const normalizedNotes = (Array.isArray(baseNotes) ? baseNotes : []).map(normalizeNoteSchema);
@@ -14,7 +14,7 @@
     });
   }
 
-  const api = { mergeAuxNodesIntoNotes };
+  const api = { normalizeNotesList };
 
   // Build target: CommonJS (tests / Node runtime)
   if (typeof module !== 'undefined' && module.exports) {
