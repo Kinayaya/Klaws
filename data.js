@@ -22,7 +22,7 @@ let saveStatus={state:'idle',lastSuccessAt:0,errorCode:''};
 window.KlawsSaveStatus=saveStatus;
 function publishSaveStatus(next){ saveStatus={...saveStatus,...next}; window.KlawsSaveStatus=saveStatus; const getter=(typeof g==='function')?g:null; const el=getter?getter('saveStatusIndicator'):null; if(el){ const m={saving:'儲存中',saved:'已儲存',failed:'儲存失敗',idle:'尚未儲存'}; el.textContent=m[saveStatus.state]||saveStatus.state; el.dataset.state=saveStatus.state; } }
 function buildContentPayload(){
-  return {notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,examList,levelSystem,rev:Number(window.__klawsDataRev)||0};
+  return {notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,examList,rev:Number(window.__klawsDataRev)||0};
 }
 function buildUiPayload(includeTransient=true){
   const ui={nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),panelDir:getPanelDir()};
@@ -307,19 +307,8 @@ async function loadData() {
       if(typeof calendarSettings.emailFrom!=='string') calendarSettings.emailFrom='';
       const legacyExamList=readJSON('klaws_exams_v1', null);
       examList=Array.isArray(d.examList)?d.examList:(Array.isArray(legacyExamList)?legacyExamList:[]);
-      levelSystem=(d.levelSystem&&typeof d.levelSystem==='object'&&!Array.isArray(d.levelSystem))?d.levelSystem:{skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
-      normalizeLevelSystem();
-      calendarEvents=calendarEvents.map(ev=>({ ...ev, dueHour:Math.min(23,Math.max(0,parseInt(ev.dueHour,10)||9)), dueMinute:Math.min(59,Math.max(0,parseInt(ev.dueMinute,10)||0)) }));
-      examList=examList
-        .filter(item=>item&&typeof item==='object')
-        .map(item=>({
-          id:Number(item.id)||Date.now()+Math.random(),
-          domain:safeStr(item.domain||'all'),
-          question:safeStr(item.question),
-          answer:safeStr(item.answer),
-          issues:Array.isArray(item.issues)?item.issues.map(v=>safeStr(v)).filter(Boolean):[],
-          timeLimit:Math.max(1,parseInt(item.timeLimit,10)||30)
-        }));
+      calendarEvents=normalizeCalendarEventsList(calendarEvents);
+      examList=normalizeExamList(examList);
       Object.keys(customFieldDefs).forEach(key=>{
         const item=customFieldDefs[key]||{};
         customFieldDefs[key]={key,label:item.label||key,kind:item.kind==='text'?'text':'textarea',placeholder:item.placeholder||''};
@@ -376,10 +365,10 @@ async function loadData() {
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
     } else {
-      notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];levelSystem={skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
+      notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
     }
   } catch(e) {
-    notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];levelSystem={skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
+    notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
     const detail={
       name:e&&e.name?e.name:typeof e,
       message:e&&e.message?e.message:String(e),
@@ -582,11 +571,54 @@ async function saveData(opt={}) {
 }
 // ==================== 匯入/匯出 ====================
 function exportData() {
-  const json=JSON.stringify({notes,mapAuxNodes:[],links,nid,lid,types,domains,groups,parts,nodeSizes,mapCenterNodeId,mapCenterNodeIds,mapCollapsed,mapSubpages,mapPageNotes,exported:new Date().toISOString()},null,2);
+  const payload={...getPayload({includeTransient:false}),exported:new Date().toISOString()};
+  const json=JSON.stringify(payload,null,2);
   const blob=new Blob([json],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
   const d=new Date();
   a.download=`法律筆記備份_${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}.json`;
-  a.href=url;a.click();URL.revokeObjectURL(url);showToast('已匯出！');
+  a.href=url;a.click();URL.revokeObjectURL(url);showToast(`已匯出備份（筆記 ${notes.length}、提醒 ${calendarEvents.filter(e=>e&&e.type==='reminder').length}、日記 ${notes.filter(n=>n&&n.type==='diary').length}、題目 ${examList.length}）`);
+}
+function normalizeCalendarEventsList(list=[]){
+  return (Array.isArray(list)?list:[])
+    .filter(item=>item&&typeof item==='object')
+    .map(item=>({
+      ...item,
+      id:item.id||Date.now()+Math.random(),
+      title:safeStr(item.title||item.text||item.name),
+      type:safeStr(item.type||'event')||'event',
+      date:safeStr(item.date),
+      dueHour:Math.min(23,Math.max(0,parseInt(item.dueHour,10)||9)),
+      dueMinute:Math.min(59,Math.max(0,parseInt(item.dueMinute,10)||0))
+    }))
+    .filter(item=>item.date);
+}
+function normalizeExamList(list=[]){
+  return (Array.isArray(list)?list:[])
+    .filter(item=>item&&typeof item==='object')
+    .map(item=>({
+      id:Number(item.id)||Date.now()+Math.random(),
+      domain:safeStr(item.domain||'all'),
+      question:safeStr(item.question),
+      answer:safeStr(item.answer),
+      issues:Array.isArray(item.issues)?item.issues.map(v=>safeStr(v)).filter(Boolean):[],
+      timeLimit:Math.max(1,parseInt(item.timeLimit,10)||30)
+    }))
+    .filter(item=>item.question||item.answer);
+}
+function buildImportPreview(report){
+  const lines=[
+    '匯入備份預覽',
+    `筆記：${report.validNotes}/${report.totalNotes}`,
+    `地圖節點：${report.validAuxnodes}/${report.totalAuxnodes}`,
+    `關聯：${report.validLinks}/${report.totalLinks}`,
+    `日曆項目：${report.validCalendarEvents}/${report.totalCalendarEvents}`,
+    `提醒：${report.validReminders}`,
+    `日記：${report.validDiaries}`,
+    `申論題目：${report.validExamItems}/${report.totalExamItems}`
+  ];
+  if(report.warnings.length) lines.push('',`修正/略過：${report.warnings.length} 項（詳見 Console）`);
+  lines.push('', '按「確定」繼續匯入，按「取消」停止。');
+  return lines.join('\n');
 }
 function portableTextHash(str=''){
   const text=safeStr(str);
@@ -707,7 +739,7 @@ function exportPortablePackage(){
   }
 }
 function parseImportPayload(rawText){
-  const report={errors:[],warnings:[],totalNotes:0,validNotes:0,totalAuxnodes:0,validAuxnodes:0,totalLinks:0,validLinks:0};
+  const report={errors:[],warnings:[],totalNotes:0,validNotes:0,totalAuxnodes:0,validAuxnodes:0,totalLinks:0,validLinks:0,totalCalendarEvents:0,validCalendarEvents:0,validReminders:0,totalExamItems:0,validExamItems:0,validDiaries:0};
   let parsed=null;
   try{
     parsed=JSON.parse(rawText);
@@ -722,8 +754,7 @@ function parseImportPayload(rawText){
   const noteList=Array.isArray(parsed.notes)?parsed.notes:[];
   const auxNodeList=Array.isArray(parsed.mapAuxNodes)?parsed.mapAuxNodes:[];
   if(!Array.isArray(parsed.notes)){
-    report.errors.push('匯入資料缺少 notes 陣列');
-    return {ok:false,report,data:null};
+    report.warnings.push('匯入資料缺少 notes 陣列，將只匯入其他可用內容');
   }
   report.totalNotes=noteList.length;
   report.totalAuxnodes=auxNodeList.length;
@@ -779,8 +810,16 @@ function parseImportPayload(rawText){
     normalizedLinks.push({id:Number(item.id),from,to,rel,color:relationColor(rel),note:normalizeRelationNote(item.note)});
   });
   report.validLinks=normalizedLinks.length;
-  if(report.validNotes===0&&report.validAuxnodes===0){
-    report.errors.push('匯入資料沒有可用的筆記內容');
+  const normalizedCalendarEvents=normalizeCalendarEventsList(parsed.calendarEvents);
+  report.totalCalendarEvents=Array.isArray(parsed.calendarEvents)?parsed.calendarEvents.length:0;
+  report.validCalendarEvents=normalizedCalendarEvents.length;
+  report.validReminders=normalizedCalendarEvents.filter(item=>item.type==='reminder').length;
+  const normalizedExamList=normalizeExamList(parsed.examList);
+  report.totalExamItems=Array.isArray(parsed.examList)?parsed.examList.length:0;
+  report.validExamItems=normalizedExamList.length;
+  report.validDiaries=normalizedNotes.filter(item=>item.type==='diary').length;
+  if(report.validNotes===0&&report.validAuxnodes===0&&report.validCalendarEvents===0&&report.validExamItems===0){
+    report.errors.push('匯入資料沒有可用的筆記、日曆或題庫內容');
     return {ok:false,report,data:null};
   }
   return {
@@ -790,7 +829,9 @@ function parseImportPayload(rawText){
       raw:parsed,
       notes:normalizedNotes,
       auxnodes:normalizedAuxnodes,
-      links:normalizedLinks
+      links:normalizedLinks,
+      calendarEvents:normalizedCalendarEvents,
+      examList:normalizedExamList
     }
   };
 }
@@ -804,6 +845,11 @@ function applySnapshotRaw(rawText){
   const importLinks=parsed.data.links;
   notes=normalizeNotesList(importNotes,{ normalizeNoteSchema:typeof normalizeNoteSchema==='function'?normalizeNoteSchema:(n=>n) });
   links=importLinks;
+  calendarEvents=parsed.data.calendarEvents;
+  calendarSettings=(d.calendarSettings&&typeof d.calendarSettings==='object'&&!Array.isArray(d.calendarSettings))?d.calendarSettings:{emails:[]};
+  if(!Array.isArray(calendarSettings.emails)) calendarSettings.emails=[];
+  examList=parsed.data.examList;
+  if(typeof saveExams==='function') saveExams();
   mapAuxNodes=[];
   nodeSizes=d.nodeSizes||{};
   mapCenterNodeId=d.mapCenterNodeId||null;
@@ -835,10 +881,13 @@ function importData(file) {
       const importNotes=parsed.data.notes;
       const importAuxnodes=parsed.data.auxnodes;
       const importLinks=parsed.data.links;
+      const importCalendarEvents=parsed.data.calendarEvents;
+      const importExamList=parsed.data.examList;
+      if(!confirm(buildImportPreview(parsed.report))) return;
       if(parsed.report.warnings.length){
         console.warn('[importData warnings]',parsed.report.warnings);
       }
-      if(confirm('確定 = 完整覆蓋（取代所有現有筆記，保留現有/設定）\n取消 = 合併（只加入新筆記）')) {
+      if(confirm('確定 = 完整覆蓋（取代現有筆記、日曆與題庫）\n取消 = 合併（加入備份內容）')) {
         const ok=applySnapshotRaw(JSON.stringify(d));
         if(ok) showToast(`已覆蓋，共 ${notes.length} 筆筆記`);
         else showToast('匯入失敗，請確認檔案格式');
@@ -921,9 +970,28 @@ function importData(file) {
           });
           mapSubpages={...mapSubpages,...remappedSubpages};
         }
+        const calendarExisting=new Set(calendarEvents.map(e=>String(e.id)));
+        let calendarAdded=0;
+        importCalendarEvents.forEach(ev=>{
+          let next={...ev};
+          if(calendarExisting.has(String(next.id))) next.id=`${Date.now()}_${Math.random().toString(16).slice(2)}`;
+          calendarExisting.add(String(next.id));
+          calendarEvents.push(next);
+          calendarAdded++;
+        });
+        const examExisting=new Set(examList.map(q=>String(q.id)));
+        let examAdded=0;
+        importExamList.forEach(q=>{
+          let next={...q};
+          if(examExisting.has(String(next.id))) next.id=Date.now()+Math.random();
+          examExisting.add(String(next.id));
+          examList.push(next);
+          examAdded++;
+        });
+        if(typeof saveExams==='function') saveExams();
         notes.sort((a,b)=>b.id-a.id);normalizeNoteIds(true);saveData();rebuildUI();render();
         const skipped=Math.max(0,(parsed.report.totalNotes+parsed.report.totalAuxnodes)-added);
-        showToast(`已合併，新增 ${added} 筆${skipped?`，略過 ${skipped} 筆`:''}`);
+        showToast(`已合併，新增筆記 ${added} 筆、日曆 ${calendarAdded} 筆、題目 ${examAdded} 筆${skipped?`，略過 ${skipped} 筆`:''}`);
       }
       if(parsed.report.warnings.length){
         showToast(`匯入完成（含 ${parsed.report.warnings.length} 項修正/略過，詳見 Console）`);
