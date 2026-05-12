@@ -1,4 +1,5 @@
 var { escapeHtml, safeText, safeAttr } = window.KLawsSafeHtml;
+var { matchesSmartQuery } = window.KLawsUtils;
 // ==================== UI 建構 ====================
 function buildTypeRow() {
   const row=g('typeRow');
