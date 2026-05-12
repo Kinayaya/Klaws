@@ -2,6 +2,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const { migratePathOverridesIntoNotes, clearLegacyDomainsFromNotes, migrateLegacyGroupPartData }=require('./data/migrations.js');
 const { createShardStorageApi }=require('./data/shards.js');
+const fs=require('node:fs');
 
 test('migrations are idempotent on rerun', ()=>{
   const local={m:new Map(),getItem(k){return this.m.get(k)||null;},setItem(k,v){this.m.set(k,String(v));}};
@@ -104,14 +105,27 @@ test('readShardedPayload ignores pending meta revisions', async ()=>{
   assert.equal(out,null);
 });
 
-test('sharded payload persists mapTreeCollapsedPaths', async ()=>{
+test('sharded payload persists map collapse state', async ()=>{
   const db=new Map();
   const storageAdapter={primaryStore:{set:async(k,v)=>db.set(k,v)}};
   const readJSONAsync=async(k,d)=>db.has(k)?db.get(k):d;
   const api=createShardStorageApi({SKEY:'k3',storageAdapter,readJSONAsync});
-  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapTreeCollapsedPaths:{'root/民法':true,'root/刑法':false},mapTreeFilterQ:'民',mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},examList:[],levelSystem:{}};
+  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{'all::all::all::root::1':true},mapTreeCollapsedPaths:{'root/民法':true,'root/刑法':false},mapTreeFilterQ:'民',mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},examList:[],levelSystem:{}};
   await api.writeShardedPayloadParts(payload);
   const mapState=db.get('k3__parts_v1::mapState');
+  assert.deepEqual(mapState.mapCollapsed,payload.mapCollapsed);
   assert.deepEqual(mapState.mapTreeCollapsedPaths,payload.mapTreeCollapsedPaths);
   assert.equal(mapState.mapTreeFilterQ,'民');
+});
+
+test('critical map payload keeps collapse state out of transient fields', ()=>{
+  const utilsApp=fs.readFileSync('utils-app.js','utf8');
+  const dataJs=fs.readFileSync('data.js','utf8');
+  const getPayloadMatch=utilsApp.match(/const getPayload = \(opt=\{\}\) => \{[\s\S]*?return payload;\n\};/);
+  assert.ok(getPayloadMatch, 'getPayload source should be present');
+  assert.match(getPayloadMatch[0], /mapCollapsed,mapTreeCollapsedPaths:safeMapTreeCollapsedPaths/);
+  assert.doesNotMatch(getPayloadMatch[0], /payload\.mapCollapsed=mapCollapsed/);
+  const removeTransientMatch=dataJs.match(/function removeTransientPayloadFields\(payload\)\{[\s\S]*?return base;\n\}/);
+  assert.ok(removeTransientMatch, 'removeTransientPayloadFields source should be present');
+  assert.doesNotMatch(removeTransientMatch[0], /delete base\.mapCollapsed/);
 });
