@@ -43,6 +43,8 @@ input[type="checkbox"]{-webkit-appearance:auto;appearance:auto}
 .search-wrap input:focus{outline:none;border-color:var(--color-primary);background:#fff}
 .search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#aaa;font-size:var(--font-size-sm);pointer-events:none}
 .search-clear{position:absolute;right:7px;top:50%;transform:translateY(-50%);color:#aaa;font-size:var(--font-size-lg);cursor:pointer;display:none;background:none;border:none;line-height:1}
+.search-mode-toggle{position:absolute;right:30px;top:50%;transform:translateY(-50%);height:24px;padding:0 8px;border:1px solid #d2dbe8;background:#f8fafc;color:#475569;border-radius:999px;font-size:11px;cursor:pointer}
+.search-mode-toggle:hover{background:#eef2ff;border-color:#c7d2fe;color:#3730a3}
 .tool-btns{display:flex;gap:8px;align-items:center;flex-shrink:0;position:relative}
 .header-achievement-wrap{display:flex;align-items:center;min-height:0;padding:0;background:transparent;border:none;cursor:pointer}
 .header-status-wrap{display:flex;align-items:center;gap:8px}
