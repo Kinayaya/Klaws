@@ -943,9 +943,8 @@ const getSkillStage=(lvl=0)=>LEVEL_STAGES.find(s=>lvl>=s.min&&lvl<=s.max)?.rank|
 
 function normalizeLevelSystem(){
   const fallbackSettings={xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true};
-  if(!levelSystem||typeof levelSystem!=='object'||Array.isArray(levelSystem)) levelSystem={skills:[],tasks:[],settings:{...fallbackSettings}};
+  if(!levelSystem||typeof levelSystem!=='object'||Array.isArray(levelSystem)) levelSystem={skills:[],settings:{...fallbackSettings}};
   if(!Array.isArray(levelSystem.skills)) levelSystem.skills=[];
-  if(!Array.isArray(levelSystem.tasks)) levelSystem.tasks=[];
   if(!levelSystem.settings||typeof levelSystem.settings!=='object'||Array.isArray(levelSystem.settings)) levelSystem.settings={...fallbackSettings};
   const xpByDifficulty=(levelSystem.settings.xpByDifficulty&&typeof levelSystem.settings.xpByDifficulty==='object'&&!Array.isArray(levelSystem.settings.xpByDifficulty))
     ? levelSystem.settings.xpByDifficulty
@@ -965,25 +964,10 @@ function normalizeLevelSystem(){
     lastDoneByDiff:(skill.lastDoneByDiff&&typeof skill.lastDoneByDiff==='object'&&!Array.isArray(skill.lastDoneByDiff))?skill.lastDoneByDiff:{},
     lastDecayAt:(typeof skill.lastDecayAt==='string'&&skill.lastDecayAt)?skill.lastDecayAt:new Date().toISOString()
   }));
-  levelSystem.tasks=levelSystem.tasks.filter(task=>task&&typeof task==='object').map((task,idx)=>({
-    ...task,
-    id:(task.id===undefined||task.id===null)?`task_${idx}_${Date.now()}`:task.id,
-    title:safeStr(task.title||'未命名任務').trim()||'未命名任務',
-    difficulty:['E','N','H'].includes(task.difficulty)?task.difficulty:'N',
-    completions:Math.max(0,parseInt(task.completions,10)||0),
-    repeatCycle:TASK_REPEAT_OPTIONS.some(opt=>opt.key===task.repeatCycle)?task.repeatCycle:'daily',
-    subtasks:Array.isArray(task.subtasks)?task.subtasks.filter(sub=>sub&&typeof sub==='object').map(sub=>({
-      ...sub,
-      title:safeStr(sub.title||'').trim(),
-      done:!!sub.done,
-      difficulty:['E','N','H'].includes(sub.difficulty)?sub.difficulty:'N'
-    })):[]
-  }));
 }
 
 
 
-const getTaskRepeatLabel=cycle=>TASK_REPEAT_OPTIONS.find(opt=>opt.key===cycle)?.label||'每日';
 const getSubtaskXpGain = difficulty => Math.max(1,levelSystem.settings.xpByDifficulty[difficulty]||Math.round(BASE_XP_BY_DIFFICULTY[difficulty||'N']*XP_BOOST_MULTIPLIER));
 function snapshotSkill(skill){
   return {level:skill.level||1,xp:skill.xp||0,lastDoneByDiff:{...(skill.lastDoneByDiff||{})},lastDecayAt:skill.lastDecayAt||''};
@@ -994,48 +978,6 @@ function restoreSkill(skill,state){
   skill.xp=Math.max(0,parseInt(state.xp,10)||0);
   skill.lastDoneByDiff=(state.lastDoneByDiff&&typeof state.lastDoneByDiff==='object')?{...state.lastDoneByDiff}:{};
   skill.lastDecayAt=state.lastDecayAt||skill.lastDecayAt||new Date().toISOString();
-}
-function getTaskCycleKey(task,date=new Date()){
-  const dt=new Date(date);
-  if(!Number.isFinite(dt.getTime())) return '';
-  if(task.repeatCycle==='every3days') return `3d-${Math.floor(dt.getTime()/86400000/3)}`;
-  if(task.repeatCycle==='weekly'){
-    const copy=new Date(dt);
-    const day=(copy.getDay()+6)%7;
-    copy.setDate(copy.getDate()-day);
-    return `w-${copy.getFullYear()}-${pad2(copy.getMonth()+1)}-${pad2(copy.getDate())}`;
-  }
-  if(task.repeatCycle==='monthly') return `m-${dt.getFullYear()}-${pad2(dt.getMonth()+1)}`;
-  if(task.repeatCycle==='yearly') return `y-${dt.getFullYear()}`;
-  return `d-${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
-}
-function isTaskCompletedInCurrentCycle(task){
-  const last=Date.parse(task.lastCompletedAt||'');
-  if(!Number.isFinite(last)) return false;
-  return getTaskCycleKey(task,new Date(last))===getTaskCycleKey(task,new Date());
-}
-function isSubtaskCompletedInCurrentCycle(task,subtask){
-  const last=Date.parse(subtask.lastCompletedAt||'');
-  if(!Number.isFinite(last)) return false;
-  return getTaskCycleKey(task,new Date(last))===getTaskCycleKey(task,new Date());
-}
-function getSkillDecayRule(skillLevel){
-  const stage=getSkillStage(skillLevel);
-  if(stage==='E'||stage==='F') return {days:1,levels:1,difficulty:'E'};
-  if(stage==='D') return {days:1,levels:1,difficulty:'N'};
-  if(stage==='C') return {days:3,levels:3,difficulty:'N'};
-  if(stage==='B'||stage==='B+') return {days:7,levels:5,difficulty:'H'};
-  if(stage==='A'||stage==='A+') return {days:30,levels:10,difficulty:'H'};
-  return {days:365,levels:20,difficulty:'H'};
-}
-function getSkillDecayStatus(skill){
-  const rule=getSkillDecayRule(skill.level);
-  const lastBy=skill.lastDoneByDiff||{};
-  const candidates=['E','N','H'].filter(d=>difficultyRank(d)>=difficultyRank(rule.difficulty)).map(d=>Date.parse(lastBy[d]||0)).filter(Number.isFinite);
-  if(!candidates.length) return {...rule,daysLeft:rule.days,lastActiveAt:null};
-  const lastActive=Math.max(...candidates);
-  const elapsedDays=Math.floor((Date.now()-lastActive)/86400000);
-  return {...rule,daysLeft:Math.max(0,rule.days-elapsedDays),lastActiveAt:lastActive};
 }
 function applySkillDecay(){
   const now=Date.now();
@@ -1069,27 +1011,6 @@ function gainSkillXp(skill,difficulty,gain){
   }
   if(skill.level>=100){skill.level=100;skill.xp=0;}
 }
-function completeLevelTask(taskId,skillId,gainOverride=0){
-  const task=levelSystem.tasks.find(t=>String(t.id)===String(taskId));
-  const skill=levelSystem.skills.find(s=>String(s.id)===String(skillId));
-  if(!task||!skill) return false;
-  const nowIso=new Date().toISOString();
-  task.completions=(task.completions||0)+1;
-  task.lastCompletedAt=nowIso;
-  const gain=gainOverride>0?gainOverride:(levelSystem.settings.xpByDifficulty[task.difficulty]||Math.round(BASE_XP_BY_DIFFICULTY[task.difficulty||'N']*XP_BOOST_MULTIPLIER));
-  task.lastReward={cycleKey:getTaskCycleKey(task,new Date()),skillId:String(skill.id),skillPrev:snapshotSkill(skill),gain};
-  gainSkillXp(skill,task.difficulty,gain);
-  return true;
-}
-function rollbackTaskCompletion(task,skill){
-  if(!task||!skill||!task.lastReward) return false;
-  restoreSkill(skill,task.lastReward.skillPrev);
-  task.completions=Math.max(0,(task.completions||0)-1);
-  task.lastCompletedAt='';
-  task.lastReward=null;
-  return true;
-}
-
 function hasInvalidOrDuplicateNoteIds() {
   const seen=new Set();
   for(const node of [...notes,...mapAuxNodes]){

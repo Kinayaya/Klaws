@@ -466,9 +466,6 @@ async function saveNote() {
     const saved=idx!==-1?source[idx]:draftTarget;
     const mentionAdded=idx!==-1?autoLinkMentionsForNote(saved):0;
     const nextDone=idx!==-1?doneTodoCount(saved.todos):0;
-    if(nextDone>prevDone&&levelSystem.tasks.length&&levelSystem.skills.length){
-      completeLevelTask(levelSystem.tasks[0].id,levelSystem.skills[0].id);
-    }
     refreshAchievementProgress();
     draftNoteId=null;
     const result=await savePathChange();
@@ -493,9 +490,6 @@ async function saveNote() {
     }
     const mentionAdded=idx!==-1?autoLinkMentionsForNote(source[idx]):0;
     const nextDone=idx!==-1?doneTodoCount(source[idx].todos):0;
-    if(nextDone>prevDone&&levelSystem.tasks.length&&levelSystem.skills.length){
-      completeLevelTask(levelSystem.tasks[0].id,levelSystem.skills[0].id);
-    }
     refreshAchievementProgress();
     if(shouldSyncMeta){
       selectedIdNums.forEach(id=>{
@@ -514,9 +508,6 @@ async function saveNote() {
     const nowIso=new Date().toISOString();
     const newNote=normalizeNoteSchema({id:nid++,type:typeKey,domain:primaryDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title,path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,date:dt,created_at:nowIso,last_reviewed:'',next_review:nowIso,todos:fieldData.todos,extraFields:fieldData.extraFields});
     debugLog('[saveNote][create]',{noteId:newNote.id,oldPath:'',newPath:newNote.path});
-    if(doneTodoCount(newNote.todos)>0&&levelSystem.tasks.length&&levelSystem.skills.length){
-      completeLevelTask(levelSystem.tasks[0].id,levelSystem.skills[0].id);
-    }
     refreshAchievementProgress();
     const isAuxnode=formMode==='auxnode';
     const auxnodeRoot=currentSubpageRootId();

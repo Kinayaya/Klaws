@@ -300,7 +300,7 @@ async function loadData() {
       if(typeof calendarSettings.emailFrom!=='string') calendarSettings.emailFrom='';
       const legacyExamList=readJSON('klaws_exams_v1', null);
       examList=Array.isArray(d.examList)?d.examList:(Array.isArray(legacyExamList)?legacyExamList:[]);
-      levelSystem=(d.levelSystem&&typeof d.levelSystem==='object'&&!Array.isArray(d.levelSystem))?d.levelSystem:{skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
+      levelSystem=(d.levelSystem&&typeof d.levelSystem==='object'&&!Array.isArray(d.levelSystem))?d.levelSystem:{skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
       normalizeLevelSystem();
       applySkillDecay();
       calendarEvents=calendarEvents.map(ev=>({ ...ev, dueHour:Math.min(23,Math.max(0,parseInt(ev.dueHour,10)||9)), dueMinute:Math.min(59,Math.max(0,parseInt(ev.dueMinute,10)||0)) }));
@@ -370,10 +370,10 @@ async function loadData() {
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
     } else {
-      notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
+      notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];levelSystem={skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
     }
   } catch(e) {
-    notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
+    notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];levelSystem={skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
     const detail={
       name:e&&e.name?e.name:typeof e,
       message:e&&e.message?e.message:String(e),

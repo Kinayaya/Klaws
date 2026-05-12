@@ -41,7 +41,7 @@
     <div class="view-switch" aria-label="主視圖切換">
       <button class="view-switch-btn active" id="viewNotesBtn" type="button">筆記</button>
       <button class="view-switch-btn" id="viewCalendarBtn" type="button">日曆</button>
-      <button class="view-switch-btn" id="viewLevelBtn" type="button">任務</button>
+      
       <button class="view-switch-btn" id="viewMapBtn" type="button">體系圖</button>
       <button class="view-switch-btn" id="viewExamBtn" type="button">測驗</button>
     </div>
@@ -235,26 +235,6 @@
   <div id="levelEditorModal">
     <div id="levelEditorBox">
       <div class="ph"><span class="ph-title" id="levelEditorTitle">編輯項目</span><button class="pcls" id="levelEditorClose">&#215;</button></div>
-      <div id="levelTaskFields">
-        <label class="flbl">任務名稱</label>
-        <input class="fi" id="levelTaskName" placeholder="任務名稱">
-        <div class="f2col">
-          <div>
-            <label class="flbl" style="margin-top:0">難度</label>
-            <select class="fs" id="levelTaskDifficulty">
-              <option value="E">E</option>
-              <option value="N">N</option>
-              <option value="H">H</option>
-            </select>
-          </div>
-          <div>
-            <label class="flbl" style="margin-top:0">重複週期</label>
-            <select class="fs" id="levelTaskRepeat"></select>
-          </div>
-        </div>
-        <label class="flbl">小任務</label>
-        <textarea class="ft" id="levelTaskSubtasks" placeholder="小任務"></textarea>
-      </div>
       <div class="frow">
         <button class="fbtn bcl" id="levelEditorCancel">取消</button>
         <button class="fbtn bsv" id="levelEditorSave">儲存</button>

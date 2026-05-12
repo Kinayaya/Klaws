@@ -613,24 +613,8 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 #tp .tag-part-title{font-size:13px}
 .level-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .level-toolbar .tool-btn{font-size:13px;padding:8px 12px}
-.level-task-card{display:flex;flex-direction:column;gap:8px;border:1px solid #e5ecf6;border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;background:#fff}
-.level-task-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.level-task-name{font-size:13px;font-weight:700;color:#1f2937}
-.level-task-subtasks{display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--color-bg-soft);border:1px dashed #d2dbe8;border-radius:8px}
-.level-subtask-item{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.level-subtask-left{display:flex;align-items:center;gap:8px;min-width:0}
-.level-subtask-text{font-size:var(--font-size-sm);color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.level-subtask-text.done{text-decoration:line-through;color:#94a3b8}
-.level-subtask-actions{display:flex;gap:4px}
-.level-subtask-add{display:flex;gap:8px}
-.level-subtask-add .fi{flex:1}
-.level-skill-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.level-skill-row .fs{min-width:180px}
-#levelEditorModal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:520;align-items:center;justify-content:center}
-#levelEditorModal.open{display:flex}
-#levelEditorBox{background:#fff;width:min(560px,94vw);max-height:min(86vh,760px);overflow:auto;border-radius:var(--radius-lg);padding:14px;border:1px solid #e5e7eb;box-shadow:0 14px 34px rgba(0,0,0,.2)}
-#levelAchievementFields,#levelTaskFields{display:none}
-#levelEditorBox.task-mode #levelTaskFields,#levelEditorBox.achievement-mode #levelAchievementFields{display:block}
+#levelAchievementFields{display:none}
+#levelEditorBox.achievement-mode #levelAchievementFields{display:block}
 
 body.panel-dir-bottom #dp,
 body.panel-dir-bottom #fp,
