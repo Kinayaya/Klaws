@@ -35,8 +35,17 @@ function toggleLevelSystemView(open){
   if(typeof window.syncViewSwitchState==='function') window.syncViewSwitchState(currentView);
   saveLastViewState();
 }
+function resolveCalendarCursorSafe(){
+  if(calendarCursor instanceof Date&&!Number.isNaN(calendarCursor.getTime())) return calendarCursor;
+  if(window.calendarCursor instanceof Date&&!Number.isNaN(window.calendarCursor.getTime())) return window.calendarCursor;
+  const fallback=new Date();
+  calendarCursor=fallback;
+  window.calendarCursor=fallback;
+  return fallback;
+}
 function renderCalendar(){
-  const y=calendarCursor.getFullYear(),m=calendarCursor.getMonth();
+  const cursor=resolveCalendarCursorSafe();
+  const y=cursor.getFullYear(),m=cursor.getMonth();
   g('calendarTitle').textContent=`${y}年${m+1}月`;
   const grid=g('calendarGrid');
   const first=new Date(y,m,1), startOffset=(first.getDay()+6)%7;
