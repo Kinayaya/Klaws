@@ -805,7 +805,7 @@ const setMapCenterForSubpageScope = (subpageRootId,id,opt={}) => {
 };
 const getPayload = (opt={}) => {
   const {includeTransient=true}=opt||{};
-  const payload={notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,panelDir:getPanelDir(),rev:Number(window.__klawsDataRev)||0,updatedAt:new Date().toISOString()};
+  const payload={notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,examList,levelSystem,panelDir:getPanelDir(),rev:Number(window.__klawsDataRev)||0,updatedAt:new Date().toISOString()};
   if(includeTransient){
     payload.nodePos=nodePos;
     payload.mapOffX=mapOffX;

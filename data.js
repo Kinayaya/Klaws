@@ -22,7 +22,7 @@ let saveStatus={state:'idle',lastSuccessAt:0,errorCode:''};
 window.KlawsSaveStatus=saveStatus;
 function publishSaveStatus(next){ saveStatus={...saveStatus,...next}; window.KlawsSaveStatus=saveStatus; const getter=(typeof g==='function')?g:null; const el=getter?getter('saveStatusIndicator'):null; if(el){ const m={saving:'儲存中',saved:'已儲存',failed:'儲存失敗',idle:'尚未儲存'}; el.textContent=m[saveStatus.state]||saveStatus.state; el.dataset.state=saveStatus.state; } }
 function buildContentPayload(){
-  return {notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,levelSystem,rev:Number(window.__klawsDataRev)||0};
+  return {notes,mapAuxNodes,links,nid,lid,types,domains,groups,parts,typeFieldConfigs,customFieldDefs,calendarEvents,calendarSettings,examList,levelSystem,rev:Number(window.__klawsDataRev)||0};
 }
 function buildUiPayload(includeTransient=true){
   const ui={nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),panelDir:getPanelDir()};
@@ -298,10 +298,22 @@ async function loadData() {
       if(!Array.isArray(calendarSettings.emails)) calendarSettings.emails=[];
       if(typeof calendarSettings.smtpToken!=='string') calendarSettings.smtpToken='';
       if(typeof calendarSettings.emailFrom!=='string') calendarSettings.emailFrom='';
+      const legacyExamList=readJSON('klaws_exams_v1', null);
+      examList=Array.isArray(d.examList)?d.examList:(Array.isArray(legacyExamList)?legacyExamList:[]);
       levelSystem=(d.levelSystem&&typeof d.levelSystem==='object'&&!Array.isArray(d.levelSystem))?d.levelSystem:{skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
       normalizeLevelSystem();
       applySkillDecay();
       calendarEvents=calendarEvents.map(ev=>({ ...ev, dueHour:Math.min(23,Math.max(0,parseInt(ev.dueHour,10)||9)), dueMinute:Math.min(59,Math.max(0,parseInt(ev.dueMinute,10)||0)) }));
+      examList=examList
+        .filter(item=>item&&typeof item==='object')
+        .map(item=>({
+          id:Number(item.id)||Date.now()+Math.random(),
+          domain:safeStr(item.domain||'all'),
+          question:safeStr(item.question),
+          answer:safeStr(item.answer),
+          issues:Array.isArray(item.issues)?item.issues.map(v=>safeStr(v)).filter(Boolean):[],
+          timeLimit:Math.max(1,parseInt(item.timeLimit,10)||30)
+        }));
       Object.keys(customFieldDefs).forEach(key=>{
         const item=customFieldDefs[key]||{};
         customFieldDefs[key]={key,label:item.label||key,kind:item.kind==='text'?'text':'textarea',placeholder:item.placeholder||''};
@@ -358,10 +370,10 @@ async function loadData() {
       storageAdapter.primaryStore.get(ARCHIVES_IDB_KEY,[]).then(v=>{ if(Array.isArray(v)) window.__klawsArchivesCache=v; }).catch(()=>{});
       storageAdapter.primaryStore.get(RECYCLE_BIN_KEY,[]).then(v=>{ if(Array.isArray(v)){ window.__klawsRecycleCache=v; recycleBin=v; } }).catch(()=>{});
     } else {
-      notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
+      notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());saveData();
     }
   } catch(e) {
-    notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
+    notes=DEFAULTS.notes.slice();mapAuxNodes=[];links=DEFAULTS.links.slice();types=DEFAULTS.types.slice();domains=DEFAULTS.domains.slice();groups=DEFAULTS.groups.slice();parts=DEFAULTS.parts.slice();nodeSizes={};mapPageNotes={root:notes.map(n=>n.id)};typeFieldConfigs={};customFieldDefs={};calendarEvents=[];calendarSettings={emails:[]};examList=[];levelSystem={skills:[],tasks:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};types.forEach(t=>{typeFieldConfigs[t.key]=getTypeFieldKeys(t.key);});applyPanelDir(getPanelDir());
     const detail={
       name:e&&e.name?e.name:typeof e,
       message:e&&e.message?e.message:String(e),
