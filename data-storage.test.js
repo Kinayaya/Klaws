@@ -103,3 +103,15 @@ test('readShardedPayload ignores pending meta revisions', async ()=>{
   const out=await api.readShardedPayload();
   assert.equal(out,null);
 });
+
+test('sharded payload persists mapTreeCollapsedPaths', async ()=>{
+  const db=new Map();
+  const storageAdapter={primaryStore:{set:async(k,v)=>db.set(k,v)}};
+  const readJSONAsync=async(k,d)=>db.has(k)?db.get(k):d;
+  const api=createShardStorageApi({SKEY:'k3',storageAdapter,readJSONAsync});
+  const payload={notes:[],mapAuxNodes:[],nid:1,links:[],lid:1,types:[],domains:[],groups:[],parts:[],typeFieldConfigs:{},customFieldDefs:{},nodePos:{},nodeSizes:{},sortMode:'',panelDir:'',mapCenterNodeId:null,mapCenterNodeIds:{},mapFilter:{},mapLinkedOnly:false,mapDepth:'all',mapFocusMode:false,mapLaneConfigs:{},mapCollapsed:{},mapTreeCollapsedPaths:{'root/民法':true,'root/刑法':false},mapTreeFilterQ:'民',mapSubpages:{},mapPageNotes:{},mapPageStack:[],calendarEvents:[],calendarSettings:{},examList:[],levelSystem:{}};
+  await api.writeShardedPayloadParts(payload);
+  const mapState=db.get('k3__parts_v1::mapState');
+  assert.deepEqual(mapState.mapTreeCollapsedPaths,payload.mapTreeCollapsedPaths);
+  assert.equal(mapState.mapTreeFilterQ,'民');
+});
