@@ -1,3 +1,4 @@
+var { matchesExactQuery } = window.KLawsUtils;
 var appStateFacadeMap=(typeof window!=='undefined'&&window.appState)?window.appState:null;
 // ==================== 體系圖 ====================
 const MAP_TREE_SIDEBAR_OPEN_KEY='klaws_map_tree_sidebar_open_v1';
@@ -343,11 +344,7 @@ function visibleNotes(){
     if(!pageAssignedIds.has(n.id)) return false;
     const subs=noteDomains(n),chs=noteGroups(n),secs=noteParts(n);
     return mapNodeMatchesTaxonomyFilter(n)
-      &&(!q||matchesSmartQuery({
-        query:q,
-        haystack:`${n.title} ${subs.join(' ')} ${chs.join(' ')} ${secs.join(' ')} ${noteTags(n).join(' ')}`,
-        numericExactTexts:[String(n.id||''),`第${q}條`,`第 ${q} 條`]
-      }));
+      &&(!q||matchesExactQuery({query:q,candidates:[n.title,...subs,...chs,...secs,...noteTags(n),String(n.id||''),`第${n.id||''}條`,`第 ${n.id||''} 條`]}));
   });
   const auxnodeFiltered=mapAuxNodes.filter(n=>{
     if(!pageAssignedIds.has(n.id)) return false;
@@ -518,8 +515,7 @@ function buildMapTreeIndex(visNotes){
     const icon=getLevelIcon(depth);
     const noteItems=node.notes.filter(note=>{
       if(!filterQ) return true;
-      const t=safeStr(note.title||'').toLowerCase();
-      return t.includes(filterQ);
+      return matchesExactQuery({query:filterQ,candidates:[note.title,String(note.id||'')]});
     }).map(note=>{
       const type=typeByKey(note.type);
       const activeCls=mapFocusedNodeId===note.id?' active':'';
@@ -529,7 +525,7 @@ function buildMapTreeIndex(visNotes){
       const child=node.items[key];
       const total=countNode(child);
       const treePath=buildTreePathLabel(parentPath,child.label);
-      const pathMatch=!filterQ||safeStr(treePath).toLowerCase().includes(filterQ);
+      const pathMatch=!filterQ||matchesExactQuery({query:filterQ,candidates:[treePath,child.label]});
       const childHtml=renderNode(child,depth+1,treePath);
       if(filterQ&&!pathMatch&&!childHtml) return '';
       const collapsed=!!mapTreeCollapsedPaths[treePath];

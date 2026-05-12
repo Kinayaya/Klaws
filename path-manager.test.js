@@ -29,7 +29,7 @@ test('group and part path search can bypass panel pre-filter', ()=>{
 
 
 test('path search also matches path keys to avoid empty results for key-based queries', ()=>{
-  assert.match(levelJs, /matchesSmartQuery\(\{/);
+  assert.match(levelJs, /matchesExactQuery\(\{/);
   assert.match(levelJs, /query:pathSearchQ/);
-  assert.match(levelJs, /numericExactTexts:\[`\$\{item\.key\|\|''\}`\]/);
+  assert.match(levelJs, /candidates:\[item\.label\|\|'',item\.key\|\|''\]/);
 });
