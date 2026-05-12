@@ -55,6 +55,12 @@
     return safeStr(haystack).toLowerCase().includes(q);
   };
 
+  const matchesExactQuery = ({query='', candidates=[]}) => {
+    const q=safeStr(query).trim().toLowerCase();
+    if(!q) return true;
+    return (Array.isArray(candidates)?candidates:[]).some(item=>safeStr(item).trim().toLowerCase()===q);
+  };
+
   const normalizeNoteSchema = (note) => {
     const n = (note && typeof note==='object') ? {...note} : {};
     if(!Array.isArray(n.todos)) n.todos=[];
@@ -88,6 +94,6 @@
 
   global.KLawsUtils = {
     safeStr, uniq, pad2, escapeHtml, hl, parseTodos, formatTodosForEdit, parseSearchDateVariants, formatDate, ensureNoteUid, normalizeNoteSchema,
-    isNumericQuery, tokenizeSearchText, includesToken, matchesSmartQuery
+    isNumericQuery, tokenizeSearchText, includesToken, matchesSmartQuery, matchesExactQuery
   };
 })(window);
