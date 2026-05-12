@@ -26,13 +26,13 @@ function deleteLevelItem(kind,idx){
 function renderLevelRows(kind){
   const arr=levelSystem[kind]||[];
   if(!arr.length) return '<div style="color:#9aa3b2;font-size:12px;">尚無資料，請先新增。</div>';
-  if(kind==='skills') return arr.map((skill,idx)=>{const need=skill.level>=100?0:skillXpRequired(skill.level);const pct=need?Math.round((skill.xp||0)/need*100):100;const decay=getSkillDecayStatus(skill);const decayText=`距離衰退還有 ${decay.daysLeft} 日，需完成 ${decay.difficulty} 難度（逾期衰退 ${decay.levels} 級）`;return `<div class="stats-bar-row"><span class="stats-bar-label" style="min-width:112px;">${escapeHtml(skill.name)} Lv.${skill.level} (${getSkillStage(skill.level)})</span><div class="stats-bar-bg"><div class="stats-bar-fill" style="width:${Math.max(0,Math.min(100,pct))}%;background:#3B6D11"></div></div><span class="stats-bar-count" style="min-width:64px;">${skill.level>=100?'MAX':`${skill.xp||0}/${need}`}</span><span class="level-list-row-actions"><button class="tool-btn" data-level-move="skills" data-idx="${idx}" data-dir="-1">↑</button><button class="tool-btn" data-level-move="skills" data-idx="${idx}" data-dir="1">↓</button><button class="tool-btn" data-level-del="skills" data-idx="${idx}">移除</button></span></div><div class="level-subtext">${decayText}</div>`;}).join('');
+  if(kind==='skills') return arr.map((skill,idx)=>{const need=skill.level>=100?0:skillXpRequired(skill.level);const pct=need?Math.round((skill.xp||0)/need*100):100;return `<div class="stats-bar-row"><span class="stats-bar-label" style="min-width:112px;">${escapeHtml(skill.name)} Lv.${skill.level} (${getSkillStage(skill.level)})</span><div class="stats-bar-bg"><div class="stats-bar-fill" style="width:${Math.max(0,Math.min(100,pct))}%;background:#3B6D11"></div></div><span class="stats-bar-count" style="min-width:64px;">${skill.level>=100?'MAX':`${skill.xp||0}/${need}`}</span><span class="level-list-row-actions"><button class="tool-btn" data-level-move="skills" data-idx="${idx}" data-dir="-1">↑</button><button class="tool-btn" data-level-move="skills" data-idx="${idx}" data-dir="1">↓</button><button class="tool-btn" data-level-del="skills" data-idx="${idx}">移除</button></span></div>`;}).join('');
   return '<div style="color:#9aa3b2;font-size:12px;">此區塊已停用。</div>';
 }
 function resetSkillLevels(){
   if(!levelSystem.skills.length){showToast('目前沒有技能可重置');return;}
   if(!confirm('確定要重置全部技能等級與經驗值嗎？此動作無法復原。')) return;
-  levelSystem.skills.forEach(skill=>{skill.level=1;skill.xp=0;skill.lastDoneByDiff={};skill.lastDecayAt=new Date().toISOString();});
+  levelSystem.skills.forEach(skill=>{skill.level=1;skill.xp=0;});
   saveData();
   renderLevelSystemPage();
   showToast('已重置技能等級');
@@ -42,7 +42,6 @@ function renderLevelSystemPage(){
   const box=g('levelSystemPanel');
   if(!box) return;
   normalizeLevelSystem();
-  applySkillDecay();
   const section={title:'技能（等級 / 經驗）',rows:renderLevelRows('skills'),toolbar:`<button class="tool-btn" id="addSkillBtn">+ 技能</button><button class="tool-btn" id="resetSkillBtn">重置技能</button>`};
   g('levelSystemTitle').textContent=section.title;
   let html=`<div style="margin-top:2px;padding:10px;border:1px solid #e8edf6;border-radius:10px;background:#f8fbff;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span style="font-size:12px;color:#445;">技能總數：<b>${(levelSystem.skills||[]).length}</b></span></div></div>`;
@@ -308,7 +307,7 @@ function addPath(kind) {
 function addSkillItem(){
   const name=safeStr(prompt('技能名稱：','法條理解力')||'').trim();
   if(!name) return;
-  levelSystem.skills.push({id:Date.now()+Math.random(),name,level:1,xp:0,lastDoneByDiff:{},lastDecayAt:new Date().toISOString()});
+  levelSystem.skills.push({id:Date.now()+Math.random(),name,level:1,xp:0});
   saveData();renderLevelSystemPage();showToast('技能已新增');
 }
 

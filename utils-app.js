@@ -534,8 +534,8 @@ const noteFieldValueForEdit = (n,key) => {
   if(key==='todos') return formatTodosForEdit(n.todos);
   return noteExtraFields(n)[key]||'';
 };
-const relationMetaByKey = key => RELATION_TYPE_META[key]||{label:key||'cause',color:LINK_COLOR};
-const normalizeRelationType = key => RELATION_TYPE_META[key]?key:'cause';
+const relationMetaByKey = key => RELATION_TYPE_META[key]||{label:key||'link',color:LINK_COLOR};
+const normalizeRelationType = key => RELATION_TYPE_META[key]?key:'link';
 const relationLabel = key => relationMetaByKey(normalizeRelationType(key)).label;
 const relationColor = key => relationMetaByKey(normalizeRelationType(key)).color;
 const relationNeedsNote = key => !!relationMetaByKey(normalizeRelationType(key)).needsNote;
@@ -960,9 +960,7 @@ function normalizeLevelSystem(){
     id:(skill.id===undefined||skill.id===null)?`skill_${idx}_${Date.now()}`:skill.id,
     name:safeStr(skill.name||'未命名技能').trim()||'未命名技能',
     level:Math.max(1,Math.min(100,parseInt(skill.level,10)||1)),
-    xp:Math.max(0,parseInt(skill.xp,10)||0),
-    lastDoneByDiff:(skill.lastDoneByDiff&&typeof skill.lastDoneByDiff==='object'&&!Array.isArray(skill.lastDoneByDiff))?skill.lastDoneByDiff:{},
-    lastDecayAt:(typeof skill.lastDecayAt==='string'&&skill.lastDecayAt)?skill.lastDecayAt:new Date().toISOString()
+    xp:Math.max(0,parseInt(skill.xp,10)||0)
   }));
 }
 
@@ -970,39 +968,15 @@ function normalizeLevelSystem(){
 
 const getSubtaskXpGain = difficulty => Math.max(1,levelSystem.settings.xpByDifficulty[difficulty]||Math.round(BASE_XP_BY_DIFFICULTY[difficulty||'N']*XP_BOOST_MULTIPLIER));
 function snapshotSkill(skill){
-  return {level:skill.level||1,xp:skill.xp||0,lastDoneByDiff:{...(skill.lastDoneByDiff||{})},lastDecayAt:skill.lastDecayAt||''};
+  return {level:skill.level||1,xp:skill.xp||0};
 }
 function restoreSkill(skill,state){
   if(!skill||!state) return;
   skill.level=Math.max(0,Math.min(100,parseInt(state.level,10)||1));
   skill.xp=Math.max(0,parseInt(state.xp,10)||0);
-  skill.lastDoneByDiff=(state.lastDoneByDiff&&typeof state.lastDoneByDiff==='object')?{...state.lastDoneByDiff}:{};
-  skill.lastDecayAt=state.lastDecayAt||skill.lastDecayAt||new Date().toISOString();
-}
-function applySkillDecay(){
-  const now=Date.now();
-  levelSystem.skills.forEach(skill=>{
-    const rule=getSkillDecayRule(skill.level);
-    const needMs=rule.days*86400000;
-    const lastBy=skill.lastDoneByDiff||{};
-    const candidates=['E','N','H'].filter(difficulty=>difficultyRank(difficulty)>=difficultyRank(rule.difficulty)).map(difficulty=>Date.parse(lastBy[difficulty]||0)).filter(Number.isFinite);
-    const lastActive=candidates.length?Math.max(...candidates):0;
-    if(!lastActive) return;
-    const elapsed=now-lastActive;
-    const passed=Math.floor(elapsed/needMs);
-    if(passed<=0) return;
-    const lastDecayAt=Date.parse(skill.lastDecayAt||0);
-    if(Number.isFinite(lastDecayAt)&&now-lastDecayAt<needMs) return;
-    skill.level=Math.max(0,skill.level-passed*rule.levels);
-    skill.xp=0;
-    skill.lastDecayAt=new Date(now).toISOString();
-  });
 }
 function gainSkillXp(skill,difficulty,gain){
-  const nowIso=new Date().toISOString();
   skill.xp=(skill.xp||0)+Math.max(1,parseInt(gain,10)||0);
-  skill.lastDoneByDiff=skill.lastDoneByDiff||{};
-  skill.lastDoneByDiff[difficulty]=nowIso;
   while(skill.level<100){
     const need=skillXpRequired(skill.level);
     if(skill.xp<need) break;
