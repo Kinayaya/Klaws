@@ -34,7 +34,7 @@ async function copySelectedNotes(){
 function deleteSelected() {
   const ids=Object.keys(selectedIds);
   if(!ids.length) return;
-  if(!confirm(`確定刪除這 ${ids.length} 筆筆記？可到回收區復原（保留 5 天）。`)) return;
+  if(!confirm(`確定刪除這 ${ids.length} 筆筆記？可到回收區復原。`)) return;
   const removed=removeNotesToRecycle(ids.map(Number));
   const recycleId=recycleBin[0]?.id;
   saveData();

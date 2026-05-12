@@ -639,7 +639,7 @@ function deleteMapNode(targetId=openId){
   deleteNote(targetId);
 }
 function deleteNote(targetId=openId) {
-  if(!targetId||!confirm('確定刪除這筆筆記？可到回收區復原（保留 5 天）。')) return;
+  if(!targetId||!confirm('確定刪除這筆筆記？可到回收區復原。')) return;
   const removed=removeNotesToRecycle([targetId]);
   if(!removed) return;
   const recycleId=recycleBin[0]?.id;

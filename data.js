@@ -309,7 +309,6 @@ async function loadData() {
       examList=Array.isArray(d.examList)?d.examList:(Array.isArray(legacyExamList)?legacyExamList:[]);
       levelSystem=(d.levelSystem&&typeof d.levelSystem==='object'&&!Array.isArray(d.levelSystem))?d.levelSystem:{skills:[],settings:{xpByDifficulty:{E:30,N:55,H:90},xpBoost150Applied:true}};
       normalizeLevelSystem();
-      applySkillDecay();
       calendarEvents=calendarEvents.map(ev=>({ ...ev, dueHour:Math.min(23,Math.max(0,parseInt(ev.dueHour,10)||9)), dueMinute:Math.min(59,Math.max(0,parseInt(ev.dueMinute,10)||0)) }));
       examList=examList
         .filter(item=>item&&typeof item==='object')
@@ -878,7 +877,7 @@ function importData(file) {
             if(!Number.isFinite(from)||!Number.isFinite(to)||from===to) return;
             const edgeKey=`${Math.min(from,to)}-${Math.max(from,to)}`;
             if(edgeSet.has(edgeKey)) return;
-            const rel='cause';
+            const rel='link';
             links.push({id:lid++,from,to,rel,color:relationColor(rel)});
             edgeSet.add(edgeKey);
           });
