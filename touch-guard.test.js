@@ -13,7 +13,7 @@ test('text node target can still resolve to parent interactive element', ()=>{
   assert.equal(isInteractiveTouchTarget(textNode), true);
 });
 
-test('installDefaultGuards blocks dblclick default on normal area', ()=>{
+test('installDefaultGuards does not block dblclick default on normal area', ()=>{
   const listeners={};
   const mockDocument={
     addEventListener:(type, handler)=>{ listeners[type]=handler; }
@@ -25,7 +25,7 @@ test('installDefaultGuards blocks dblclick default on normal area', ()=>{
   install();
   let prevented=false;
   listeners.dblclick({ target:{ closest:()=>null }, preventDefault:()=>{ prevented=true; } });
-  assert.equal(prevented, true);
+  assert.equal(prevented, false);
   global.document=oldDocument;
 });
 

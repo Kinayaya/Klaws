@@ -60,13 +60,14 @@
     return true;
   }
 
-  function shouldIgnoreRuntimeError(errorLike){
+  function shouldIgnoreRuntimeError(errorLike, opts={}){
     const raw=errorLike&&typeof errorLike==='object'
       ? `${errorLike.message||''} ${errorLike.reason||''} ${errorLike.filename||''} ${errorLike.source||''}`
       : String(errorLike||'');
     const text=String(raw).toLowerCase();
+    const allowMasked=opts&&opts.allowMaskedDetails===true;
     if(text.includes('eruda.init()')) return true;
-    if(text.includes('webkit-masked-url://hidden/')) return true;
+    if(!allowMasked && text.includes('webkit-masked-url://hidden/')) return true;
     return text==='' || text==='null';
   }
 
