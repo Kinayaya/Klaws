@@ -871,6 +871,47 @@ function applySnapshotRaw(rawText){
   render();
   return true;
 }
+
+function remapImportedNoteIds(idList, importedIdMap){
+  if(!Array.isArray(idList)||!idList.length) return [];
+  const remapped=[];
+  const seen=new Set();
+  idList.forEach(id=>{
+    const nextId=importedIdMap[Number(id)];
+    if(!Number.isFinite(nextId)||seen.has(nextId)) return;
+    seen.add(nextId);
+    remapped.push(nextId);
+  });
+  return remapped;
+}
+
+function mergeImportedMapPageNotes(currentNotes, incomingNotes, importedIdMap, validIdsSet){
+  const base=(currentNotes&&typeof currentNotes==='object'&&!Array.isArray(currentNotes))?{...currentNotes}:{root:[]};
+  if(!incomingNotes||typeof incomingNotes!=='object'||Array.isArray(incomingNotes)){
+    return normalizeMapPageNotes(base);
+  }
+  const next={...base};
+  Object.keys(incomingNotes).forEach(pageKey=>{
+    const remapped=remapImportedNoteIds(incomingNotes[pageKey], importedIdMap);
+    if(!remapped.length) return;
+    const existing=Array.isArray(next[pageKey])?next[pageKey].filter(id=>Number.isFinite(Number(id))).map(Number):[];
+    const merged=[];
+    const seen=new Set();
+    [...existing,...remapped].forEach(id=>{
+      if(!Number.isFinite(id)||seen.has(id)) return;
+      if(validIdsSet&&!validIdsSet.has(id)) return;
+      seen.add(id);
+      merged.push(id);
+    });
+    next[pageKey]=merged;
+  });
+  const normalized=normalizeMapPageNotes(next);
+  Object.keys(normalized).forEach(pageKey=>{
+    normalized[pageKey]=normalized[pageKey].filter(id=>!validIdsSet||validIdsSet.has(id));
+  });
+  return normalized;
+}
+
 function importData(file) {
   const reader=new FileReader();
   reader.onload=e=>{
@@ -974,6 +1015,10 @@ function importData(file) {
             remappedSubpages[parentId]=arr.map(v=>importedIdMap[Number(v)]).filter(Number.isFinite);
           });
           mapSubpages={...mapSubpages,...remappedSubpages};
+        }
+        if(d.mapPageNotes&&typeof d.mapPageNotes==='object'&&!Array.isArray(d.mapPageNotes)){
+          const validNoteIds=new Set(notes.map(n=>Number(n&&n.id)).filter(Number.isFinite));
+          mapPageNotes=mergeImportedMapPageNotes(mapPageNotes,d.mapPageNotes,importedIdMap,validNoteIds);
         }
         const calendarExisting=new Set(calendarEvents.map(e=>String(e.id)));
         let calendarAdded=0;
