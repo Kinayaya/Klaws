@@ -500,8 +500,6 @@ function buildMapTreeIndex(visNotes){
   const filterQ=safeStr(mapTreeFilterQ||'').trim().toLowerCase();
   const isSearching=!!filterQ;
   const list=Array.isArray(visNotes)?visNotes:[];
-  const levelIcons=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
-  const getLevelIcon=depth=>depth===0?'🗂️':(levelIcons[depth-1]||`${depth}.`);
   const tree={label:'',items:{},notes:[]};
   const ensurePath=pathSegs=>{
     let cursor=tree;
@@ -537,7 +535,6 @@ function buildMapTreeIndex(visNotes){
       });
     };
     const keys=sortKeysByOrder(Object.keys(node.items),parentPath);
-    const icon=getLevelIcon(depth);
     const noteItems=(isSearching?node.notes:[]).filter(note=>{
       if(!isSearching) return false;
       return matchesQueryMode({query:filterQ,candidates:[note.title,String(note.id||'')],mode:window.__klawsSearchMode});
@@ -557,7 +554,7 @@ function buildMapTreeIndex(visNotes){
       const toggleSymbol=collapsed?'➕':'➖';
       const collapsedByFilter=isSearching?false:collapsed;
       const pathActiveClass=selectedPath===treePath?' active-path':'';
-      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-move-btn" data-tree-move-up-path="${escapeHtml(treePath)}" title="上移">⬆️</button><button type="button" class="map-tree-path-btn${pathActiveClass}" data-tree-nav-path="${escapeHtml(treePath)}" title="長按可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
+      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn${pathActiveClass}" data-tree-nav-path="${escapeHtml(treePath)}" title="長按可編輯或刪除此路徑">${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span><button type="button" class="map-tree-move-btn" data-tree-move-up-path="${escapeHtml(treePath)}" title="上移" aria-label="上移路徑">↑</button><button type="button" class="map-tree-move-btn" data-tree-move-down-path="${escapeHtml(treePath)}" title="下移" aria-label="下移路徑">↓</button></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
@@ -667,6 +664,30 @@ function buildMapTreeIndex(visNotes){
     const idx=ordered.indexOf(label);
     if(idx<=0){ showToast('已在最上方'); return; }
     [ordered[idx-1],ordered[idx]]=[ordered[idx],ordered[idx-1]];
+    mapTreePathOrder[parentKey]=ordered;
+    saveDataDeferred();
+    buildMapTreeIndex(list);
+  }));
+  body.querySelectorAll('[data-tree-move-down-path]').forEach(btn=>btn.addEventListener('click',ev=>{
+    ev.stopPropagation();
+    const path=safeStr(btn.dataset.treeMoveDownPath||'').trim();
+    if(!path) return;
+    const segs=notePathSegments({path});
+    if(!segs.length) return;
+    const label=segs[segs.length-1];
+    const parent=segs.slice(0,-1).join('>');
+    const parentKey=parent||'__root__';
+    const siblings=Object.keys((()=>{
+      const tree={items:{}};
+      const ensure=(parts)=>{let c=tree;parts.forEach(part=>{c.items[part]=c.items[part]||{items:{}};c=c.items[part];});return c;};
+      collectTreePathSegments(notes,notePathSegments).forEach(ensure);
+      const cursor=segs.slice(0,-1).reduce((acc,part)=>acc&&acc.items?acc.items[part]:null,tree);
+      return cursor&&cursor.items?cursor.items:{};
+    })());
+    const ordered=(Array.isArray(mapTreePathOrder[parentKey])?mapTreePathOrder[parentKey].filter(v=>siblings.includes(v)):[]).concat(siblings.filter(v=>!(Array.isArray(mapTreePathOrder[parentKey])&&mapTreePathOrder[parentKey].includes(v))));
+    const idx=ordered.indexOf(label);
+    if(idx===-1||idx>=ordered.length-1){ showToast('已在最下方'); return; }
+    [ordered[idx],ordered[idx+1]]=[ordered[idx+1],ordered[idx]];
     mapTreePathOrder[parentKey]=ordered;
     saveDataDeferred();
     buildMapTreeIndex(list);
