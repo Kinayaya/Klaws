@@ -11,6 +11,23 @@ const createNoopViewController=()=>({
   setActiveViewSwitch:()=>{},
   openView:()=>{}
 });
+const safeBindSection=(name,bindFn)=>{
+  try{
+    bindFn();
+  }catch(err){
+    console.error('[klaws-binding-section-failed] '+JSON.stringify({
+      section:name,
+      error:err&&err.message?err.message:String(err)
+    }));
+  }
+};
+const verifyCriticalBindings=()=>{
+  const registry=window.__klawsBindingRegistry||{};
+  const critical=['mapAdvancedToggleBtn:click','mapAutoBtn:click','settingsArchiveBtn:click','archiveSaveBtn:click','archiveExportBtn:click','storageCleanupBtn:click'];
+  const missing=critical.filter(key=>!(registry[key]&&registry[key].bound>0));
+  if(!missing.length) return;
+  console.error('[klaws-binding-healthcheck] '+JSON.stringify({missing}));
+};
 
 let __klawsEssentialUiBound=false;
 function bindEssentialUiEvents(){
@@ -117,18 +134,20 @@ const bootstrapPrimaryShell=()=>{
     if(key==='Escape'&&!ev.isComposing){ev.preventDefault();closeForm();}
   });
   bindPathManagerNav();
-  on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
-  on('archiveSaveBtn','click',createArchiveSnapshot);
-  on('archiveExportBtn','click',exportData);
-  on('archiveSaveToFileBtn','click',saveDataToLocalFile);
-  on('archiveLoadFromFileBtn','click',importDataFromLocalFile);
-  on('storageCleanupBtn','click',runStorageCleanupFlow);
-  on('archivePortableExportBtn','click',exportPortablePackage);
-  on('archiveImportBtn','click',()=>g('importFile')?.click());
-  on('cloudLoginBtn','click',loginGoogleDriveAndSync);
-  on('cloudPullBtn','click',()=>scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:false}));
-  on('cloudSyncBtn','click',()=>scheduleCloudSyncAfterLocalSave({mode:'push',force:true,silent:false}));
-  on('cloudLogoutBtn','click',logoutGoogleDriveSync);
+  safeBindSection('archive-controls',()=>{
+    on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
+    on('archiveSaveBtn','click',createArchiveSnapshot);
+    on('archiveExportBtn','click',exportData);
+    on('archiveSaveToFileBtn','click',saveDataToLocalFile);
+    on('archiveLoadFromFileBtn','click',importDataFromLocalFile);
+    on('storageCleanupBtn','click',runStorageCleanupFlow);
+    on('archivePortableExportBtn','click',exportPortablePackage);
+    on('archiveImportBtn','click',()=>g('importFile')?.click());
+    on('cloudLoginBtn','click',loginGoogleDriveAndSync);
+    on('cloudPullBtn','click',()=>scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:false}));
+    on('cloudSyncBtn','click',()=>scheduleCloudSyncAfterLocalSave({mode:'push',force:true,silent:false}));
+    on('cloudLogoutBtn','click',logoutGoogleDriveSync);
+  });
   on('tpClose','click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
   on('pathSearchInput','input',debounce(()=>{pathSearchQ=(val('pathSearchInput')||'').toLowerCase().trim();renderPathLists();},150));
   g('addTypeBtn')?.addEventListener('click',()=>addPath('type'));
@@ -180,13 +199,15 @@ const bootstrapPrimaryShell=()=>{
     if(appStateFacadeInit) appStateFacadeInit.updateMapFilter({part:g('mapFilterPart').value});
     mapFilter.part=g('mapFilterPart').value;updateMapPagePath();saveDataDeferred();if(g('lanePanel')&&g('lanePanel').classList.contains('open'))renderLanePanel();if(isMapOpen){drawMap();notifyHiddenAuxnodesByFilter(beforeAuxnodeVisibleIds);}
   });
-  on('mapAdvancedToggleBtn','click',()=>setMapAdvanced(!mapAdvancedOpen));
+  safeBindSection('map-controls',()=>{
+    on('mapAdvancedToggleBtn','click',()=>setMapAdvanced(!mapAdvancedOpen));
+    on('mapAutoBtn','click',()=>{const btn=g('mapAutoBtn'),orig=btn.textContent;btn.textContent='排列中...';btn.disabled=true;setTimeout(()=>{nodePos={};mapScale=1;mapOffX=mapOffY=0;forceLayout();drawMap();saveDataDeferred();btn.textContent=orig;btn.disabled=false;showToast('已自動排列（保留核心點）');},30);});
+  });
   mapDepth='all';
   mapFocusMode=false;
   const setZoom=()=>{ mapScale=1; drawMap(); };
   on('mpClose','click',closeMapPopup);
   on('mapLinkedOnlyBtn','click',()=>{mapLinkedOnly=!mapLinkedOnly;setMapLinkedOnlyBtnStyle();drawMap();saveDataDeferred();showToast(mapLinkedOnly?`顯示 ${visibleNotes().length} 個有關聯點`:'顯示全部點');});
-  on('mapAutoBtn','click',()=>{const btn=g('mapAutoBtn'),orig=btn.textContent;btn.textContent='排列中...';btn.disabled=true;setTimeout(()=>{nodePos={};mapScale=1;mapOffX=mapOffY=0;forceLayout();drawMap();saveDataDeferred();btn.textContent=orig;btn.disabled=false;showToast('已自動排列（保留核心點）');},30);});
   on('mapLaneBtn','click',()=>{const panel=ensureLanePanel();if(!panel){showToast('泳道面板載入失敗');return;}if(panel.classList.contains('open'))closeLanePanel();else openLanePanel();});
   on('levelSystemBackBtn','click',()=>toggleLevelSystemView(false));
   on('levelEditorClose','click',closeLevelEditor);
@@ -266,6 +287,7 @@ const bootstrapPrimaryShell=()=>{
     })().finally(()=>{ flushBeforeUnloadInFlight=null; });
     return flushBeforeUnloadInFlight;
   };
+  verifyCriticalBindings();
   
   window.addEventListener('beforeunload',e=>{
     const hasDraftDirty=(typeof currentFormHasDraftContent==='function'&&currentFormHasDraftContent());

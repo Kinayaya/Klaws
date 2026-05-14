@@ -50,7 +50,21 @@ const safeEventHandler=(fn,label='event-handler')=>{
   };
 };
 
-const on = (id, evt, fn) => { const el=g(id); if(el) el.addEventListener(evt,safeEventHandler(fn,`${id}:${evt}`)); return el; };
+const bindingRegistry=(window.__klawsBindingRegistry=window.__klawsBindingRegistry||{});
+const on = (id, evt, fn) => {
+  const el=g(id);
+  const key=`${id}:${evt}`;
+  const record=bindingRegistry[key]||{id,evt,attempts:0,bound:0,missing:0};
+  record.attempts+=1;
+  if(el){
+    el.addEventListener(evt,safeEventHandler(fn,key));
+    record.bound+=1;
+  }else{
+    record.missing+=1;
+  }
+  bindingRegistry[key]=record;
+  return el;
+};
 const val = id => { const el=g(id); return el?el.value:''; };
 const debounce = (fn,ms) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
 window.g=g;

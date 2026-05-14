@@ -1394,26 +1394,47 @@ function deleteRecycleItem(itemId){
   saveRecycleBin();
   renderArchivePanel();
 }
+let __archiveDelegatesBound=false;
+function bindArchivePanelDelegates(){
+  if(__archiveDelegatesBound) return;
+  const archiveRoot=g('archiveList');
+  const recycleRoot=g('recycleList');
+  if(!archiveRoot||!recycleRoot) return;
+  __archiveDelegatesBound=true;
+  archiveRoot.addEventListener('click',ev=>{
+    const loadBtn=ev.target.closest?.('[data-archive-load]');
+    if(loadBtn){
+      const archives=loadArchives();
+      const pick=archives.find(a=>String(a.id)===String(loadBtn.dataset.archiveLoad));
+      if(!pick) return;
+      if(!confirm(`確定載入「${pick.name}」？\n載入後會完整取代目前所有筆記資料。`)) return;
+      if(applySnapshotRaw(JSON.stringify(pick.payload||{}))) showToast('已載入存檔');
+      else showToast('載入存檔失敗');
+      return;
+    }
+    const delBtn=ev.target.closest?.('[data-archive-del]');
+    if(!delBtn) return;
+    const archives=loadArchives().filter(a=>String(a.id)!==String(delBtn.dataset.archiveDel));
+    saveArchives(archives);
+    renderArchivePanel();
+  });
+  recycleRoot.addEventListener('click',ev=>{
+    const restoreBtn=ev.target.closest?.('[data-recycle-restore]');
+    if(restoreBtn){
+      restoreRecycleItem(restoreBtn.dataset.recycleRestore);
+      return;
+    }
+    const delBtn=ev.target.closest?.('[data-recycle-del]');
+    if(delBtn) deleteRecycleItem(delBtn.dataset.recycleDel);
+  });
+}
 function renderArchivePanel(){
   const archiveRoot=g('archiveList'), recycleRoot=g('recycleList');
   if(!archiveRoot||!recycleRoot) return;
+  bindArchivePanelDelegates();
   const archives=loadArchives();
   archiveRoot.innerHTML=archives.length?archives.map(a=>`<div class="archive-item"><div class="archive-item-title">${escapeHtml(a.name||'未命名存檔')}</div><div class="archive-item-sub">${new Date(a.createdAt||Date.now()).toLocaleString('zh-TW')}</div><div class="archive-item-actions"><button class="tool-btn" data-archive-load="${a.id}">載入</button><button class="tool-btn" data-archive-del="${a.id}">刪除</button></div></div>`).join(''):'<div class="archive-empty">目前沒有存檔</div>';
   recycleRoot.innerHTML=recycleBin.length?recycleBin.map(r=>`<div class="archive-item"><div class="archive-item-title">${(r.notes||[]).length} 筆筆記</div><div class="archive-item-sub">刪除於 ${new Date(r.deletedAt||Date.now()).toLocaleString('zh-TW')}</div><div class="archive-item-actions"><button class="tool-btn" data-recycle-restore="${r.id}">復原</button><button class="tool-btn" data-recycle-del="${r.id}">清除此項</button></div></div>`).join(''):'<div class="archive-empty">回收區是空的</div>';
-  archiveRoot.querySelectorAll('[data-archive-load]').forEach(btn=>btn.addEventListener('click',()=>{
-    const pick=archives.find(a=>String(a.id)===String(btn.dataset.archiveLoad));
-    if(!pick) return;
-    if(!confirm(`確定載入「${pick.name}」？\n載入後會完整取代目前所有筆記資料。`)) return;
-    if(applySnapshotRaw(JSON.stringify(pick.payload||{}))) showToast('已載入存檔');
-    else showToast('載入存檔失敗');
-  }));
-  archiveRoot.querySelectorAll('[data-archive-del]').forEach(btn=>btn.addEventListener('click',()=>{
-    const filtered=archives.filter(a=>String(a.id)!==String(btn.dataset.archiveDel));
-    saveArchives(filtered);
-    renderArchivePanel();
-  }));
-  recycleRoot.querySelectorAll('[data-recycle-restore]').forEach(btn=>btn.addEventListener('click',()=>restoreRecycleItem(btn.dataset.recycleRestore)));
-  recycleRoot.querySelectorAll('[data-recycle-del]').forEach(btn=>btn.addEventListener('click',()=>deleteRecycleItem(btn.dataset.recycleDel)));
   updateCloudSyncStatus();
 }
 function updateCloudSyncStatus(extra=''){
