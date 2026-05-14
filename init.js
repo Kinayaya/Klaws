@@ -112,6 +112,8 @@ const bootstrapPrimaryShell=()=>{
   on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
   on('archiveSaveBtn','click',createArchiveSnapshot);
   on('archiveExportBtn','click',exportData);
+  on('archiveSaveToFileBtn','click',saveDataToLocalFile);
+  on('archiveLoadFromFileBtn','click',importDataFromLocalFile);
   on('storageCleanupBtn','click',runStorageCleanupFlow);
   on('archivePortableExportBtn','click',exportPortablePackage);
   on('archiveImportBtn','click',()=>g('importFile')?.click());
