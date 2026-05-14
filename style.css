@@ -606,7 +606,7 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 #fp{ --drawer-width:640px; }
 #tp{
   --drawer-width:760px;
-  left:0;
+  left:auto;
   right:0;
   border-left:none;
 }
