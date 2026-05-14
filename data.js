@@ -449,6 +449,10 @@ async function runCloudSyncPushScheduler(){
     cloudSyncPushRetryCount=0;
     return true;
   }catch(err){
+    const normalizedErr=normalizeCloudSyncError(err,'雲端排程推送失敗');
+    googleSyncLastError=cloudSyncErrorText(normalizedErr);
+    logCloudSync('warn','push scheduler transient failure:',cloudSyncErrorDetail(normalizedErr));
+    updateCloudSyncStatus();
     cloudSyncPushRetryCount+=1;
     if(cloudSyncPushRetryCount<=CLOUD_SYNC_PUSH_RETRY_MAX){
       const retryDelayMs=computeCloudSyncPushRetryDelayMs(cloudSyncPushRetryCount-1);
@@ -1404,6 +1408,15 @@ function cloudSyncErrorDetail(err){
   }catch(_){}
   return 'unknown error object';
 }
+function normalizeCloudSyncError(err,fallbackMessage='未知錯誤'){
+  if(err instanceof Error){
+    const msg=safeStr(err.message||'').trim();
+    return msg?err:new Error(fallbackMessage);
+  }
+  const text=cloudSyncErrorText(err);
+  if(text&&text!=='未知錯誤') return new Error(text);
+  return new Error(fallbackMessage);
+}
 function ensureCloudRuntimeSupported(){
   if(location&&location.protocol==='file:'){
     throw new Error('目前以 file:// 開啟，Google 雲端同步需使用 http(s) 網址（例如 localhost）。');
@@ -1495,8 +1508,9 @@ async function ensureGoogleAccessToken(forcePrompt=false){
     };
     tokenClient.error_callback=err=>{
       if(!settled){
-        googleSyncLastError=cloudSyncErrorText(err);
-        logCloudSync('error','token error callback:',err);
+        const normalizedErr=normalizeCloudSyncError(err,'Google 授權流程中斷，請重新登入');
+        googleSyncLastError=cloudSyncErrorText(normalizedErr);
+        logCloudSync('error','token error callback:',cloudSyncErrorDetail(normalizedErr));
         updateCloudSyncStatus();
         settled=true;
         resolve('');
@@ -1507,8 +1521,9 @@ async function ensureGoogleAccessToken(forcePrompt=false){
       tokenClient.requestAccessToken({prompt:promptValue,hint:''});
     }catch(err){
       if(!settled){
-        googleSyncLastError=cloudSyncErrorText(err);
-        logCloudSync('error','token request failed:',err);
+        const normalizedErr=normalizeCloudSyncError(err,'Google 授權請求失敗');
+        googleSyncLastError=cloudSyncErrorText(normalizedErr);
+        logCloudSync('error','token request failed:',cloudSyncErrorDetail(normalizedErr));
         updateCloudSyncStatus();
         settled=true;
         resolve('');
