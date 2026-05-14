@@ -671,17 +671,20 @@ const getMapPageAssignedIds = rootId => {
   if(rootPath){
     const rootSegs=notePathSegments({path:rootPath});
     const rootDepth=rootSegs.length;
-    const pathIds=notes
+    const exactIds=new Set(notes
       .filter(n=>{
         const segs=notePathSegments(n);
-        if(!segs.length) return false;
-        const isSelf=n.id===resolvedRootId;
-        const isPrefix=rootSegs.every((seg,idx)=>segs[idx]===seg);
-        const withinOneLevel=segs.length<=rootDepth+1;
-        return isSelf||(isPrefix&&withinOneLevel);
+        return segs.length===rootDepth&&rootSegs.every((seg,idx)=>segs[idx]===seg);
       })
-      .map(n=>n.id);
-    return new Set(pathIds);
+      .map(n=>n.id));
+    const ids=new Set(exactIds);
+    links.forEach(link=>{
+      const fromIn=exactIds.has(link.from);
+      const toIn=exactIds.has(link.to);
+      if(fromIn&&mapNodeById(link.to)) ids.add(link.to);
+      if(toIn&&mapNodeById(link.from)) ids.add(link.from);
+    });
+    return ids;
   }
   const key=mapPageNoteKey(resolvedRootId);
   const arr=Array.isArray(mapPageNotes[key])?mapPageNotes[key]:[];

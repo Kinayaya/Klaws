@@ -57,7 +57,7 @@ const nodePreferredRank = (nodeId,chIdxMap,secIdxMap) => {
   return {minChIdx,minSecIdx,title,nodeId};
 };
 const MAP_LANE_WIDTH_SCALE = 0.8;
-const MAP_NODE_SIZE_SCALE = 0.8;
+const MAP_NODE_SIZE_SCALE = 1.12;
 
 function forceLayout() {
   const canvas=g('mapCanvas');mapW=canvas.offsetWidth||800;mapH=canvas.offsetHeight||600;
@@ -605,10 +605,7 @@ function buildMapTreeIndex(visNotes){
       const rootDepth=segs.length;
       const noteIds=notes.filter(n=>{
         const nSegs=notePathSegments(n);
-        if(!nSegs.length) return false;
-        const isPrefix=segs.every((seg,idx)=>nSegs[idx]===seg);
-        const withinOneLevel=nSegs.length<=rootDepth+1;
-        return isPrefix&&withinOneLevel;
+        return nSegs.length===rootDepth&&segs.every((seg,idx)=>nSegs[idx]===seg);
       }).map(n=>n.id);
       const pathPageKey=`path::${path}`;
       setMapPageAssignedIds(pathPageKey,noteIds);
