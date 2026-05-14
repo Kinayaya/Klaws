@@ -94,39 +94,70 @@
 
   <!-- Form Panel -->
   <div class="panel" id="fp" data-allow-touch-default="1">
-    <div class="ph"><span class="ph-title" id="form-title">新增筆記</span><div class="ph-inline-actions"><button class="fbtn bsv" id="fpSave">儲存</button><button class="fbtn bcl fp-side-action" id="fpDuplicateBtn" type="button" style="display:none;">複製筆記</button><button class="fbtn bcl fp-side-action" id="fpCopyBtn" type="button" style="display:none;">複製內容</button><button class="fbtn bcl fp-side-action" id="fpDeleteBtn" type="button" style="display:none;">刪除筆記</button></div><button class="pcls" id="fpClose">&#215;</button></div>
-    <div class="form-section">
-      <div class="form-section-title"><span>基本資料</span></div>
-      <div class="f2col">
-        <div><label class="flbl field-label-row" style="margin-top:0"><button class="field-inline-trigger" id="typeTriggerBtn" type="button">類型</button></label><select class="fs" id="ft"></select></div>
-        <div><label class="flbl field-label-row" style="margin-top:0"><button class="field-inline-trigger" id="titleTriggerBtn" type="button">標題</button></label><input class="fi" id="fti" placeholder="標題"></div>
+    <div class="ph fp-header">
+      <div class="fp-title-wrap">
+        <span class="ph-title" id="form-title">新增筆記</span>
+        <span id="fpSaveStatus" class="fp-save-status" data-status="saved">已儲存</span>
+      </div>
+      <div class="ph-inline-actions">
+        <button class="fbtn bsv" id="fpSave" title="Ctrl/Cmd + S">儲存</button>
+        <div class="fp-more-wrap" id="fpMoreWrap">
+          <button class="fbtn bcl fp-more-btn" id="fpMoreActionsBtn" type="button" aria-expanded="false" aria-controls="fpMoreActionsMenu">更多</button>
+          <div class="fp-more-menu" id="fpMoreActionsMenu">
+            <button class="fp-menu-item fp-side-action" id="fpDuplicateBtn" type="button" style="display:none;">複製筆記</button>
+            <button class="fp-menu-item fp-side-action" id="fpCopyBtn" type="button" style="display:none;">複製內容</button>
+            <button class="fp-menu-item fp-side-action fp-danger-action" id="fpDeleteBtn" type="button" style="display:none;">刪除筆記</button>
+          </div>
+        </div>
+      </div>
+      <button class="pcls" id="fpClose">&#215;</button>
+    </div>
+    <div class="form-section" id="form-section-basic" data-form-section="basic">
+      <div class="form-section-title"><span>基本資料</span><button class="form-section-toggle" type="button" data-section-toggle="basic" aria-expanded="true">收合</button></div>
+      <div class="form-section-body">
+        <div class="f2col">
+          <div><label class="flbl field-label-row" style="margin-top:0"><span>類型</span><button class="field-inline-trigger field-value-chip" id="typeTriggerBtn" type="button">選擇</button></label><select class="fs" id="ft"></select></div>
+          <div><label class="flbl field-label-row" style="margin-top:0"><span>標題</span><span class="field-subtle-hint" id="titleMeta">必填</span></label><input class="fi" id="fti" placeholder="標題"></div>
+        </div>
       </div>
     </div>
-    <div id="fpath-row" class="form-section" style="display:none;">
-      <div class="form-section-title"><span>路徑</span></div>
-      <div class="flbl field-label-row"><span>路徑</span><button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="fpath">清空</button></div>
-      <input class="fi" id="fpath" placeholder="例如：民法 > 總則 > 法律行為 > 代理（之後可只輸入代理）">
-      <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#475569;">
-        <input type="checkbox" id="fpathInheritToggle">
-        套用父路徑（子頁新增時建議）
-      </label>
-      <div id="fpath-inherit-hint" class="field-help-text"></div>
-      <div id="fpath-final-preview" class="field-help-text" style="color:#334155;"></div>
-    </div>
-    <div id="dynamicFieldWrap" class="form-section">
-      <div class="form-section-title"><span>欄位內容</span></div>
-      <div class="field-config-head"><button class="field-inline-trigger" id="fieldConfigTriggerBtn" type="button">欄位</button></div>
-      <div id="dynamicFields"></div>
-    </div>
-    <div id="form-links-wrap" class="form-section" style="margin-top:16px;">
-      <div class="form-section-title"><span>&#128279; 關聯筆記</span><button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="fl-search">清空</button></div>
-      <div id="form-links-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:5px;"></div>
-      <input class="fi form-link-search" id="fl-search" placeholder="搜尋關聯">
-      <div id="fl-bulk-actions" style="display:none;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 8px;">
-        <button class="tool-btn" id="flSelectAllBtn">全選結果</button>
-        <button class="tool-btn" id="flAddSelectedBtn" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459;">建立 0 筆關聯</button>
+    <div id="fpath-row" class="form-section" data-form-section="path" style="display:none;">
+      <div class="form-section-title"><span>路徑</span><button class="form-section-toggle" type="button" data-section-toggle="path" aria-expanded="true">收合</button></div>
+      <div class="form-section-summary" id="form-path-summary"></div>
+      <div class="form-section-body">
+        <div class="flbl field-label-row"><span>路徑</span><button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="fpath">清空</button></div>
+        <input class="fi" id="fpath" placeholder="例如：民法 > 總則 > 法律行為 > 代理（之後可只輸入代理）">
+        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#475569;">
+          <input type="checkbox" id="fpathInheritToggle">
+          套用父路徑（子頁新增時建議）
+        </label>
+        <div id="fpath-inherit-hint" class="field-help-text"></div>
+        <div id="fpath-final-preview" class="field-help-text" style="color:#334155;"></div>
       </div>
-      <div id="fl-results" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+    </div>
+    <div id="dynamicFieldWrap" class="form-section" data-form-section="fields">
+      <div class="form-section-title"><span>欄位內容</span><button class="form-section-toggle" type="button" data-section-toggle="fields" aria-expanded="true">收合</button></div>
+      <div class="form-section-summary" id="form-fields-summary"></div>
+      <div class="form-section-body">
+        <div class="field-config-head"><button class="field-inline-trigger" id="fieldConfigTriggerBtn" type="button">欄位</button></div>
+        <div id="dynamicFields"></div>
+      </div>
+    </div>
+    <div id="form-links-wrap" class="form-section" data-form-section="links" style="margin-top:16px;">
+      <div class="form-section-title"><span>&#128279; 關聯筆記</span><button class="form-section-toggle" type="button" data-section-toggle="links" aria-expanded="true">收合</button></div>
+      <div class="form-links-summary" id="form-links-summary"></div>
+      <div class="form-section-body">
+        <button class="tool-btn form-links-manage-btn" id="formLinksManageBtn" type="button" aria-expanded="false">管理關聯</button>
+        <div id="form-links-list" style="margin-bottom:10px;display:flex;flex-direction:column;gap:5px;"></div>
+        <div class="form-links-drawer" id="formLinksDrawer" hidden>
+          <div class="form-link-search-row"><input class="fi form-link-search" id="fl-search" placeholder="搜尋關聯"><button class="tool-btn mini-btn clear-field-btn" type="button" data-clear-target="fl-search">清空</button></div>
+          <div id="fl-bulk-actions" style="display:none;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 8px;">
+            <button class="tool-btn" id="flSelectAllBtn">全選結果</button>
+            <button class="tool-btn" id="flAddSelectedBtn" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459;">建立 0 筆關聯</button>
+          </div>
+          <div id="fl-results" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+        </div>
+      </div>
     </div>
   </div>
 

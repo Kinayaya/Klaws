@@ -92,7 +92,10 @@ test('flushing immediately after saveNoteDraftFromForm persists draft snapshot t
     resolveInheritedPath:path=>path,
     collectFormValuesByType:()=>({question:'',answer:'',prompt:'',application:'',body:'草稿內容',detail:'',todos:[],extraFields:{}}),
     selectedValues:()=>[],
-    normalizeNoteSchema:n=>n
+    normalizeNoteSchema:n=>n,
+    markFormSaving:()=>{},
+    markFormSaved:()=>{},
+    markFormSaveFailed:()=>{}
   };
   vm.createContext(context);
   vm.runInContext(utilsSnippet,context);
@@ -111,7 +114,7 @@ test('flushing immediately after saveNoteDraftFromForm persists draft snapshot t
 test('switching type preserves detail via form snapshot',()=>{
   assert.match(formJs,/function getCurrentFormSnapshot\(\)/);
   assert.match(formJs,/function applyFormSnapshot\(snapshot\)/);
-  assert.match(initJs,/on\('ft','change',\(\)=>\{saveNoteDraftFromForm\(\);const snapshot/);
+  assert.match(initJs,/on\('ft','change',\(\)=>\{markFormDirty\(\);saveNoteDraftFromForm\(\);const snapshot/);
   assert.match(formJs,/renderDynamicFields\(typeKey,note=null,snapshot=null\)/);
 });
 

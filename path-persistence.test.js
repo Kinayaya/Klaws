@@ -15,7 +15,7 @@ test('path structural changes use immediate persistence helper', ()=>{
 test('form path draft updates are deferred and provide flush snapshot hook', ()=>{
   assert.match(formJs,/savePathChange\(\{mode:'draft'\}\);/);
   assert.match(formJs,/async function flushNoteDraftSnapshot\(\)\{/);
-  assert.match(formJs,/pathInput\.oninput=\(\)=>\{updatePathInheritanceUI\(\);saveNoteDraftFromForm\(\);\};/);
+  assert.match(formJs,/pathInput\.oninput=\(\)=>\{updatePathInheritanceUI\(\);updateFormSectionSummary\(\);saveNoteDraftFromForm\(\);\};/);
 });
 
 test('map path rename and delete prompt share same persistence api', ()=>{
