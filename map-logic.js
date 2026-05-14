@@ -550,7 +550,7 @@ function buildMapTreeIndex(visNotes){
       const toggleSymbol=collapsed?'➕':'➖';
       const collapsedByFilter=isSearching?false:collapsed;
       const pathActiveClass=selectedPath===treePath?' active-path':'';
-      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-move-btn" data-tree-move-up-path="${escapeHtml(treePath)}" title="上移">⬆️</button><button type="button" class="map-tree-path-btn${pathActiveClass}" data-tree-nav-path="${escapeHtml(treePath)}" title="雙擊可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
+      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-move-btn" data-tree-move-up-path="${escapeHtml(treePath)}" title="上移">⬆️</button><button type="button" class="map-tree-path-btn${pathActiveClass}" data-tree-nav-path="${escapeHtml(treePath)}" title="長按可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
@@ -568,7 +568,29 @@ function buildMapTreeIndex(visNotes){
     ev.stopPropagation();
   }));
   body.querySelectorAll('[data-tree-nav-path]').forEach(btn=>{
+    const LONG_PRESS_MS=500;
+    let longPressTimer=null;
+    let longPressTriggered=false;
+    const clearLongPress=()=>{
+      if(longPressTimer!==null){
+        clearTimeout(longPressTimer);
+        longPressTimer=null;
+      }
+    };
+    const startLongPress=()=>{
+      clearLongPress();
+      longPressTriggered=false;
+      longPressTimer=setTimeout(()=>{
+        longPressTimer=null;
+        longPressTriggered=true;
+        openPathEditPrompt();
+      },LONG_PRESS_MS);
+    };
     btn.addEventListener('click',()=>{
+      if(longPressTriggered){
+        longPressTriggered=false;
+        return;
+      }
       const path=safeStr(btn.dataset.treeNavPath||'').trim();
       if(!path) return;
       const segs=notePathSegments({path});
@@ -597,9 +619,7 @@ function buildMapTreeIndex(visNotes){
       }
       enterMapSubpage(pathPageKey);
     });
-    btn.addEventListener('dblclick',ev=>{
-      ev.preventDefault();
-      ev.stopPropagation();
+    const openPathEditPrompt=()=>{
       const path=safeStr(btn.dataset.treeNavPath||'').trim();
       if(!path) return;
       const op=prompt(`編輯路徑：輸入新路徑名稱。\n若要刪除此路徑，請輸入 /delete`,path);
@@ -614,7 +634,14 @@ function buildMapTreeIndex(visNotes){
       }
       const changed=replacePathPrefixForNotes(path,next);
       persistPathStructureChange(changed,count=>`路徑已更新，共 ${count} 筆`);
+    };
+    btn.addEventListener('pointerdown',ev=>{
+      if(ev.button!==0) return;
+      startLongPress();
     });
+    btn.addEventListener('pointerup',clearLongPress);
+    btn.addEventListener('pointerleave',clearLongPress);
+    btn.addEventListener('pointercancel',clearLongPress);
   });
   body.querySelectorAll('[data-tree-move-up-path]').forEach(btn=>btn.addEventListener('click',ev=>{
     ev.stopPropagation();
