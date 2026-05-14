@@ -8,6 +8,107 @@ function debugLog(context,payload){
   }catch(_e){}
 }
 
+
+const FORM_SECTION_DEFAULTS={basic:false,path:false,fields:false,links:false};
+let formSectionCollapsed={...FORM_SECTION_DEFAULTS};
+let formLinksDrawerOpen=false;
+let lastFormSaveStatus='saved';
+
+function isFormOpen(){ return !!g('fp')?.classList.contains('open'); }
+function setFormSaveStatus(status='saved'){
+  const normalized=['dirty','saving','saved','failed'].includes(status)?status:'saved';
+  if(lastFormSaveStatus===normalized) return;
+  lastFormSaveStatus=normalized;
+  const el=g('fpSaveStatus');
+  if(!el) return;
+  const label={dirty:'未儲存',saving:'儲存中',saved:'已儲存',failed:'儲存失敗'}[normalized];
+  el.dataset.status=normalized;
+  el.textContent=label;
+}
+function closeFormMoreMenu(){
+  const wrap=g('fpMoreWrap'),btn=g('fpMoreActionsBtn');
+  if(wrap) wrap.classList.remove('open');
+  if(btn) btn.setAttribute('aria-expanded','false');
+}
+function toggleFormMoreMenu(){
+  const wrap=g('fpMoreWrap'),btn=g('fpMoreActionsBtn');
+  if(!wrap||!btn) return;
+  const open=!wrap.classList.contains('open');
+  wrap.classList.toggle('open',open);
+  btn.setAttribute('aria-expanded',open?'true':'false');
+}
+function updateFormMoreMenuVisibility(){
+  const visible=editMode&&formMode!=='auxnode';
+  const wrap=g('fpMoreWrap'),btn=g('fpMoreActionsBtn');
+  if(wrap) wrap.style.display=visible?'block':'none';
+  if(btn) btn.setAttribute('aria-expanded','false');
+  if(!visible) closeFormMoreMenu();
+}
+function toggleFormSection(sectionKey){
+  if(!Object.prototype.hasOwnProperty.call(formSectionCollapsed,sectionKey)) return;
+  formSectionCollapsed[sectionKey]=!formSectionCollapsed[sectionKey];
+  applyFormSectionState();
+}
+function updateFormSectionSummary(){
+  const pathSummary=g('form-path-summary');
+  if(pathSummary){
+    const path=resolveInheritedPath(g('fpath')?.value||'');
+    pathSummary.textContent=path?`目前路徑：${path}`:'未設定路徑';
+  }
+  const fieldsSummary=g('form-fields-summary');
+  if(fieldsSummary){
+    const keys=getTypeFieldKeys(g('ft')?.value||'');
+    fieldsSummary.textContent=`${keys.length} 個欄位`;
+  }
+}
+function applyFormSectionState(){
+  Object.keys(formSectionCollapsed).forEach(key=>{
+    const section=g(`form-section-${key}`)||document.querySelector(`[data-form-section="${key}"]`);
+    if(!section) return;
+    const collapsed=!!formSectionCollapsed[key];
+    section.classList.toggle('is-collapsed',collapsed);
+    const btn=section.querySelector('[data-section-toggle]');
+    if(btn){
+      btn.setAttribute('aria-expanded',collapsed?'false':'true');
+      btn.textContent=collapsed?'展開':'收合';
+    }
+  });
+  updateFormSectionSummary();
+}
+function bindFormPanelChrome(){
+  g('fpMoreActionsBtn')?.addEventListener('click',ev=>{ev.stopPropagation();toggleFormMoreMenu();});
+  document.addEventListener('click',ev=>{ if(!ev.target.closest?.('#fpMoreWrap')) closeFormMoreMenu(); });
+  g('fpMoreActionsMenu')?.addEventListener('click',()=>closeFormMoreMenu());
+  g('fp')?.addEventListener('click',ev=>{
+    const toggle=ev.target.closest?.('[data-section-toggle]');
+    if(!toggle) return;
+    toggleFormSection(toggle.dataset.sectionToggle);
+  });
+  g('formLinksManageBtn')?.addEventListener('click',()=>{
+    formLinksDrawerOpen=!formLinksDrawerOpen;
+    syncFormLinksDrawer();
+    if(formLinksDrawerOpen) g('fl-search')?.focus();
+  });
+}
+function syncFormLinksDrawer(){
+  const drawer=g('formLinksDrawer'),btn=g('formLinksManageBtn');
+  if(drawer) drawer.hidden=!formLinksDrawerOpen;
+  if(btn){
+    btn.setAttribute('aria-expanded',formLinksDrawerOpen?'true':'false');
+    btn.textContent=formLinksDrawerOpen?'收合關聯管理':'管理關聯';
+  }
+  if(formLinksDrawerOpen) renderFormLinkSearch();
+  else {
+    const results=g('fl-results');
+    if(results) results.innerHTML='';
+    updateFormLinkBulkActions();
+  }
+}
+function markFormDirty(){ if(isFormOpen()) setFormSaveStatus('dirty'); }
+function markFormSaving(){ if(isFormOpen()) setFormSaveStatus('saving'); }
+function markFormSaved(){ if(isFormOpen()) setFormSaveStatus('saved'); }
+function markFormSaveFailed(){ if(isFormOpen()) setFormSaveStatus('failed'); }
+
 function resolveInheritedPath(inputPath=''){
   const raw=resolvePathInput(inputPath||'');
   if(raw) return raw;
@@ -27,19 +128,20 @@ function syncFormModeVisibility(){
   const saveBtn=g('fpSave');
   if(saveBtn) saveBtn.textContent='儲存';
   const actionIds=['fpDuplicateBtn','fpCopyBtn','fpDeleteBtn'];
-  actionIds.forEach(id=>{const el=g(id);if(el) el.style.display=(editMode&&formMode!=='auxnode')?'inline-flex':'none';});
+  const showActions=editMode&&formMode!=='auxnode';
+  actionIds.forEach(id=>{const el=g(id);if(el) el.style.display=showActions?'flex':'none';});
+  updateFormMoreMenuVisibility();
 }
 function syncFormHeaderLabels(){
-  const typeSelect=g('ft'),titleInput=g('fti');
-  const typeBtn=g('typeTriggerBtn'),titleBtn=g('titleTriggerBtn');
+  const typeSelect=g('ft'),typeBtn=g('typeTriggerBtn'),titleInput=g('fti'),titleMeta=g('titleMeta');
   if(typeBtn&&typeSelect){
     const opt=typeSelect.options[typeSelect.selectedIndex];
-    typeBtn.textContent=(opt?.textContent||'類型').trim()||'類型';
+    typeBtn.textContent=(opt?.textContent||'選擇').trim()||'選擇';
   }
-  if(titleBtn&&titleInput){
-    const v=(titleInput.value||'').trim();
-    titleBtn.textContent=v||'標題';
+  if(titleMeta&&titleInput){
+    titleMeta.textContent=(titleInput.value||'').trim()?'已命名':'必填';
   }
+  updateFormSectionSummary();
 }
 function inheritedParentPath(){
   const rootId=currentSubpageRootId();
@@ -144,10 +246,15 @@ function openForm(isEdit) {
     createFormDraftNote();
   }
   syncFormHeaderLabels();
+  formLinksDrawerOpen=false;
+  formSectionCollapsed={...FORM_SECTION_DEFAULTS,path:false,links:false};
+  applyFormSectionState();
+  syncFormLinksDrawer();
+  setFormSaveStatus('saved');
   buildInlineLinksPanel();
   const inheritToggle=g('fpathInheritToggle'),pathInput=g('fpath');
   if(inheritToggle) inheritToggle.onchange=updatePathInheritanceUI;
-  if(pathInput) pathInput.oninput=()=>{updatePathInheritanceUI();saveNoteDraftFromForm();};
+  if(pathInput) pathInput.oninput=()=>{updatePathInheritanceUI();updateFormSectionSummary();saveNoteDraftFromForm();};
   updatePathInheritanceUI();
   syncFormModeVisibility();
   g('fp').classList.add('open');['dp','tp'].forEach(p=>g(p).classList.remove('open'));
@@ -160,6 +267,7 @@ function closeForm() {
     else { removeDraftNoteById(closingDraftId); savePathChange({mode:'draft'}); }
     draftNoteId=null;
   }
+  closeFormMoreMenu();
   g('fp').classList.remove('open');
   editMode=false;
   formMode='note';
@@ -248,11 +356,22 @@ function buildInlineLinksPanel() {
   bindFormClearButtons();
 }
 function renderFormLinks() {
-  const el=g('form-links-list');
-  if(!el||!openId){if(el)el.innerHTML='';return;}
+  const el=g('form-links-list'),summary=g('form-links-summary');
+  if(!el||!openId){
+    if(el) el.innerHTML='';
+    if(summary) summary.textContent='請先儲存筆記後再新增關聯';
+    return;
+  }
   const related=links.filter(l=>l.from===openId||l.to===openId);
-  if(!related.length){el.innerHTML='<span style="font-size:12px;color:#bbb">尚無關聯</span>';return;}
-  el.innerHTML=related.map(l=>{const otherId=l.from===openId?l.to:l.from,other=mapNodeById(otherId),tag=isAuxnodeNode(other)?'<span class="chip" style="margin-right:6px;background:#F2E8FF;color:#7A34B0;border-color:#D4B5EF"></span>':'',relNote=normalizeRelationNote(l.note);return `<div class="fl-item">${tag}<button class="fl-item-title fl-item-open" type="button" data-open-note-id="${otherId}">${other?other.title:'（已刪除）'}</button>${relNote?`<span class="chip" title="${escapeHtml(relNote)}">${escapeHtml(relNote)}</span>`:''}<button class="fl-del" data-lid="${l.id}">✕</button></div>`;}).join('');
+  if(summary){
+    const preview=related.slice(0,2).map(l=>{
+      const otherId=l.from===openId?l.to:l.from;
+      return mapNodeById(otherId)?.title||'（已刪除）';
+    }).filter(Boolean).join('、');
+    summary.textContent=related.length?`${related.length} 筆關聯${preview?`：${preview}${related.length>2?'…':''}`:''}`:'尚無關聯';
+  }
+  if(!related.length){el.innerHTML='<span class="form-empty-text">尚無關聯</span>';return;}
+  el.innerHTML=related.map(l=>{const otherId=l.from===openId?l.to:l.from,other=mapNodeById(otherId),tag=isAuxnodeNode(other)?'<span class="chip" style="margin-right:6px;background:#F2E8FF;color:#7A34B0;border-color:#D4B5EF"></span>':'',relNote=normalizeRelationNote(l.note);return `<div class="fl-item">${tag}<button class="fl-item-title fl-item-open" type="button" data-open-note-id="${otherId}">${other?escapeHtml(other.title):'（已刪除）'}</button>${relNote?`<span class="chip" title="${escapeHtml(relNote)}">${escapeHtml(relNote)}</span>`:''}<button class="fl-del" data-lid="${l.id}">✕</button></div>`;}).join('');
   el.querySelectorAll('[data-open-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const targetId=parseInt(btn.dataset.openNoteId,10);
     if(!mapNodeById(targetId)) return;
@@ -263,12 +382,13 @@ function renderFormLinks() {
 }
 function renderFormLinkSearch() {
   const el=g('fl-results'); if(!el) return;
+  if(!formLinksDrawerOpen){el.innerHTML='';updateFormLinkBulkActions();return;}
   const q=(val('fl-search')||'').toLowerCase().trim();
   if(!q){el.innerHTML='';updateFormLinkBulkActions();return;}
   const existIds=new Set(links.filter(l=>openId&&(l.from===openId||l.to===openId)).map(l=>l.from===openId?l.to:l.from));
   const pool=findMapNodesByKeyword(q,openId).filter(n=>!existIds.has(n.id)&&(!isAuxnodeNode(n)||isNodeInCurrentMapPage(n.id)));
   if(!pool.length){el.innerHTML='<div style="font-size:12px;color:#bbb;padding:4px 0;">找不到符合的筆記</div>';updateFormLinkBulkActions();return;}
-  el.innerHTML=pool.map(n=>`<div class="fl-result-item ${formLinkSelections[n.id]?'selected':''}" data-nid="${n.id}"><input type="checkbox" ${formLinkSelections[n.id]?'checked':''}><span class="fl-result-title">${n.title}</span></div>`).join('');
+  el.innerHTML=pool.map(n=>`<div class="fl-result-item ${formLinkSelections[n.id]?'selected':''}" data-nid="${n.id}"><input type="checkbox" ${formLinkSelections[n.id]?'checked':''}><span class="fl-result-title">${escapeHtml(n.title)}</span></div>`).join('');
   el.querySelectorAll('.fl-result-item').forEach(item=>{
     item.addEventListener('click',()=>{
       const toId=parseInt(item.dataset.nid);
@@ -284,7 +404,7 @@ function updateFormLinkBulkActions(){
   const wrap=g('fl-bulk-actions'),btn=g('flAddSelectedBtn');
   if(!wrap||!btn) return;
   const count=Object.keys(formLinkSelections).filter(id=>formLinkSelections[id]).length;
-  wrap.style.display=g('fl-results')?.children.length?'flex':'none';
+  wrap.style.display=(formLinksDrawerOpen&&g('fl-results')?.children.length)?'flex':'none';
   btn.textContent=`建立 ${count} 筆關聯`;
   btn.disabled=count===0;
 }
@@ -345,7 +465,11 @@ function renderDynamicFields(typeKey,note=null,snapshot=null){
     const isText=def.kind==='text';
     const snapValue=snapshot&&snapshot.fields&&Object.prototype.hasOwnProperty.call(snapshot.fields,key)?snapshot.fields[key]:null;
     const value=snapValue!==null?safeStr(snapValue):(note?noteFieldValueForEdit(note,key):'');
-    return `<div class="type-field-item"><div class="type-field-title"><label class="type-field-label" for="f-field-${key}">${def.label}</label><div style="display:flex;align-items:center;gap:8px;"><button class="tool-btn mini-btn clear-field-btn" data-clear-target="f-field-${key}" type="button">清空</button><button class="tool-btn mini-btn copy-field-btn" data-copy-target="f-field-${key}" type="button">複製</button><button class="tool-btn mini-btn rename-field-btn" data-rename-field="${key}" type="button">改名</button>${!BUILTIN_FIELD_DEFS[key]?`<button class="type-field-remove" data-remove-custom="${key}" type="button">刪除此自訂欄位</button>`:''}</div></div>${isText?`<input class="fi" id="f-field-${key}" placeholder="${def.placeholder||''}" value="${value.replace(/"/g,'&quot;')}">`:`<textarea class="ft field-textarea" id="f-field-${key}" placeholder="${def.placeholder||''}" ${key==='todos'?'style="min-height:96px;"':''}>${value}</textarea>`}</div>`;
+    const label=escapeHtml(def.label||key);
+    const placeholder=escapeHtml(def.placeholder||'');
+    const safeValue=escapeHtml(value);
+    const fieldActions=`<div class="type-field-actions"><button class="tool-btn mini-btn clear-field-btn" data-clear-target="f-field-${key}" type="button">清空</button><button class="tool-btn mini-btn copy-field-btn" data-copy-target="f-field-${key}" type="button">複製</button><button class="tool-btn mini-btn rename-field-btn" data-rename-field="${key}" type="button">改名</button>${!BUILTIN_FIELD_DEFS[key]?`<button class="type-field-remove" data-remove-custom="${key}" type="button">刪除此自訂欄位</button>`:''}</div>`;
+    return `<div class="type-field-item"><div class="type-field-title"><label class="type-field-label" for="f-field-${key}">${label}</label>${fieldActions}</div>${isText?`<input class="fi" id="f-field-${key}" placeholder="${placeholder}" value="${safeValue.replace(/"/g,'&quot;')}">`:`<textarea class="ft field-textarea" id="f-field-${key}" placeholder="${placeholder}" ${key==='todos'?'style="min-height:96px;"':''}>${safeValue}</textarea>`}</div>`;
   }).join('');
   bindFormClearButtons();
   wrap.querySelectorAll('[data-copy-target]').forEach(btn=>btn.addEventListener('click',()=>copyFieldValueToClipboard(btn.dataset.copyTarget)));
@@ -421,9 +545,10 @@ async function saveNote() {
   const saveBtn=g('fpSave');
   if(saveBtn&&saveBtn.disabled) return;
   if(saveBtn) saveBtn.disabled=true;
+  markFormSaving();
   try{
   const title=(g('fti').value||'').trim();
-  if(!title){g('fti').style.borderColor='#FF3B30';showToast('請輸入標題');return;}
+  if(!title){g('fti').style.borderColor='#FF3B30';showToast('請輸入標題');markFormDirty();return;}
   g('fti').style.borderColor='';
   const typeKey=g('ft').value;
   const useInherited=!!g('fpathInheritToggle')?.checked;
@@ -433,6 +558,7 @@ async function saveNote() {
   const typeFieldKeys=getTypeFieldKeys(typeKey);
   const requiresApplication=typeFieldKeys.includes('application');
   if(requiresApplication&&!fieldData.application.trim()){
+    markFormDirty();
     showToast('Application 為必填：請填「你會在何處使用這個知識」');
     const appInput=g('f-field-application');
     if(appInput){
@@ -469,7 +595,8 @@ async function saveNote() {
     refreshAchievementProgress();
     draftNoteId=null;
     const result=await savePathChange();
-    if(!result||result.ok===false){ showToast('儲存失敗，請稍後重試'); return; }
+    if(!result||result.ok===false){ markFormSaveFailed(); showToast('儲存失敗，請稍後重試'); return; }
+    markFormSaved();
     closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`筆記已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     if(isMapOpen) setTimeout(()=>openNote(saved.id),120);
     else setTimeout(()=>{window.scrollTo(0,0);setTimeout(()=>openNote(saved.id),300);},100);
@@ -500,7 +627,8 @@ async function saveNote() {
       });
     }
     const result=await savePathChange();
-    if(!result||result.ok===false){ showToast('儲存失敗，請稍後重試'); return; }
+    if(!result||result.ok===false){ markFormSaveFailed(); showToast('儲存失敗，請稍後重試'); return; }
+    markFormSaved();
     closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已更新！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     setTimeout(()=>openNote(openId),150);
   } else {
@@ -520,11 +648,16 @@ async function saveNote() {
     openId=created.id;
     const mentionAdded=autoLinkMentionsForNote(created);
     const result=await savePathChange();
-    if(!result||result.ok===false){ showToast('儲存失敗，請稍後重試'); return; }
+    if(!result||result.ok===false){ markFormSaveFailed(); showToast('儲存失敗，請稍後重試'); return; }
+    markFormSaved();
     closeForm();render();if(isMapOpen) scheduleMapRedraw(0);showToast(`${isAuxnode?'':'筆記'}已儲存！${mentionAdded?`（@ 自動建立 ${mentionAdded} 筆關聯）`:''}`);
     if(isMapOpen) setTimeout(()=>openNote(created.id),120);
     else setTimeout(()=>{window.scrollTo(0,0);setTimeout(()=>openNote(notes[0].id),300);},100);
   }
+  } catch(err){
+    markFormSaveFailed();
+    console.error('[form-save-error]',err);
+    showToast('儲存失敗，請稍後重試');
   } finally {
     if(saveBtn) saveBtn.disabled=false;
   }
@@ -546,13 +679,23 @@ function saveNoteDraftFromForm(){
   const updated=normalizeNoteSchema({...target,type:typeKey,domain:effectiveDomain,domains:normalizedSubs,group:'',groups:[],part:'',parts:[],title:title||'',path,question:fieldData.question,answer:fieldData.answer,prompt:fieldData.prompt,application:fieldData.application,body:fieldData.body,detail:fieldData.detail,todos:fieldData.todos,extraFields:fieldData.extraFields});
   Object.assign(target,updated);
   if(target.isDraft) target.isDraft=true; else delete target.isDraft;
-  savePathChange({mode:'draft'});
+  markFormSaving();
+  const savePromise=savePathChange({mode:'draft'});
+  if(savePromise&&typeof savePromise.then==='function'){
+    savePromise.then(result=>{
+      if(result&&result.ok===false) markFormSaveFailed();
+      else markFormSaved();
+    }).catch(()=>markFormSaveFailed());
+  }else markFormSaved();
 }
 async function flushNoteDraftSnapshot(){
   if(!((editMode||draftNoteId)&&openId)) return;
   saveNoteDraftFromForm();
+  markFormSaving();
   await flushDeferredSave();
-  await flushDraftSave();
+  const result=await flushDraftSave();
+  if(result&&result.ok===false) markFormSaveFailed();
+  else markFormSaved();
 }
 
 function duplicateNote(targetId=openId) {

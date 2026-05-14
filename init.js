@@ -48,8 +48,8 @@ const applySearchMode=(mode)=>{
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
   const viewController=bootstrapUI();
-  on('ft','change',()=>{saveNoteDraftFromForm();const snapshot=typeof getCurrentFormSnapshot==='function'?getCurrentFormSnapshot():null;renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null,snapshot);if(typeof applyFormSnapshot==='function') applyFormSnapshot(snapshot);syncFormHeaderLabels();});
-  on('fti','input',syncFormHeaderLabels);
+  on('ft','change',()=>{markFormDirty();saveNoteDraftFromForm();const snapshot=typeof getCurrentFormSnapshot==='function'?getCurrentFormSnapshot():null;renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null,snapshot);if(typeof applyFormSnapshot==='function') applyFormSnapshot(snapshot);syncFormHeaderLabels();});
+  on('fti','input',()=>{markFormDirty();syncFormHeaderLabels();});
   on('typeTriggerBtn','click',()=>g('ft')?.focus());
   on('titleTriggerBtn','click',()=>g('fti')?.focus());
   on('fieldConfigTriggerBtn','click',editTypeFieldsForCurrentType);
@@ -86,10 +86,21 @@ const applySearchMode=(mode)=>{
     render();
   });
   bindCoreButtons();
+  bindFormPanelChrome();
   bindTouchQuickActions();
   const draftSaver=debounce(saveNoteDraftFromForm,900);
-  g('fp')?.addEventListener('input',()=>{ if(editMode||draftNoteId) draftSaver(); });
+  g('fp')?.addEventListener('input',()=>{ if(editMode||draftNoteId){ markFormDirty(); draftSaver(); } });
   g('fp')?.addEventListener('focusout',()=>{ if(editMode||draftNoteId) saveNoteDraftFromForm(); });
+  document.addEventListener('keydown',ev=>{
+    const fp=g('fp');
+    if(!fp||!fp.classList.contains('open')) return;
+    const key=ev.key;
+    const mod=ev.ctrlKey||ev.metaKey;
+    if(mod&&key.toLowerCase()==='s'){ev.preventDefault();saveNote();return;}
+    if(mod&&key==='Enter'){ev.preventDefault();flushNoteDraftSnapshot().then(()=>showToast('已保留編輯並同步草稿'));return;}
+    if(mod&&key.toLowerCase()==='d'&&editMode){ev.preventDefault();duplicateMapNode(openId);return;}
+    if(key==='Escape'&&!ev.isComposing){ev.preventDefault();closeForm();}
+  });
   bindPathManagerNav();
   on('apClose','click',()=>{g('ap').classList.remove('open');syncSidePanelState();});
   on('archiveSaveBtn','click',createArchiveSnapshot);
