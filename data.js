@@ -28,7 +28,9 @@ function buildUiPayload(includeTransient=true){
   // mapCollapsed: 節點卡片折疊（以節點 id 為 key）
   // mapTreeCollapsedPaths: 路徑樹折疊（以路徑字串為 key），兩者用途不同需分開持久化
   const safeMapTreeCollapsedPaths=(mapTreeCollapsedPaths&&typeof mapTreeCollapsedPaths==='object'&&!Array.isArray(mapTreeCollapsedPaths))?mapTreeCollapsedPaths:{};
-  const ui={nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapTreeCollapsedPaths:safeMapTreeCollapsedPaths,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),panelDir:getPanelDir()};
+  const safeMapTreePathOrder=(mapTreePathOrder&&typeof mapTreePathOrder==='object'&&!Array.isArray(mapTreePathOrder))?mapTreePathOrder:{};
+  const safeFormSectionCollapsedState=(formSectionCollapsedState&&typeof formSectionCollapsedState==='object'&&!Array.isArray(formSectionCollapsedState))?formSectionCollapsedState:{basic:false,path:false,fields:false,links:false};
+  const ui={nodeSizes,sortMode,mapCenterNodeId,mapCenterNodeIds,mapFilter,mapLinkedOnly,mapDepth,mapFocusMode,mapLaneConfigs,mapCollapsed,mapTreeCollapsedPaths:safeMapTreeCollapsedPaths,mapTreePathOrder:safeMapTreePathOrder,mapSubpages,mapPageNotes,mapPageStack:normalizeMapPageStack(mapPageStack),panelDir:getPanelDir(),formSectionCollapsedState:safeFormSectionCollapsedState};
   if(includeTransient){ ui.nodePos=nodePos;ui.mapOffX=mapOffX;ui.mapOffY=mapOffY;ui.mapScale=mapScale; }
   if(typeof mapTreeFilterQ==='string') ui.mapTreeFilterQ=mapTreeFilterQ;
   return ui;
@@ -291,6 +293,8 @@ async function loadData() {
       const rawMapTreeCollapsedPaths=(d.mapTreeCollapsedPaths&&typeof d.mapTreeCollapsedPaths==='object'&&!Array.isArray(d.mapTreeCollapsedPaths))?d.mapTreeCollapsedPaths:{};
       mapTreeCollapsedPaths={...rawMapTreeCollapsedPaths};
       mapTreeFilterQ=typeof d.mapTreeFilterQ==='string'?d.mapTreeFilterQ:'';
+      mapTreePathOrder=(d.mapTreePathOrder&&typeof d.mapTreePathOrder==='object'&&!Array.isArray(d.mapTreePathOrder))?{...d.mapTreePathOrder}:{};
+      formSectionCollapsedState=(d.formSectionCollapsedState&&typeof d.formSectionCollapsedState==='object'&&!Array.isArray(d.formSectionCollapsedState))?{basic:!!d.formSectionCollapsedState.basic,path:!!d.formSectionCollapsedState.path,fields:!!d.formSectionCollapsedState.fields,links:!!d.formSectionCollapsedState.links}:{basic:false,path:false,fields:false,links:false};
       const rawMapSubpages=(d.mapSubpages&&typeof d.mapSubpages==='object'&&!Array.isArray(d.mapSubpages))?d.mapSubpages:{};
       mapSubpages=normalizeMapSubpages(rawMapSubpages);
       const rawMapPageNotes=(d.mapPageNotes&&typeof d.mapPageNotes==='object'&&!Array.isArray(d.mapPageNotes))?d.mapPageNotes:null;
@@ -854,6 +858,8 @@ function applySnapshotRaw(rawText){
   mapCollapsed=(d.mapCollapsed&&typeof d.mapCollapsed==='object')?d.mapCollapsed:{};
   mapTreeCollapsedPaths=(d.mapTreeCollapsedPaths&&typeof d.mapTreeCollapsedPaths==='object'&&!Array.isArray(d.mapTreeCollapsedPaths))?{...d.mapTreeCollapsedPaths}:{};
   mapTreeFilterQ=typeof d.mapTreeFilterQ==='string'?d.mapTreeFilterQ:'';
+  mapTreePathOrder=(d.mapTreePathOrder&&typeof d.mapTreePathOrder==='object'&&!Array.isArray(d.mapTreePathOrder))?{...d.mapTreePathOrder}:{};
+  formSectionCollapsedState=(d.formSectionCollapsedState&&typeof d.formSectionCollapsedState==='object'&&!Array.isArray(d.formSectionCollapsedState))?{basic:!!d.formSectionCollapsedState.basic,path:!!d.formSectionCollapsedState.path,fields:!!d.formSectionCollapsedState.fields,links:!!d.formSectionCollapsedState.links}:{basic:false,path:false,fields:false,links:false};
   mapSubpages=(d.mapSubpages&&typeof d.mapSubpages==='object')?d.mapSubpages:{};
   mapPageNotes=(d.mapPageNotes&&typeof d.mapPageNotes==='object')?normalizeMapPageNotes(d.mapPageNotes):{root:notes.map(n=>n.id)};
   nid=d.nid||Math.max([...notes,...mapAuxNodes].reduce((m,n)=>Math.max(m,n.id||0),0)+1,10);
@@ -957,6 +963,8 @@ function importData(file) {
           mapTreeCollapsedPaths={...mapTreeCollapsedPaths,...d.mapTreeCollapsedPaths};
         }
         if(typeof d.mapTreeFilterQ==='string') mapTreeFilterQ=d.mapTreeFilterQ;
+        if(d.mapTreePathOrder&&typeof d.mapTreePathOrder==='object'&&!Array.isArray(d.mapTreePathOrder)) mapTreePathOrder={...mapTreePathOrder,...d.mapTreePathOrder};
+        if(d.formSectionCollapsedState&&typeof d.formSectionCollapsedState==='object'&&!Array.isArray(d.formSectionCollapsedState)) formSectionCollapsedState={basic:!!d.formSectionCollapsedState.basic,path:!!d.formSectionCollapsedState.path,fields:!!d.formSectionCollapsedState.fields,links:!!d.formSectionCollapsedState.links};
         if(d.mapSubpages&&typeof d.mapSubpages==='object'){
           const remappedSubpages={};
           Object.keys(d.mapSubpages).forEach(k=>{

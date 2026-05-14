@@ -11,6 +11,16 @@ function debugLog(context,payload){
 
 const FORM_SECTION_DEFAULTS={basic:false,path:false,fields:false,links:false};
 let formSectionCollapsed={...FORM_SECTION_DEFAULTS};
+function normalizeFormSectionCollapsedState(raw){
+  const src=(raw&&typeof raw==='object'&&!Array.isArray(raw))?raw:{};
+  const normalized={...FORM_SECTION_DEFAULTS};
+  Object.keys(FORM_SECTION_DEFAULTS).forEach(key=>{ normalized[key]=!!src[key]; });
+  return normalized;
+}
+function persistFormSectionCollapsedState(){
+  formSectionCollapsedState={...normalizeFormSectionCollapsedState(formSectionCollapsed)};
+  saveDataDeferred();
+}
 let formLinksDrawerOpen=false;
 let lastFormSaveStatus='saved';
 
@@ -47,6 +57,7 @@ function updateFormMoreMenuVisibility(){
 function toggleFormSection(sectionKey){
   if(!Object.prototype.hasOwnProperty.call(formSectionCollapsed,sectionKey)) return;
   formSectionCollapsed[sectionKey]=!formSectionCollapsed[sectionKey];
+  persistFormSectionCollapsedState();
   applyFormSectionState();
 }
 function updateFormSectionSummary(){
@@ -247,7 +258,7 @@ function openForm(isEdit) {
   }
   syncFormHeaderLabels();
   formLinksDrawerOpen=false;
-  formSectionCollapsed={...FORM_SECTION_DEFAULTS,path:false,links:false};
+  formSectionCollapsed=normalizeFormSectionCollapsedState(formSectionCollapsedState);
   applyFormSectionState();
   syncFormLinksDrawer();
   setFormSaveStatus('saved');

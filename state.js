@@ -30,6 +30,8 @@ let mapPageNotes={root:[]};
 let mapTreeCollapsedPaths={};
 let mapTreeFilterQ='';
 let mapTreeSidebarOpen=false;
+let mapTreePathOrder={};
+let formSectionCollapsedState={basic:false,path:false,fields:false,links:false};
 let typeFieldConfigs={}, customFieldDefs={};
 let lastSavedPayloadRaw='';
 let calendarEvents=[], calendarSettings={emails:[]}, calendarCursor=new Date(), activeCalendarDate='';
