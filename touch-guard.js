@@ -27,6 +27,10 @@
       const el=eventTargetElement(target);
       return !!(el&&el.closest('#mapTreeSidebar'));
     };
+    const isInsidePathIndexLabel=target=>{
+      const el=eventTargetElement(target);
+      return !!(el&&el.closest('.tag-item-label'));
+    };
     const shouldBlockDoubleClickZoom=target=>{
       const el=eventTargetElement(target);
       if(!el) return true;
@@ -54,7 +58,7 @@
     },{passive:false});
     document.addEventListener('touchend',e=>{
       const now=Date.now();
-      if(isInsideMapTreeSidebar(e.target)){
+      if(isInsideMapTreeSidebar(e.target)||isInsidePathIndexLabel(e.target)){
         if(now-lastTouchEndTs<320) e.preventDefault();
         lastTouchEndTs=now;
         return;
