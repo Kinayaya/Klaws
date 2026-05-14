@@ -1,5 +1,8 @@
 var appStateFacadeCalendar=(typeof window!=='undefined'&&window.appState)?window.appState:null;
 let calendarHolidayRefreshToken=0;
+const officialTwHolidaysByYear=(typeof window!=='undefined'&&(window.__klawsOfficialTwHolidaysByYear&&typeof window.__klawsOfficialTwHolidaysByYear==='object'))
+  ? window.__klawsOfficialTwHolidaysByYear
+  : ((typeof window!=='undefined') ? (window.__klawsOfficialTwHolidaysByYear={}) : {});
 const calendarEscapeHtml=((typeof window!=='undefined'&&window.KLawsSafeHtml&&typeof window.KLawsSafeHtml.escapeHtml==='function')
   ? window.KLawsSafeHtml.escapeHtml
   : ((typeof window!=='undefined'&&window.KLawsUtils&&typeof window.KLawsUtils.escapeHtml==='function')
