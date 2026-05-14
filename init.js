@@ -189,10 +189,21 @@ const bootstrapPrimaryShell=()=>{
     const emails=(g('calendarEmailsInput').value||'').split('\n').map(v=>v.trim()).filter(Boolean);
     calendarSettings.emails=emails;calendarSettings.smtpToken=(g('calendarSmtpToken').value||'').trim();calendarSettings.emailFrom=(g('calendarEmailFrom').value||'').trim();saveData();g('calendarSettingsModal').classList.remove('open');showToast(`已儲存 ${emails.length} 個 Email`);
   });
-  on('calendarEventType','change',()=>{g('calendarReminderWrap').style.display=g('calendarEventType').value==='reminder'?'block':'none';});
+  on('calendarEventType','change',()=>{ if(typeof syncReminderFieldsVisibility==='function') syncReminderFieldsVisibility(); });
   on('calendarEventCancel','click',()=>g('calendarEventModal').classList.remove('open'));
   on('calendarEventSave','click',saveCalendarEvent);
   on('calendarEventDelete','click',()=>{ if(editingCalendarEventId!=null) deleteCalendarEvent(editingCalendarEventId); });
+  if(window.__klawsDebugEnabled===true){
+    console.debug('[calendar-ui-healthcheck]',{
+      calendarEventType:!!g('calendarEventType'),
+      calendarReminderWrap:!!g('calendarReminderWrap'),
+      remindDays:!!g('remindDays'),
+      remindHours:!!g('remindHours'),
+      remindMinutes:!!g('remindMinutes'),
+      remindPopup:!!g('remindPopup'),
+      remindEmail:!!g('remindEmail')
+    });
+  }
   on('lanePanelClose','click',closeLanePanel);on('laneSaveBtn','click',saveLanePanel);on('laneResetBtn','click',resetLanePanel);
   const canvas=g('mapCanvas');let panStart=null,panOffXStart=0,panOffYStart=0;
   if(!canvas){
