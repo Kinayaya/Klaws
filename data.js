@@ -1183,6 +1183,22 @@ function updateStorageCleanupStatus(text=''){
   const el=g('storageCleanupStatus');
   if(el) el.textContent=`儲存清理：${text||'尚未執行'}`;
 }
+async function refreshStorageQuotaStatus(){
+  const el=g('storageQuotaStatus');
+  if(!el) return;
+  const storageApi=window.KLawsStorage;
+  if(!storageApi||typeof storageApi.readStorageHealth!=='function'){
+    el.textContent='儲存用量：目前環境不支援配額估算';
+    return;
+  }
+  try{
+    const health=await storageApi.readStorageHealth(true);
+    const percent=Math.round((health?.ratio||0)*100);
+    el.textContent=`儲存用量：已使用 ${formatStorageBytes(health?.usage||0)} / 總容量 ${formatStorageBytes(health?.quota||0)}（${percent}%）`;
+  }catch(_){
+    el.textContent='儲存用量：讀取失敗，請稍後再試';
+  }
+}
 async function runStorageCleanupFlow(){
   const storageApi=window.KLawsStorage;
   if(!storageApi||typeof storageApi.cleanupRebuildableData!=='function'){
@@ -1202,6 +1218,7 @@ async function runStorageCleanupFlow(){
     const ratioText=`${Math.round((after.ratio||0)*100)}%`;
     const summary=`已清理：cache ${result?.cache?.count||0} 筆、archive ${result?.archivesRemoved||0} 筆、recycle ${result?.recycleRemoved||0} 筆；使用量 ${formatStorageBytes(before.usage)} → ${formatStorageBytes(after.usage)}（${ratioText}）`;
     updateStorageCleanupStatus(summary);
+    await refreshStorageQuotaStatus();
     showToast('儲存清理完成，已重新估算容量');
     if((after.ratio||0)>=0.9){
       alert('清理後儲存壓力仍偏高。\n建議：\n1) 刪除大型筆記附件/歷史資料（若有）\n2) 分批整理舊筆記與關聯資料\n3) 定期匯出後移除不必要快照');
@@ -1665,5 +1682,6 @@ function manageArchives(){
   g('ap')?.classList.add('open');
   ['dp','fp','tp'].forEach(p=>g(p)?.classList.remove('open'));
   renderArchivePanel();
+  refreshStorageQuotaStatus();
   syncSidePanelState();
 }
