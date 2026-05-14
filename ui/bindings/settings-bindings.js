@@ -7,6 +7,7 @@
     gRef('settingsModal')?.addEventListener('click',e=>{ if(e.target?.id==='settingsModal') closeSettings(); });
     onRef('settingsCloseBtn','click',closeSettings);
     onRef('settingsArchiveBtn','click',()=>{closeSettings();global.manageArchives();});
+    onRef('settingsManageBtn','click',()=>{closeSettings();gRef('tp')?.classList.add('open');global.syncSidePanelState?.();});
     onRef('settingsMoreBtn','click',()=>{closeSettings();gRef('assistToolsModal')?.classList.add('open');});
     onRef('assistToolsBtn','click',()=>gRef('assistToolsModal')?.classList.add('open'));
   }

@@ -265,17 +265,19 @@ function calcLinkPath(lk,opt={}){
   const dx=tp.x-fp.x,dy=tp.y-fp.y,dist=Math.sqrt(dx*dx+dy*dy)||1,nx=dx/dist,ny=dy/dist;
   const px=-ny,py=nx;
   const fromBox=getMapCardBox(lk.from),toBox=getMapCardBox(lk.to);
-  const edgeDistance=(box,dirX,dirY)=>{
+  const pickAnchor=(center,box,target)=>{
     const halfW=Math.max(8,(box.width||0)/2),halfH=Math.max(8,(box.height||0)/2);
-    const tx=Math.abs(dirX)<1e-4?Infinity:halfW/Math.abs(dirX);
-    const ty=Math.abs(dirY)<1e-4?Infinity:halfH/Math.abs(dirY);
-    return Math.min(tx,ty);
+    const dx2=(target.x||0)-center.x,dy2=(target.y||0)-center.y;
+    if(Math.abs(dx2)>=Math.abs(dy2)){
+      return {x:center.x+(dx2>=0?halfW:-halfW),y:center.y};
+    }
+    return {x:center.x,y:center.y+(dy2>=0?halfH:-halfH)};
   };
-  const sourceOffset=edgeDistance(fromBox,nx,ny)+1.5;
-  const targetOffset=edgeDistance(toBox,nx,ny);
+  const sourceAnchor=pickAnchor(fp,fromBox,tp);
+  const targetAnchor=pickAnchor(tp,toBox,fp);
   const ARROW_TIP_ADVANCE=1.35;
-  const x1=fp.x+nx*sourceOffset,y1=fp.y+ny*sourceOffset;
-  const x2=tp.x-nx*(targetOffset+ARROW_TIP_ADVANCE),y2=tp.y-ny*(targetOffset+ARROW_TIP_ADVANCE);
+  const x1=sourceAnchor.x,y1=sourceAnchor.y;
+  const x2=targetAnchor.x-nx*ARROW_TIP_ADVANCE,y2=targetAnchor.y-ny*ARROW_TIP_ADVANCE;
   const laneOffset=linkCurveOffsets[lk.id]||0;
   const unbundled=!!opt.unbundled;
   const splitOffset=unbundled?0:Math.max(-26,Math.min(26,laneOffset*MAP_LIGHT_BUNDLING_STRENGTH));
