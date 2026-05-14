@@ -11,6 +11,32 @@ const createNoopViewController=()=>({
   setActiveViewSwitch:()=>{},
   openView:()=>{}
 });
+
+let __klawsEssentialUiBound=false;
+function bindEssentialUiEvents(){
+  if(__klawsEssentialUiBound) return;
+  __klawsEssentialUiBound=true;
+  const si=g('searchInput'),sc=g('searchClear'),sm=g('searchModeToggle');
+  if(si&&sc){
+    si.addEventListener('input',debounce(()=>{
+      if(appStateFacadeInit) appStateFacadeInit.setSearchQuery(si.value);
+      searchQ=si.value;gridPage=1;sc.style.display=searchQ?'block':'none';
+      if(searchQ.trim()&&isMapOpen) toggleMapView(false);
+      updateNotesHomeVisibility();render();
+    },250));
+    sc.addEventListener('click',()=>{si.value='';if(appStateFacadeInit) appStateFacadeInit.setSearchQuery('');searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
+    sm?.addEventListener('click',()=>{
+      applySearchMode(getSearchMode()==='exact'?'contains':'exact');
+      gridPage=1;
+      render();
+    });
+  }else if(window.__KLawsDebugRuntime){
+    window.__KLawsDebugRuntime.append('debug',[`[init-missing-element] searchInput/searchClear ${JSON.stringify({hasSearchInput:!!si,hasSearchClear:!!sc})}`]);
+  }
+  bindCoreButtons();
+  bindTouchQuickActions();
+}
+
 const bootstrapPrimaryShell=()=>{
   if(typeof bootstrapUI!=='function'){
     console.error('[klaws-runtime-error] code=init.bootstrap-missing detail='+JSON.stringify({ reason:'bootstrapUI not available' }));
@@ -27,6 +53,7 @@ const bootstrapPrimaryShell=()=>{
 // ==================== 初始化 ====================
   window.addEventListener('load',async ()=>{
   const viewController=bootstrapPrimaryShell();
+  bindEssentialUiEvents();
   try{
   if(window.KlawsDataWriteGate&&typeof window.KlawsDataWriteGate.beginHydration==='function'){
     window.KlawsDataWriteGate.beginHydration();
@@ -72,29 +99,10 @@ const bootstrapPrimaryShell=()=>{
   on('fieldConfigTriggerBtn','click',editTypeFieldsForCurrentType);
   if(g('fc')) on('fc','change',()=>syncPartSelect(selectedValues('fc'),selectedValues('fsec'),[]));
   applySearchMode(localStorage.getItem(SEARCH_MODE_KEY)||'exact');
-  const si=g('searchInput'),sc=g('searchClear'),sm=g('searchModeToggle');
-  if(si&&sc){
-    si.addEventListener('input',debounce(()=>{
-      if(appStateFacadeInit) appStateFacadeInit.setSearchQuery(si.value);
-      searchQ=si.value;gridPage=1;sc.style.display=searchQ?'block':'none';
-      if(searchQ.trim()&&isMapOpen) toggleMapView(false);
-      updateNotesHomeVisibility();render();
-    },250));
-    sc.addEventListener('click',()=>{si.value='';if(appStateFacadeInit) appStateFacadeInit.setSearchQuery('');searchQ='';gridPage=1;sc.style.display='none';updateNotesHomeVisibility();render();si.focus();});
-    sm?.addEventListener('click',()=>{
-      applySearchMode(getSearchMode()==='exact'?'contains':'exact');
-      gridPage=1;
-      render();
-    });
-  }else if(window.__KLawsDebugRuntime){
-    window.__KLawsDebugRuntime.append('debug',[`[init-missing-element] searchInput/searchClear ${JSON.stringify({hasSearchInput:!!si,hasSearchClear:!!sc})}`]);
-  }
   const compactDefault=localStorage.getItem(COMPACT_FILTER_KEY);
   applyCompactFilterMode(compactDefault===null?true:compactDefault==='1');
   on('compactToggleBtn','click',()=>applyCompactFilterMode(!document.body.classList.contains('compact-filters')));
-  bindCoreButtons();
   bindFormPanelChrome();
-  bindTouchQuickActions();
   const draftSaver=debounce(saveNoteDraftFromForm,900);
   g('fp')?.addEventListener('input',()=>{ if(editMode||draftNoteId){ markFormDirty(); draftSaver(); } });
   g('fp')?.addEventListener('focusout',()=>{ if(editMode||draftNoteId) saveNoteDraftFromForm(); });
@@ -292,6 +300,7 @@ document.addEventListener('visibilitychange',()=>{
       stack:err&&err.stack?String(err.stack):''
     };
     console.error('[klaws-runtime-error] code=init.load-failed detail='+JSON.stringify(detail));
+    showToast('資料載入失敗，部分資料相關功能可能不可用');
   }finally{
     if(window.KlawsDataWriteGate&&typeof window.KlawsDataWriteGate.endHydration==='function'){
       await window.KlawsDataWriteGate.endHydration();
