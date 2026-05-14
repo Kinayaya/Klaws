@@ -79,6 +79,15 @@ async function ensureOfficialTwHolidaysForCursor(){
   officialTwHolidaysByYear[year]=Array.isArray(data)?data:[];
   return officialTwHolidaysByYear[year];
 }
+
+function getDueTimeText(event){
+  const api=window.KLawsCalendar;
+  if(api&&typeof api.dueTimeText==='function'){
+    return api.dueTimeText(event)||'00:00';
+  }
+  return `${pad2(event?.dueHour || 0)}:${pad2(event?.dueMinute || 0)}`;
+}
+
 function getOfficialHolidayEventsForDate(dateKey){
   const y=Number((dateKey||'').slice(0,4));
   if(!Number.isFinite(y)) return [];
@@ -128,18 +137,24 @@ function toggleCalendarDayDetail(dateKey){
   activeCalendarDate=dateKey;
   const box=g('calendarDayDetail');
   if(!box) return;
-  const entries=[...getOfficialHolidayEventsForDate(dateKey),...calendarEvents.filter(e=>e.date===dateKey)];
+  const safeCalendarEvents=Array.isArray(calendarEvents)?calendarEvents:[];
+  const entries=[...getOfficialHolidayEventsForDate(dateKey),...safeCalendarEvents.filter(e=>e.date===dateKey)];
   if(!entries.length){
     openCalendarEventModal(dateKey);
     return;
   }
   box.classList.add('open');
   const safeDateLabel=dateKey&&dateKey!=='--'?dateKey:'--';
-  box.innerHTML=`<div class="calendar-day-title">${safeDateLabel}（${entries.length} 筆）</div>`+entries.map(ev=>{
-    const typeLabel=ev.type==='diary'?'📝 日記':(ev.type==='holiday'?'🎌 官方節日':'⏰ 提醒（到期 '+dueTimeText(ev)+'）');
-    const actionHtml=ev.readonly?'':`<div class=\"calendar-day-item-actions\"><button data-eid=\"${ev.id}\">編輯</button><button class=\"calendar-delete-btn\" data-delete-eid=\"${ev.id}\">刪除</button></div>`;
-    return `<div class="calendar-day-item"><div class="calendar-day-item-head"><span class="calendar-day-item-type">${typeLabel}</span>${actionHtml}</div><div style="font-weight:700;margin-bottom:4px;">${calendarEscapeHtml(ev.title||'未命名')}</div><pre>${calendarEscapeHtml(ev.body||'（無內容）')}</pre></div>`;
-  }).join('')+`<button class="tool-btn" id="calendarAddNewBtn">+ 新增</button>`;
+  try{
+    box.innerHTML=`<div class="calendar-day-title">${safeDateLabel}（${entries.length} 筆）</div>`+entries.map(ev=>{
+      const typeLabel=ev.type==='diary'?'📝 日記':(ev.type==='holiday'?'🎌 官方節日':'⏰ 提醒（到期 '+getDueTimeText(ev)+'）');
+      const actionHtml=ev.readonly?'':`<div class=\"calendar-day-item-actions\"><button data-eid=\"${ev.id}\">編輯</button><button class=\"calendar-delete-btn\" data-delete-eid=\"${ev.id}\">刪除</button></div>`;
+      return `<div class="calendar-day-item"><div class="calendar-day-item-head"><span class="calendar-day-item-type">${typeLabel}</span>${actionHtml}</div><div style="font-weight:700;margin-bottom:4px;">${calendarEscapeHtml(ev.title||'未命名')}</div><pre>${calendarEscapeHtml(ev.body||'（無內容）')}</pre></div>`;
+    }).join('')+`<button class="tool-btn" id="calendarAddNewBtn">+ 新增</button>`;
+  }catch(err){
+    console.error('[calendar-day-detail-render-failed]',{err,dateKey});
+    box.innerHTML=`<div class="calendar-day-title">${safeDateLabel}</div><div class="calendar-render-error">日程載入失敗，請重試</div><button class="tool-btn" id="calendarAddNewBtn">+ 新增</button>`;
+  }
   box.querySelectorAll('button[data-eid]').forEach(btn=>btn.addEventListener('click',()=>{
     const ev=calendarEvents.find(e=>String(e.id)===btn.dataset.eid);
     if(ev) openCalendarEventModal(dateKey,ev);
@@ -213,7 +228,7 @@ async function sendReminderEmail(ev){
   const token=safeStr(calendarSettings.smtpToken||'').trim();
   const from=safeStr(calendarSettings.emailFrom||'').trim();
   const title=`KLaws 提醒：${ev.title}`;
-  const content=`提醒事項：${ev.title}\n到期日：${ev.date} ${dueTimeText(ev)}\n內容：${ev.body||''}`;
+  const content=`提醒事項：${ev.title}\n到期日：${ev.date} ${getDueTimeText(ev)}\n內容：${ev.body||''}`;
   if(token&&from){
     if(!window.Email||!window.Email.send){
       try{
@@ -269,7 +284,7 @@ function checkReminders(){
     const channels=e.channels||{};
     if(channels.popup!==false){
       const pop=g('reminderPopup');
-      pop.innerHTML=`<button id="reminderCloseBtn">✕</button><div style="font-weight:700;margin-bottom:10px;">提醒：${calendarEscapeHtml(e.title)}</div><div style="font-size:.45em;color:#d1d5db;">到期 ${e.date} ${dueTimeText(e)}</div><div style="font-size:.5em;margin-top:8px;">${calendarEscapeHtml(e.body||'')}</div>`;
+      pop.innerHTML=`<button id="reminderCloseBtn">✕</button><div style="font-weight:700;margin-bottom:10px;">提醒：${calendarEscapeHtml(e.title)}</div><div style="font-size:.45em;color:#d1d5db;">到期 ${e.date} ${getDueTimeText(e)}</div><div style="font-size:.5em;margin-top:8px;">${calendarEscapeHtml(e.body||'')}</div>`;
       pop.classList.add('open');
       g('reminderCloseBtn').onclick=()=>{
         pop.classList.remove('open');
