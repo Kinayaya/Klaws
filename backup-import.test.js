@@ -24,3 +24,9 @@ test('backup import accepts calendar or exam only payloads and normalizes them',
   assert.match(dataJs, /normalizeExamList\(parsed\.examList\)/);
   assert.match(dataJs, /validNotes===0&&report\.validAuxnodes===0&&report\.validCalendarEvents===0&&report\.validExamItems===0/);
 });
+
+test('backup merge import restores map page core-note state with id remapping', () => {
+  assert.match(dataJs, /function remapImportedNoteIds\(idList, importedIdMap\)/);
+  assert.match(dataJs, /function mergeImportedMapPageNotes\(currentNotes, incomingNotes, importedIdMap, validIdsSet\)/);
+  assert.match(dataJs, /mapPageNotes=mergeImportedMapPageNotes\(mapPageNotes,d\.mapPageNotes,importedIdMap,validNoteIds\)/);
+});
