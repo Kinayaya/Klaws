@@ -575,6 +575,57 @@ async function saveData(opt={}) {
   }
 }
 // ==================== 匯入/匯出 ====================
+const LOCAL_FILE_PICKER_OPTS={
+  suggestedName:`klaws_data_${new Date().toISOString().slice(0,10)}.json`,
+  types:[{description:'KLaws JSON',accept:{'application/json':['.json']}}]
+};
+function hasFileSystemAccessApi(){
+  return typeof window.showSaveFilePicker==='function'&&typeof window.showOpenFilePicker==='function';
+}
+async function saveDataToLocalFile(){
+  const payload={...getPayload({includeTransient:false}),exported:new Date().toISOString(),source:'klaws-local-file'};
+  const json=JSON.stringify(payload,null,2);
+  if(!hasFileSystemAccessApi()){
+    exportData();
+    showToast('目前瀏覽器不支援直接寫入檔案，已改用下載備份。');
+    return false;
+  }
+  try{
+    const handle=await window.showSaveFilePicker(LOCAL_FILE_PICKER_OPTS);
+    const writable=await handle.createWritable();
+    await writable.write(json);
+    await writable.close();
+    showToast('已儲存到 iPad 本機檔案');
+    return true;
+  }catch(err){
+    if(err&&err.name==='AbortError') return false;
+    console.error('[local-file-save-failed]',err);
+    showToast('儲存本機檔案失敗，已改用下載備份');
+    exportData();
+    return false;
+  }
+}
+async function importDataFromLocalFile(){
+  if(!hasFileSystemAccessApi()){
+    g('importFile')?.click();
+    return false;
+  }
+  try{
+    const [handle]=await window.showOpenFilePicker({
+      multiple:false,
+      types:[{description:'KLaws JSON',accept:{'application/json':['.json']}}]
+    });
+    if(!handle) return false;
+    const file=await handle.getFile();
+    await importData(file);
+    return true;
+  }catch(err){
+    if(err&&err.name==='AbortError') return false;
+    console.error('[local-file-import-failed]',err);
+    showToast('開啟本機檔案失敗');
+    return false;
+  }
+}
 function exportData() {
   const payload={...getPayload({includeTransient:false}),exported:new Date().toISOString()};
   const json=JSON.stringify(payload,null,2);
