@@ -1,4 +1,20 @@
 var appStateFacadeCalendar=(typeof window!=='undefined'&&window.appState)?window.appState:null;
+let calendarHolidayRefreshToken=0;
+function getCalendarDateKey(date){
+  const api=window.KLawsCalendar;
+  if(api&&typeof api.fmtDateKey==='function'){
+    return api.fmtDateKey(date)||'';
+  }
+  const dateTimeApi=window.KLawsDateTime;
+  if(dateTimeApi&&typeof dateTimeApi.formatDateKey==='function'){
+    return dateTimeApi.formatDateKey(date)||'';
+  }
+  return '';
+}
+function renderCalendarError(grid,message){
+  if(!grid) return;
+  grid.innerHTML=`<div class="calendar-render-error">${escapeHtml(message||'日曆載入失敗，請重新整理')}</div>`;
+}
 // ==================== 統計 ====================
 function openStats() {
   openPathMgr();
@@ -63,31 +79,42 @@ function getOfficialHolidayEventsForDate(dateKey){
 }
 
 async function renderCalendar(){
-  const cursor=resolveCalendarCursorSafe();
-  const y=cursor.getFullYear(),m=cursor.getMonth();
-  g('calendarTitle').textContent=`${y}年${m+1}月`;
   const grid=g('calendarGrid');
   if(!grid) return;
-  const safeCalendarEvents=Array.isArray(calendarEvents)?calendarEvents:[];
-  const first=new Date(y,m,1), startOffset=(first.getDay()+6)%7;
-  const days=new Date(y,m+1,0).getDate();
-  const prevDays=new Date(y,m,0).getDate();
-  const todayKey=fmtDateKey(new Date())||'';
-  const list=[];
-  ensureOfficialTwHolidaysForCursor().catch(()=>{});
-  for(let i=0;i<42;i++){
-    let dayNum=0,cellDate=null,muted=false;
-    if(i<startOffset){ dayNum=prevDays-startOffset+i+1; cellDate=new Date(y,m-1,dayNum); muted=true; }
-    else if(i>=startOffset+days){ dayNum=i-(startOffset+days)+1; cellDate=new Date(y,m+1,dayNum); muted=true; }
-    else { dayNum=i-startOffset+1; cellDate=new Date(y,m,dayNum); }
-    const key=fmtDateKey(cellDate) || '--';
-    const userItems=safeCalendarEvents.filter(e=>e.date===key);
-    const holidayItems=getOfficialHolidayEventsForDate(key);
-    const items=[...holidayItems,...userItems].slice(0,3);
-    list.push(`<div class="calendar-cell ${muted?'muted':''} ${key===todayKey?'today':''}" data-date="${key}"><div class="calendar-day">${dayNum}</div>${items.map(ev=>{const cls=ev.type==='reminder'?'reminder':(ev.type==='holiday'?'holiday':'');const icon=ev.type==='diary'?'📝':(ev.type==='holiday'?'🎌':'⏰');return `<span class="calendar-event-chip ${cls}">${icon} ${escapeHtml(ev.title||'未命名')}</span>`;}).join('')}</div>`);
+  try{
+    const cursor=resolveCalendarCursorSafe();
+    const y=cursor.getFullYear(),m=cursor.getMonth();
+    g('calendarTitle').textContent=`${y}年${m+1}月`;
+    const safeCalendarEvents=Array.isArray(calendarEvents)?calendarEvents:[];
+    const first=new Date(y,m,1), startOffset=(first.getDay()+6)%7;
+    const days=new Date(y,m+1,0).getDate();
+    const prevDays=new Date(y,m,0).getDate();
+    const todayKey=getCalendarDateKey(new Date())||'';
+    const list=[];
+    const refreshToken=++calendarHolidayRefreshToken;
+    ensureOfficialTwHolidaysForCursor().then(()=>{
+      if(refreshToken!==calendarHolidayRefreshToken) return;
+      const currentCursor=resolveCalendarCursorSafe();
+      if(currentCursor.getFullYear()!==y||currentCursor.getMonth()!==m) return;
+      renderCalendar();
+    }).catch(()=>{});
+    for(let i=0;i<42;i++){
+      let dayNum=0,cellDate=null,muted=false;
+      if(i<startOffset){ dayNum=prevDays-startOffset+i+1; cellDate=new Date(y,m-1,dayNum); muted=true; }
+      else if(i>=startOffset+days){ dayNum=i-(startOffset+days)+1; cellDate=new Date(y,m+1,dayNum); muted=true; }
+      else { dayNum=i-startOffset+1; cellDate=new Date(y,m,dayNum); }
+      const key=getCalendarDateKey(cellDate) || '--';
+      const userItems=safeCalendarEvents.filter(e=>e.date===key);
+      const holidayItems=getOfficialHolidayEventsForDate(key);
+      const items=[...holidayItems,...userItems].slice(0,3);
+      list.push(`<div class="calendar-cell ${muted?'muted':''} ${key===todayKey?'today':''}" data-date="${key}"><div class="calendar-day">${dayNum}</div>${items.map(ev=>{const cls=ev.type==='reminder'?'reminder':(ev.type==='holiday'?'holiday':'');const icon=ev.type==='diary'?'📝':(ev.type==='holiday'?'🎌':'⏰');return `<span class="calendar-event-chip ${cls}">${icon} ${escapeHtml(ev.title||'未命名')}</span>`;}).join('')}</div>`);
+    }
+    grid.innerHTML=list.join('');
+    grid.querySelectorAll('.calendar-cell').forEach(cell=>cell.addEventListener('click',()=>toggleCalendarDayDetail(cell.dataset.date)));
+  }catch(err){
+    console.error('[calendar-render-failed]',{err});
+    renderCalendarError(grid,'日曆初始化失敗，請重新整理');
   }
-  grid.innerHTML=list.join('');
-  grid.querySelectorAll('.calendar-cell').forEach(cell=>cell.addEventListener('click',()=>toggleCalendarDayDetail(cell.dataset.date)));
 }
 function toggleCalendarDayDetail(dateKey){
   activeCalendarDate=dateKey;
