@@ -280,6 +280,8 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .map-tree-list{padding-left:0}
 .map-tree-group{margin-bottom:4px}
 .map-tree-group-row{display:flex;align-items:center;gap:6px;margin:1px 0}
+.map-tree-move-btn{border:none;background:transparent;padding:2px 4px;border-radius:6px;cursor:pointer;font-size:12px}
+.map-tree-move-btn:hover{background:#eef6ff}
 .map-tree-expand-btn{border:none;background:transparent;padding:1px 3px;border-radius:6px;cursor:pointer;font-size:var(--font-size-lg);line-height:1;color:#4b5563;min-width:24px}
 .map-tree-expand-btn:hover{background:#eef6ff}
 .map-tree-label{font-size:var(--font-size-md);color:#526074;font-weight:600}
@@ -470,6 +472,7 @@ body.compact-filters .filter-row,body.compact-filters #subbar,body.compact-filte
 .calendar-day{font-size:13px;font-weight:700}
 .calendar-event-chip{display:block;margin-top:5px;background:#eef6ff;border-radius:8px;padding:2px 6px;font-size:var(--font-size-xs);color:var(--color-primary-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .calendar-event-chip.reminder{background:#fff1f2;color:#9f1239}
+.calendar-event-chip.holiday{background:#fff7ed;color:#b45309}
 #calendarEventModal,#calendarSettingsModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:510;align-items:center;justify-content:center}
 #calendarEventModal.open,#calendarSettingsModal.open{display:flex}
 #calendarEventBox,#calendarSettingsBox{background:#fff;width:min(420px,94vw);border-radius:var(--radius-lg);padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.2)}

@@ -512,7 +512,22 @@ function buildMapTreeIndex(visNotes){
   const currentPageRoot=currentSubpageRootId();
   const selectedPath=isPathPageKey(currentPageRoot)?safeStr(pathFromPageKey(currentPageRoot)):'';
   const renderNode=(node,depth=0,parentPath='')=>{
-    const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
+    const pathOrderForParent=(parentPath)=>{
+      const orderKey=safeStr(parentPath||'').trim()||'__root__';
+      return Array.isArray(mapTreePathOrder[orderKey])?mapTreePathOrder[orderKey]:[];
+    };
+    const sortKeysByOrder=(keys,parentPath)=>{
+      const customOrder=pathOrderForParent(parentPath);
+      if(!customOrder.length) return keys.slice().sort((a,b)=>a.localeCompare(b,'zh'));
+      const rank={}; customOrder.forEach((v,idx)=>{ rank[v]=idx; });
+      return keys.slice().sort((a,b)=>{
+        const ra=Number.isFinite(rank[a])?rank[a]:Number.MAX_SAFE_INTEGER;
+        const rb=Number.isFinite(rank[b])?rank[b]:Number.MAX_SAFE_INTEGER;
+        if(ra!==rb) return ra-rb;
+        return a.localeCompare(b,'zh');
+      });
+    };
+    const keys=sortKeysByOrder(Object.keys(node.items),parentPath);
     const icon=getLevelIcon(depth);
     const noteItems=(isSearching?node.notes:[]).filter(note=>{
       if(!isSearching) return false;
@@ -533,7 +548,7 @@ function buildMapTreeIndex(visNotes){
       const toggleSymbol=collapsed?'➕':'➖';
       const collapsedByFilter=isSearching?false:collapsed;
       const pathActiveClass=selectedPath===treePath?' active-path':'';
-      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn${pathActiveClass}" data-tree-nav-path="${escapeHtml(treePath)}" title="雙擊可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
+      return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-move-btn" data-tree-move-up-path="${escapeHtml(treePath)}" title="上移">⬆️</button><button type="button" class="map-tree-path-btn${pathActiveClass}" data-tree-nav-path="${escapeHtml(treePath)}" title="雙擊可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
@@ -599,6 +614,30 @@ function buildMapTreeIndex(visNotes){
       persistPathStructureChange(changed,count=>`路徑已更新，共 ${count} 筆`);
     });
   });
+  body.querySelectorAll('[data-tree-move-up-path]').forEach(btn=>btn.addEventListener('click',ev=>{
+    ev.stopPropagation();
+    const path=safeStr(btn.dataset.treeMoveUpPath||'').trim();
+    if(!path) return;
+    const segs=notePathSegments({path});
+    if(!segs.length) return;
+    const label=segs[segs.length-1];
+    const parent=segs.slice(0,-1).join('>');
+    const parentKey=parent||'__root__';
+    const siblings=Object.keys((()=>{
+      const tree={items:{}};
+      const ensure=(parts)=>{let c=tree;parts.forEach(part=>{c.items[part]=c.items[part]||{items:{}};c=c.items[part];});return c;};
+      collectTreePathSegments(notes,notePathSegments).forEach(ensure);
+      const cursor=segs.slice(0,-1).reduce((acc,part)=>acc&&acc.items?acc.items[part]:null,tree);
+      return cursor&&cursor.items?cursor.items:{};
+    })());
+    const ordered=(Array.isArray(mapTreePathOrder[parentKey])?mapTreePathOrder[parentKey].filter(v=>siblings.includes(v)):[]).concat(siblings.filter(v=>!(Array.isArray(mapTreePathOrder[parentKey])&&mapTreePathOrder[parentKey].includes(v))));
+    const idx=ordered.indexOf(label);
+    if(idx<=0){ showToast('已在最上方'); return; }
+    [ordered[idx-1],ordered[idx]]=[ordered[idx],ordered[idx-1]];
+    mapTreePathOrder[parentKey]=ordered;
+    saveDataDeferred();
+    buildMapTreeIndex(list);
+  }));
   body.querySelectorAll('[data-tree-note-id]').forEach(btn=>btn.addEventListener('click',()=>{
     const id=parseInt(btn.dataset.treeNoteId,10);
     if(!Number.isFinite(id)||!mapNodeById(id)) return;
@@ -979,6 +1018,7 @@ function bindTouchQuickActions(){
   }
   try{ mapTreeSidebarOpen=localStorage.getItem(MAP_TREE_SIDEBAR_OPEN_KEY)==='1'; }catch(e){ mapTreeSidebarOpen=false; }
   setMapTreeSidebarOpen(mapTreeSidebarOpen);
+  if(!mapPageStack.length){ mapTreeCollapsedPaths={}; }
   on('mapTreeToggleBtn','click',()=>{
     const sidebar=g('mapTreeSidebar');
     const willOpen=!(sidebar&&sidebar.classList.contains('open'));
