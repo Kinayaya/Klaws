@@ -11,6 +11,29 @@ const createNoopViewController=()=>({
   setActiveViewSwitch:()=>{},
   openView:()=>{}
 });
+const createCloudActionHandler=(actionName,action)=>async event=>{
+  try{
+    return await action(event);
+  }catch(err){
+    const normalizedErr=err instanceof Error
+      ?err
+      :new Error(`Unknown cloud action error: ${String(err??'null')}`);
+    const context={
+      action:actionName,
+      cloudSyncEnabled:typeof cloudSyncEnabled==='boolean'?cloudSyncEnabled:null,
+      hasGoogleSession:typeof hasActiveGoogleDriveSession==='function'?hasActiveGoogleDriveSession():null,
+      backendEndpointConfigured:!!(localStorage.getItem(BACKEND_SYNC_ENDPOINT_KEY)||'').trim()
+    };
+    console.error('[cloud-action-error]',context,normalizedErr);
+    if(typeof logCloudSync==='function'){
+      logCloudSync('error',`action failed: ${actionName}`,context,cloudSyncErrorDetail(normalizedErr));
+    }
+    if(typeof showToast==='function'){
+      showToast(`雲端操作失敗（${actionName}）：${cloudSyncErrorText(normalizedErr)}`);
+    }
+    return false;
+  }
+};
 
 let __klawsEssentialUiBound=false;
 function bindEssentialUiEvents(){
@@ -125,10 +148,10 @@ const bootstrapPrimaryShell=()=>{
   on('storageCleanupBtn','click',runStorageCleanupFlow);
   on('archivePortableExportBtn','click',exportPortablePackage);
   on('archiveImportBtn','click',()=>g('importFile')?.click());
-  on('cloudLoginBtn','click',loginGoogleDriveAndSync);
-  on('cloudPullBtn','click',()=>scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:false}));
-  on('cloudSyncBtn','click',()=>scheduleCloudSyncAfterLocalSave({mode:'push',force:true,silent:false}));
-  on('cloudLogoutBtn','click',logoutGoogleDriveSync);
+  on('cloudLoginBtn','click',createCloudActionHandler('cloud-login',()=>loginGoogleDriveAndSync()));
+  on('cloudPullBtn','click',createCloudActionHandler('cloud-pull',()=>scheduleCloudSyncAfterLocalSave({mode:'pull',force:true,silent:false})));
+  on('cloudSyncBtn','click',createCloudActionHandler('cloud-push',()=>scheduleCloudSyncAfterLocalSave({mode:'push',force:true,silent:false})));
+  on('cloudLogoutBtn','click',createCloudActionHandler('cloud-logout',()=>logoutGoogleDriveSync()));
   on('tpClose','click',()=>{g('tp').classList.remove('open');syncSidePanelState();});
   on('pathSearchInput','input',debounce(()=>{pathSearchQ=(val('pathSearchInput')||'').toLowerCase().trim();renderPathLists();},150));
   g('addTypeBtn')?.addEventListener('click',()=>addPath('type'));
