@@ -88,6 +88,7 @@ function toggleMapView(open) {
     else if(selectedGroups.length) mapFilter.group=selectedGroups[0];
     buildMapFilters();
     updateMapPinnedGroup();
+    if(!currentSubpageRootId()) setMapTreeSidebarOpen(true);
     const mapSearch=g('mapSearchInput');if(mapSearch)mapSearch.value=mapFilter.q||'';
     setMapLinkedOnlyBtnStyle();
     updateMapPagePath();

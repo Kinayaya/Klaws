@@ -489,6 +489,7 @@ function persistPathStructureChange(changed,successMsg){
 function buildMapTreeIndex(visNotes){
   const body=g('mapTreeBody');if(!body)return;
   const filterQ=safeStr(mapTreeFilterQ||'').trim().toLowerCase();
+  const isSearching=!!filterQ;
   const list=Array.isArray(visNotes)?visNotes:[];
   const levelIcons=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
   const getLevelIcon=depth=>depth===0?'🗂️':(levelIcons[depth-1]||`${depth}.`);
@@ -513,8 +514,8 @@ function buildMapTreeIndex(visNotes){
   const renderNode=(node,depth=0,parentPath='')=>{
     const keys=Object.keys(node.items).sort((a,b)=>a.localeCompare(b,'zh'));
     const icon=getLevelIcon(depth);
-    const noteItems=node.notes.filter(note=>{
-      if(!filterQ) return true;
+    const noteItems=(isSearching?node.notes:[]).filter(note=>{
+      if(!isSearching) return false;
       return matchesQueryMode({query:filterQ,candidates:[note.title,String(note.id||'')],mode:window.__klawsSearchMode});
     }).map(note=>{
       const type=typeByKey(note.type);
@@ -527,17 +528,17 @@ function buildMapTreeIndex(visNotes){
       const treePath=buildTreePathLabel(parentPath,child.label);
       const pathMatch=!filterQ||matchesQueryMode({query:filterQ,candidates:[treePath,child.label],mode:window.__klawsSearchMode});
       const childHtml=renderNode(child,depth+1,treePath);
-      if(filterQ&&!pathMatch&&!childHtml) return '';
+      if(isSearching&&!pathMatch&&!childHtml) return '';
       const collapsed=!!mapTreeCollapsedPaths[treePath];
       const toggleSymbol=collapsed?'➕':'➖';
-      const collapsedByFilter=filterQ?false:collapsed;
+      const collapsedByFilter=isSearching?false:collapsed;
       const pathActiveClass=selectedPath===treePath?' active-path':'';
       return `<li class="map-tree-group"><div class="map-tree-group-row" data-tree-path="${escapeHtml(treePath)}"><button type="button" class="map-tree-expand-btn" data-tree-toggle-path="${escapeHtml(treePath)}" aria-label="${collapsedByFilter?'展開':'收合'}路徑">${toggleSymbol}</button><button type="button" class="map-tree-path-btn${pathActiveClass}" data-tree-nav-path="${escapeHtml(treePath)}" title="雙擊可編輯或刪除此路徑">${icon} ${escapeHtml(child.label)}</button><span class="map-tree-count">${total}</span></div><div class="map-tree-group-body" style="display:${collapsedByFilter?'none':'block'}">${childHtml}</div></li>`;
     }).join('');
     if(!groupItems&&!noteItems) return '';
     return `<ul>${groupItems}${noteItems}</ul>`;
   };
-  const uncategorized=tree.notes.length?`<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 （未設定路徑）</span><span class="map-tree-count">${tree.notes.length}</span></div><ul>${tree.notes.map(note=>{const type=typeByKey(note.type);return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;}).join('')}</ul></li>`:'';
+  const uncategorized=(isSearching&&tree.notes.length)?`<li class="map-tree-group"><div class="map-tree-group-row"><span class="map-tree-label">📄 （未設定路徑）</span><span class="map-tree-count">${tree.notes.length}</span></div><ul>${tree.notes.filter(note=>matchesQueryMode({query:filterQ,candidates:[note.title,String(note.id||'')],mode:window.__klawsSearchMode})).map(note=>{const type=typeByKey(note.type);return `<li><button class="map-tree-node" type="button" data-tree-note-id="${note.id}"><span class="map-tree-node-color" style="background:${type.color};"></span><span>${escapeHtml(note.title||`點#${note.id}`)}</span></button></li>`;}).join('')}</ul></li>`:'';
   const treeHtml=renderNode(tree,0,'');
   if(!treeHtml&&!uncategorized){body.innerHTML='<div class="map-tree-empty">目前沒有可顯示點。</div>';return;}
   body.innerHTML=`<ul class="map-tree-list">${treeHtml}${uncategorized}</ul>`;
