@@ -428,11 +428,9 @@ async function runCloudSyncPushScheduler(){
   clearCloudSyncPushRetryTimer();
   if(!cloudSyncEnabled) return true;
   if(!hasActiveGoogleDriveSession()){
-    const token=await ensureGoogleAccessToken(false);
-    if(!token){
-      enterCloudSyncAuthorizationPending(googleSyncLastError||'授權已過期，請重新登入 Google 雲端');
-      return true;
-    }
+    logCloudSync('info','push scheduler paused: waiting for interactive Google authorization');
+    enterCloudSyncAuthorizationPending(googleSyncLastError||'授權已過期，請點擊「登入 Google 雲端」重新授權');
+    return true;
   }
   const waitMs=Math.max(0,cloudSyncPushLastStartedAt+CLOUD_SYNC_PUSH_MIN_INTERVAL_MS-Date.now());
   if(waitMs>0){
@@ -1315,6 +1313,7 @@ function cloudSyncErrorText(err){
   if(!msg) return '未知錯誤';
   if(msg.includes('popup_closed')) return '登入視窗被關閉';
   if(msg.includes('popup_failed_to_open')) return '無法開啟 Google 登入視窗';
+  if(msg.includes('waiting for interactive Google authorization')) return '等待重新授權 Google 雲端';
   if(msg.includes('origin_mismatch')) return 'Client ID 的授權來源不符';
   if(msg.includes('invalid_client')) return 'Google Client ID 無效';
   if(msg.includes('access_denied')) return 'Google 權限被拒絕';
@@ -1375,6 +1374,11 @@ async function ensureGoogleAccessToken(forcePrompt=false){
   ensureCloudRuntimeSupported();
   const now=Date.now();
   if(googleAccessToken&&now<googleTokenExpireAt-5000) return googleAccessToken;
+  if(!forcePrompt){
+    googleSyncLastError='授權已過期，請點擊「登入 Google 雲端」重新授權';
+    updateCloudSyncStatus();
+    return '';
+  }
   const ready=await ensureGoogleIdentityClient();
   if(!ready){
     googleSyncLastError='Google SDK 載入失敗';
