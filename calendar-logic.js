@@ -138,6 +138,14 @@ function toggleCalendarDayDetail(dateKey){
   const addBtn=g('calendarAddNewBtn');
   if(addBtn) addBtn.addEventListener('click',()=>openCalendarEventModal(dateKey));
 }
+
+function syncReminderFieldsVisibility(){
+  const typeEl=g('calendarEventType');
+  const wrap=g('calendarReminderWrap');
+  if(!typeEl||!wrap) return;
+  wrap.style.display=typeEl.value==='reminder'?'block':'none';
+}
+
 function openCalendarEventModal(dateKey, eventItem=null){
   activeCalendarDate=dateKey;
   editingCalendarEventId=eventItem?eventItem.id:null;
@@ -149,7 +157,7 @@ function openCalendarEventModal(dateKey, eventItem=null){
   g('dueHour').value=eventItem?.dueHour??9;g('dueMinute').value=eventItem?.dueMinute??0;
   g('remindPopup').checked=eventItem?.channels?.popup??true;g('remindEmail').checked=eventItem?.channels?.email??false;
   g('calendarEventDelete').style.display=eventItem?'inline-flex':'none';
-  g('calendarReminderWrap').style.display=g('calendarEventType').value==='reminder'?'block':'none';
+  syncReminderFieldsVisibility();
   g('calendarEventModal').classList.add('open');
 }
 function deleteCalendarEvent(eventId){
@@ -170,14 +178,22 @@ function saveCalendarEvent(){
   if(!title){showToast('請輸入標題');return;}
   const ev={id:editingCalendarEventId||Date.now()+Math.random(),date:activeCalendarDate,type,title,body};
   if(type==='reminder'){
-    ev.dueHour=Math.min(23,Math.max(0,parseInt(g('dueHour').value,10)||0));
-    ev.dueMinute=Math.min(59,Math.max(0,parseInt(g('dueMinute').value,10)||0));
+    const dueHourEl=g('dueHour'),dueMinuteEl=g('dueMinute');
+    const remindDaysEl=g('remindDays'),remindHoursEl=g('remindHours'),remindMinutesEl=g('remindMinutes');
+    const remindPopupEl=g('remindPopup'),remindEmailEl=g('remindEmail');
+    ev.dueHour=Math.min(23,Math.max(0,parseInt(dueHourEl?.value,10)||0));
+    ev.dueMinute=Math.min(59,Math.max(0,parseInt(dueMinuteEl?.value,10)||0));
     ev.remindBefore={
-      days:Math.max(0,parseInt(g('remindDays').value,10)||0),
-      hours:Math.max(0,parseInt(g('remindHours').value,10)||0),
-      minutes:Math.max(0,parseInt(g('remindMinutes').value,10)||0)
+      days:Math.max(0,parseInt(remindDaysEl?.value,10)||0),
+      hours:Math.max(0,parseInt(remindHoursEl?.value,10)||0),
+      minutes:Math.max(0,parseInt(remindMinutesEl?.value,10)||0)
     };
-    ev.channels={popup:!!g('remindPopup').checked,email:!!g('remindEmail').checked};
+    ev.channels={popup:remindPopupEl?!!remindPopupEl.checked:true,email:remindEmailEl?!!remindEmailEl.checked:false};
+    if(!dueHourEl||!dueMinuteEl||!remindDaysEl||!remindHoursEl||!remindMinutesEl||!remindPopupEl||!remindEmailEl){
+      console.warn('[calendar-reminder-ui-missing]',{
+        dueHour:!!dueHourEl,dueMinute:!!dueMinuteEl,remindDays:!!remindDaysEl,remindHours:!!remindHoursEl,remindMinutes:!!remindMinutesEl,remindPopup:!!remindPopupEl,remindEmail:!!remindEmailEl
+      });
+    }
   }
   const idx=calendarEvents.findIndex(x=>x.id===ev.id);
   if(idx>=0) calendarEvents[idx]=ev;
@@ -271,3 +287,5 @@ function checkReminders(){
     reminderSent[e.id]=true;
   });
 }
+
+window.syncReminderFieldsVisibility=syncReminderFieldsVisibility;
