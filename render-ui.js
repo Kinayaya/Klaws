@@ -175,6 +175,11 @@ function expandWithChildLinkedNotes(seedIds) {
 }
 
 // ==================== 渲染 ====================
+function noteCardSummaryText(note){
+  const keys=getTypeFieldKeys(note&&note.type).filter(key=>key!=='tags');
+  if(!keys.length) return '';
+  return mapCardFieldText(note,keys[0]);
+}
 function render() {
   updateNotesHomeVisibility();
   if(currentView==='notes'&&!searchQ.trim()&&!reviewMode) return;
@@ -213,7 +218,7 @@ function render() {
     const linkedChip=(shouldExpand&&!seedIds.has(n.id))?'<span class="chip" style="background:#EAF3DE;color:#3B6D11;border-color:#97C459">跨科關聯</span>':'';
     const draftChip=(!isReminder&&n.isDraft)?'<span class="chip" style="background:#FFF4CC;color:#8A5A00;border-color:#F0CD62">草稿</span>':'';
     const hasContent=isReminder?!!safeStr(n.body):noteHasVisibleContent(n);
-    const previewText=reviewMode?(n.prompt||n.question||'（尚未填寫問題）'):(n.question||n.body||n.application||n.detail);
+    const previewText=reviewMode?(n.prompt||n.question||'（尚未填寫問題）'):noteCardSummaryText(n);
     const displayTitle=(!isReminder&&n.isDraft&&!safeStr(n.title).trim())?'（未命名草稿）':n.title;
     return `<div class="card ${hasContent?'':'card-empty-content'} ${isReminder?'calendar-reminder-card':''}" data-id="${safeAttr(n.id)}" data-reminder-id="${isReminder?n.eventId:''}" style="--type-color:${tp.color}"><button class="sel-check" type="button" aria-label="勾選筆記"></button><div class="ctop"><span class="ctag">${escapeHtml(tp.label)}</span><div class="ctitle-inline">${hl(displayTitle,q)}</div></div>${hasContent?`<div class="cbody">${safeText(previewText)}</div>`:''}<div class="cfoot">${subChips}${linkedChip}${draftChip}${noteActionChips}</div></div>`;
   }).join('');
