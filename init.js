@@ -7,8 +7,26 @@ const applySearchMode=(mode)=>{
   if(btn) btn.textContent=window.__klawsSearchMode==='contains'?'包含':'完全符合';
   window.KLawsStorage?.governedWriteLocal?.(SEARCH_MODE_KEY,window.__klawsSearchMode,'ephemeral');
 };
+const createNoopViewController=()=>({
+  setActiveViewSwitch:()=>{},
+  openView:()=>{}
+});
+const bootstrapPrimaryShell=()=>{
+  if(typeof bootstrapUI!=='function'){
+    console.error('[klaws-runtime-error] code=init.bootstrap-missing detail='+JSON.stringify({ reason:'bootstrapUI not available' }));
+    return createNoopViewController();
+  }
+  try{
+    return bootstrapUI();
+  }catch(err){
+    const detail={ name:err&&err.name?err.name:typeof err, message:err&&err.message?err.message:String(err) };
+    console.error('[klaws-runtime-error] code=init.bootstrap-failed detail='+JSON.stringify(detail));
+    return createNoopViewController();
+  }
+};
 // ==================== 初始化 ====================
   window.addEventListener('load',async ()=>{
+  const viewController=bootstrapPrimaryShell();
   try{
   if(window.KlawsDataWriteGate&&typeof window.KlawsDataWriteGate.beginHydration==='function'){
     window.KlawsDataWriteGate.beginHydration();
@@ -47,7 +65,6 @@ const applySearchMode=(mode)=>{
   on('selAllBtn','click',copySelectedNotes);on('selDeleteBtn','click',deleteSelected);on('selCancelBtn','click',exitMultiSel);
   on('dp-link-search','input',debounce(renderDetailQuickLinkSearch,180));
   on('mp-link-search','input',debounce(()=>renderMapPopupQuickLinkSearch(),180));
-  const viewController=bootstrapUI();
   on('ft','change',()=>{markFormDirty();saveNoteDraftFromForm();const snapshot=typeof getCurrentFormSnapshot==='function'?getCurrentFormSnapshot():null;renderDynamicFields(g('ft').value,editMode&&openId?noteById(openId):null,snapshot);if(typeof applyFormSnapshot==='function') applyFormSnapshot(snapshot);syncFormHeaderLabels();});
   on('fti','input',()=>{markFormDirty();syncFormHeaderLabels();});
   on('typeTriggerBtn','click',()=>g('ft')?.focus());
