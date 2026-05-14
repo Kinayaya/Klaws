@@ -56,6 +56,9 @@ const nodePreferredRank = (nodeId,chIdxMap,secIdxMap) => {
   const title=safeStr(note.title).trim();
   return {minChIdx,minSecIdx,title,nodeId};
 };
+const MAP_LANE_WIDTH_SCALE = 0.8;
+const MAP_NODE_SIZE_SCALE = 0.8;
+
 function forceLayout() {
   const canvas=g('mapCanvas');mapW=canvas.offsetWidth||800;mapH=canvas.offsetHeight||600;
   clearMapCardBoxCache();
@@ -86,7 +89,11 @@ function forceLayout() {
   if(!layoutCoreNodeIds.length) layoutCoreNodeIds.push(layoutCenterNodeId);
   const laneCfg=getLaneConfig(),laneCount=laneCfg.names.length;
   const LANE_CARD_GAP_Y=20,TOP_PAD=72,BOT_PAD=40;
-  const laneLeft=Math.max(80,mapW*.1),laneRight=Math.min(mapW-80,mapW*.9);
+  const laneLeftBase=Math.max(80,mapW*.1),laneRightBase=Math.min(mapW-80,mapW*.9);
+  const laneMid=(laneLeftBase+laneRightBase)/2;
+  const laneWidth=(laneRightBase-laneLeftBase)*MAP_LANE_WIDTH_SCALE;
+  const laneLeft=Math.max(40,laneMid-laneWidth/2);
+  const laneRight=Math.min(mapW-40,laneMid+laneWidth/2);
   const laneGapX=laneCount>1?(laneRight-laneLeft)/(laneCount-1):0;
   const chIdxMap=groupIndexMap(),secIdxMap=partIndexMap();
   const adj={};layoutNotes.forEach(n=>adj[n.id]=[]);visLinks.forEach(lk=>{if(adj[lk.from])adj[lk.from].push(lk.to);if(adj[lk.to])adj[lk.to].push(lk.from);});
@@ -725,12 +732,8 @@ function drawMap(){
     const pathData=calcLinkPath(lk);if(!pathData)return;
     const path=document.createElementNS('http://www.w3.org/2000/svg','path');
     path.setAttribute('d',pathData.d);path.setAttribute('stroke',LINK_COLOR);path.setAttribute('stroke-width','1.35');path.setAttribute('fill','none');path.style.opacity='0.3';linksLayer.appendChild(path);
-    const arrow=document.createElementNS('http://www.w3.org/2000/svg','path');
-    arrow.setAttribute('d',`M${pathData.c2x},${pathData.c2y} L${pathData.x2},${pathData.y2}`);
-    arrow.setAttribute('stroke',LINK_COLOR);arrow.setAttribute('stroke-width','1.35');arrow.setAttribute('fill','none');arrow.setAttribute('marker-end','url(#arrowBlue)');
-    arrow.style.opacity='0.92';
-    arrowsLayer.appendChild(arrow);
-    linkElsMap[lk.id]={p:path,a:arrow};
+    path.setAttribute('marker-end','url(#arrowBlue)');
+    linkElsMap[lk.id]={p:path};
   });
   visNotes.forEach(n=>{
     const pos=nodePos[n.id];if(!pos)return;
@@ -951,15 +954,9 @@ function applyFocusStyles(){
     const c=calcLinkPath(lk,{unbundled:isSelectedRelated});
     if(c){
       path.setAttribute('d',c.d);
-      if(linkElsMap[lid2]&&linkElsMap[lid2].a) linkElsMap[lid2].a.setAttribute('d',`M${c.c2x},${c.c2y} L${c.x2},${c.y2}`);
     }
     path.style.opacity=isSelectedRelated?'0.95':(active?'0.3':'0.12');
     path.setAttribute('stroke-width',isSelectedRelated?'3.2':(active?'1.35':'1'));
-    const arrow=linkElsMap[lid2]&&linkElsMap[lid2].a;
-    if(arrow){
-      arrow.style.opacity=isSelectedRelated?'0.95':(active?'0.92':'0.35');
-      arrow.setAttribute('stroke-width',isSelectedRelated?'3.2':(active?'1.35':'1'));
-    }
   });
 }
 function highlightNode(id){ mapFocusedNodeId=id;applyFocusStyles(); }
