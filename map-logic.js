@@ -1018,7 +1018,7 @@ function bindTouchQuickActions(){
   }
   try{ mapTreeSidebarOpen=localStorage.getItem(MAP_TREE_SIDEBAR_OPEN_KEY)==='1'; }catch(e){ mapTreeSidebarOpen=false; }
   setMapTreeSidebarOpen(mapTreeSidebarOpen);
-  if(!mapPageStack.length){ mapTreeCollapsedPaths={}; }
+  // 保留路徑樹展開/收合狀態，避免每次重新載入都重置。
   on('mapTreeToggleBtn','click',()=>{
     const sidebar=g('mapTreeSidebar');
     const willOpen=!(sidebar&&sidebar.classList.contains('open'));
