@@ -1,8 +1,4 @@
 var appStateFacadeCalendar=(typeof window!=='undefined'&&window.appState)?window.appState:null;
-let calendarHolidayRefreshToken=0;
-const officialTwHolidaysByYear=(typeof window!=='undefined'&&(window.__klawsOfficialTwHolidaysByYear&&typeof window.__klawsOfficialTwHolidaysByYear==='object'))
-  ? window.__klawsOfficialTwHolidaysByYear
-  : ((typeof window!=='undefined') ? (window.__klawsOfficialTwHolidaysByYear={}) : {});
 const calendarEscapeHtml=((typeof window!=='undefined'&&window.KLawsSafeHtml&&typeof window.KLawsSafeHtml.escapeHtml==='function')
   ? window.KLawsSafeHtml.escapeHtml
   : ((typeof window!=='undefined'&&window.KLawsUtils&&typeof window.KLawsUtils.escapeHtml==='function')
@@ -69,17 +65,6 @@ function resolveCalendarCursorSafe(){
   window.calendarCursor=fallback;
   return fallback;
 }
-async function ensureOfficialTwHolidaysForCursor(){
-  const cursor=resolveCalendarCursorSafe();
-  const year=cursor.getFullYear();
-  if(Array.isArray(officialTwHolidaysByYear[year])) return officialTwHolidaysByYear[year];
-  const api=window.KLawsTwHolidays;
-  if(!api||typeof api.fetchOfficialTwHolidays!=='function'){ officialTwHolidaysByYear[year]=[]; return []; }
-  const data=await api.fetchOfficialTwHolidays(year);
-  officialTwHolidaysByYear[year]=Array.isArray(data)?data:[];
-  return officialTwHolidaysByYear[year];
-}
-
 function getDueTimeText(event){
   const api=window.KLawsCalendar;
   if(api&&typeof api.dueTimeText==='function'){
@@ -88,12 +73,7 @@ function getDueTimeText(event){
   return `${pad2(event?.dueHour || 0)}:${pad2(event?.dueMinute || 0)}`;
 }
 
-function getOfficialHolidayEventsForDate(dateKey){
-  const y=Number((dateKey||'').slice(0,4));
-  if(!Number.isFinite(y)) return [];
-  const list=Array.isArray(officialTwHolidaysByYear[y])?officialTwHolidaysByYear[y]:[];
-  return list.filter(e=>e.date===dateKey);
-}
+
 
 async function renderCalendar(){
   const grid=g('calendarGrid');
@@ -108,13 +88,6 @@ async function renderCalendar(){
     const prevDays=new Date(y,m,0).getDate();
     const todayKey=getCalendarDateKey(new Date())||'';
     const list=[];
-    const refreshToken=++calendarHolidayRefreshToken;
-    ensureOfficialTwHolidaysForCursor().then(()=>{
-      if(refreshToken!==calendarHolidayRefreshToken) return;
-      const currentCursor=resolveCalendarCursorSafe();
-      if(currentCursor.getFullYear()!==y||currentCursor.getMonth()!==m) return;
-      renderCalendar();
-    }).catch(()=>{});
     for(let i=0;i<42;i++){
       let dayNum=0,cellDate=null,muted=false;
       if(i<startOffset){ dayNum=prevDays-startOffset+i+1; cellDate=new Date(y,m-1,dayNum); muted=true; }
@@ -122,9 +95,8 @@ async function renderCalendar(){
       else { dayNum=i-startOffset+1; cellDate=new Date(y,m,dayNum); }
       const key=getCalendarDateKey(cellDate) || '--';
       const userItems=safeCalendarEvents.filter(e=>e.date===key);
-      const holidayItems=getOfficialHolidayEventsForDate(key);
-      const items=[...holidayItems,...userItems].slice(0,3);
-      list.push(`<div class="calendar-cell ${muted?'muted':''} ${key===todayKey?'today':''}" data-date="${key}"><div class="calendar-day">${dayNum}</div>${items.map(ev=>{const cls=ev.type==='reminder'?'reminder':(ev.type==='holiday'?'holiday':'');const icon=ev.type==='diary'?'📝':(ev.type==='holiday'?'🎌':'⏰');return `<span class="calendar-event-chip ${cls}">${icon} ${calendarEscapeHtml(ev.title||'未命名')}</span>`;}).join('')}</div>`);
+      const items=userItems.slice(0,3);
+      list.push(`<div class="calendar-cell ${muted?'muted':''} ${key===todayKey?'today':''}" data-date="${key}"><div class="calendar-day">${dayNum}</div>${items.map(ev=>{const cls=ev.type==='reminder'?'reminder':'';const icon=ev.type==='diary'?'📝':'⏰';return `<span class="calendar-event-chip ${cls}">${icon} ${calendarEscapeHtml(ev.title||'未命名')}</span>`;}).join('')}</div>`);
     }
     grid.innerHTML=list.join('');
     grid.querySelectorAll('.calendar-cell').forEach(cell=>cell.addEventListener('click',()=>toggleCalendarDayDetail(cell.dataset.date)));
@@ -138,7 +110,7 @@ function toggleCalendarDayDetail(dateKey){
   const box=g('calendarDayDetail');
   if(!box) return;
   const safeCalendarEvents=Array.isArray(calendarEvents)?calendarEvents:[];
-  const entries=[...getOfficialHolidayEventsForDate(dateKey),...safeCalendarEvents.filter(e=>e.date===dateKey)];
+  const entries=safeCalendarEvents.filter(e=>e.date===dateKey);
   if(!entries.length){
     openCalendarEventModal(dateKey);
     return;
@@ -147,7 +119,7 @@ function toggleCalendarDayDetail(dateKey){
   const safeDateLabel=dateKey&&dateKey!=='--'?dateKey:'--';
   try{
     box.innerHTML=`<div class="calendar-day-title">${safeDateLabel}（${entries.length} 筆）</div>`+entries.map(ev=>{
-      const typeLabel=ev.type==='diary'?'📝 日記':(ev.type==='holiday'?'🎌 官方節日':'⏰ 提醒（到期 '+getDueTimeText(ev)+'）');
+      const typeLabel=ev.type==='diary'?'📝 日記':'⏰ 提醒（到期 '+getDueTimeText(ev)+'）';
       const actionHtml=ev.readonly?'':`<div class=\"calendar-day-item-actions\"><button data-eid=\"${ev.id}\">編輯</button><button class=\"calendar-delete-btn\" data-delete-eid=\"${ev.id}\">刪除</button></div>`;
       return `<div class="calendar-day-item"><div class="calendar-day-item-head"><span class="calendar-day-item-type">${typeLabel}</span>${actionHtml}</div><div style="font-weight:700;margin-bottom:4px;">${calendarEscapeHtml(ev.title||'未命名')}</div><pre>${calendarEscapeHtml(ev.body||'（無內容）')}</pre></div>`;
     }).join('')+`<button class="tool-btn" id="calendarAddNewBtn">+ 新增</button>`;
