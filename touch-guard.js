@@ -32,7 +32,7 @@
       return !!(el&&el.closest('.tag-item-label'));
     };
     let lastTouchEndTs=0, lastTouchTs=0, lastTouchX=0, lastTouchY=0;
-    document.addEventListener('dblclick',e=>{ e.preventDefault(); },{capture:true,passive:false});
+    document.addEventListener('dblclick',e=>{ if(isInsideMapCanvas(e.target)) e.preventDefault(); },{capture:true,passive:false});
     document.addEventListener('wheel',e=>{ if(e.ctrlKey&&!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});
     ['gesturestart','gesturechange','gestureend'].forEach(evt=>{
       document.addEventListener(evt,e=>{ if(!isInsideMapCanvas(e.target)) e.preventDefault(); },{passive:false});

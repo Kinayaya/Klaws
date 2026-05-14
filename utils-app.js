@@ -38,6 +38,23 @@ window.KLawsDiagnostics = Object.freeze({
   hasDebugRuntime: () => !!window.__KLawsDebugRuntime,
   hasDebugToolkit: () => !!window.KLawsDebug
 });
+
+const isDebugErrorDetailEnabled=()=>{
+  try{
+    const query=window.location&&window.location.search?window.location.search:'';
+    if(query&&new URLSearchParams(query).get('debugErrors')==='1') return true;
+  }catch(_){}
+  try{ return localStorage.getItem('klaws_debug_errors')==='1'; }catch(_){ return false; }
+};
+const describeErrorLike=(raw)=>{
+  if(raw instanceof Error) return raw;
+  if(raw===null||raw===undefined) return new Error('Unknown error payload');
+  if(typeof raw==='object'){
+    try{ return new Error(JSON.stringify(raw)); }catch(_){ return new Error(String(raw)); }
+  }
+  return new Error(String(raw));
+};
+
 const safeEventHandler=(fn,label='event-handler')=>{
   if(typeof fn!=='function') return fn;
   return function wrappedEventHandler(...args){
@@ -45,7 +62,9 @@ const safeEventHandler=(fn,label='event-handler')=>{
       return fn.apply(this,args);
     }catch(err){
       if(debugRuntime) debugRuntime.reportError(label,err);
-      throw err;
+      if(isDebugErrorDetailEnabled()) throw err;
+      showToast('操作失敗，請稍後再試');
+      return null;
     }
   };
 };
@@ -88,15 +107,25 @@ function showActionToast(msg, undoFn=null){
 }
 
 window.addEventListener('error',evt=>{
+  const debugDetail=isDebugErrorDetailEnabled();
   if(window.KLawsDebug&&typeof window.KLawsDebug.shouldIgnoreRuntimeError==='function'&&window.KLawsDebug.shouldIgnoreRuntimeError({
     message:evt.message,
     filename:evt.filename
-  })) return;
-  if(debugRuntime) debugRuntime.reportError('window.error',evt.error||new Error(evt.message||'Unknown window error'));
+  },{allowMaskedDetails:debugDetail})) return;
+  const detailErr=describeErrorLike({
+    message:evt.message||'',
+    filename:evt.filename||'',
+    lineno:evt.lineno||0,
+    colno:evt.colno||0,
+    reason:evt.error&&evt.error.message?evt.error.message:''
+  });
+  if(debugRuntime) debugRuntime.reportError('window.error',evt.error||detailErr);
 });
 window.addEventListener('unhandledrejection',evt=>{
-  if(window.KLawsDebug&&typeof window.KLawsDebug.shouldIgnoreRuntimeError==='function'&&window.KLawsDebug.shouldIgnoreRuntimeError(evt.reason)) return;
-  if(debugRuntime) debugRuntime.reportError('window.unhandledrejection',evt.reason||new Error('Unhandled rejection'));
+  const debugDetail=isDebugErrorDetailEnabled();
+  if(window.KLawsDebug&&typeof window.KLawsDebug.shouldIgnoreRuntimeError==='function'&&window.KLawsDebug.shouldIgnoreRuntimeError(evt.reason,{allowMaskedDetails:debugDetail})) return;
+  const reason=evt.reason;
+  if(debugRuntime) debugRuntime.reportError('window.unhandledrejection',describeErrorLike(reason));
 });
 let hasShownSaveFailedToast=false;
 window.addEventListener('klaws:save-failed',()=>{
