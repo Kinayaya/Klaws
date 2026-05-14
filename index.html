@@ -215,10 +215,11 @@
       <button type="button" class="tool-btn" id="cloudLogoutBtn">登出雲端</button>
     </div>
     <div class="archive-empty" id="cloudSyncStatus">Google Drive：未登入｜最後 push：尚未上傳<br>Backend mirror：未設定 endpoint｜目前僅手動同步</div>
+    <div class="archive-empty" id="storageQuotaStatus">儲存用量：估算中...</div>
     <div class="archive-empty" id="storageCleanupStatus">儲存清理：尚未執行</div>
     <div class="archive-cols">
       <div class="archive-col">
-        <div class="archive-col-title">存檔快照（最多 30 筆）</div>
+        <div class="archive-col-title">存檔快照（最多 5 筆）</div>
         <div id="archiveList"></div>
       </div>
       <div class="archive-col">
@@ -233,7 +234,6 @@
   <div id="settingsBox">
     <div class="ph"><span class="ph-title">設定</span><button class="pcls" id="settingsCloseBtn">&#215;</button></div>
     <div class="settings-grid">
-      <button class="tool-btn settings-item-btn" id="settingsManageBtn">管理</button>
       <button class="tool-btn settings-item-btn" id="settingsArchiveBtn">儲存回收區</button>
       <button class="tool-btn settings-item-btn" id="settingsMoreBtn">更多</button>
     </div>
