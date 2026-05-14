@@ -6,7 +6,6 @@
     onRef('logoSettingsBtn','click',()=>gRef('settingsModal')?.classList.add('open'));
     gRef('settingsModal')?.addEventListener('click',e=>{ if(e.target?.id==='settingsModal') closeSettings(); });
     onRef('settingsCloseBtn','click',closeSettings);
-    onRef('settingsManageBtn','click',()=>{closeSettings();global.openPathMgr();});
     onRef('settingsArchiveBtn','click',()=>{closeSettings();global.manageArchives();});
     onRef('settingsMoreBtn','click',()=>{closeSettings();gRef('assistToolsModal')?.classList.add('open');});
     onRef('assistToolsBtn','click',()=>gRef('assistToolsModal')?.classList.add('open'));

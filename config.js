@@ -14,7 +14,7 @@ const DEFAULTS = {
 };
 const LINK_COLOR = '#6F86A0', SKEY = 'legal_notes_v4', PAGE_SIZE = 30;
 const ARCHIVES_KEY = 'klaws_archives_v1';
-const ARCHIVE_SNAPSHOT_LIMIT = 30;
+const ARCHIVE_SNAPSHOT_LIMIT = 5;
 const RECYCLE_BIN_KEY = 'klaws_recycle_bin_v1';
 const RECYCLE_GROUP_WINDOW_MS = 30*60*1000;
 const SCOPE_LINKED_TOGGLE_KEY = 'klaws_scope_linked_toggle_v1';
