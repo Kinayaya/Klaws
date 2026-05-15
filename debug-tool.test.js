@@ -54,14 +54,8 @@ test('formatErrorDetail handles non-Error circular payload safely', ()=>{
   assert.match(txt,/\[init-load-error\] Error:/);
 });
 
-test('shouldIgnoreRuntimeError filters known eruda init warning', ()=>{
-  assert.equal(shouldIgnoreRuntimeError({message:'[Eruda] Please call "eruda.init()" first'}),true);
-});
-
-test('shouldIgnoreRuntimeError filters cross-origin masked script error noise', ()=>{
-  assert.equal(shouldIgnoreRuntimeError({message:'Script error.',filename:'webkit-masked-url://hidden/:27'}),true);
-});
-
-test('shouldIgnoreRuntimeError filters null unhandled rejection noise', ()=>{
-  assert.equal(shouldIgnoreRuntimeError(null),true);
+test('shouldIgnoreRuntimeError never filters runtime errors', ()=>{
+  assert.equal(shouldIgnoreRuntimeError({message:'[Eruda] Please call "eruda.init()" first'}),false);
+  assert.equal(shouldIgnoreRuntimeError({message:'Script error.',filename:'webkit-masked-url://hidden/:27'}),false);
+  assert.equal(shouldIgnoreRuntimeError(null),false);
 });
