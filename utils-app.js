@@ -107,11 +107,6 @@ function showActionToast(msg, undoFn=null){
 }
 
 window.addEventListener('error',evt=>{
-  const debugDetail=isDebugErrorDetailEnabled();
-  if(window.KLawsDebug&&typeof window.KLawsDebug.shouldIgnoreRuntimeError==='function'&&window.KLawsDebug.shouldIgnoreRuntimeError({
-    message:evt.message,
-    filename:evt.filename
-  },{allowMaskedDetails:debugDetail})) return;
   const detailErr=describeErrorLike({
     message:evt.message||'',
     filename:evt.filename||'',
@@ -122,8 +117,6 @@ window.addEventListener('error',evt=>{
   if(debugRuntime) debugRuntime.reportError('window.error',evt.error||detailErr);
 });
 window.addEventListener('unhandledrejection',evt=>{
-  const debugDetail=isDebugErrorDetailEnabled();
-  if(window.KLawsDebug&&typeof window.KLawsDebug.shouldIgnoreRuntimeError==='function'&&window.KLawsDebug.shouldIgnoreRuntimeError(evt.reason,{allowMaskedDetails:debugDetail})) return;
   const reason=evt.reason;
   if(debugRuntime) debugRuntime.reportError('window.unhandledrejection',describeErrorLike(reason));
 });
